@@ -1,0 +1,27 @@
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineRun
+metadata:
+  name: toolchain-cd-pipeline-run-321
+  namespace: toolchain-pipeline-cd
+spec:
+  pipelineRef:
+    name: build-csv
+  params:
+  - name: repo-name
+    value: host-operator
+  - name: git-revision
+    value: ee5c9f6a58f2f6aae47f5208cfd9bacd376427f3
+  - name: repo-path
+    value: 'go/src/github.com/codeready-toolchain/host-operator'
+  resources:
+  - name: project-repo
+    resourceRef:
+      name: repo-host-operator
+  - name: tools-image
+    resourceRef:
+      name: tools-host-operator
+  - name: binary-image
+    resourceRef:
+      name: binary-image-host-operator
+  serviceAccountName: image-pusher

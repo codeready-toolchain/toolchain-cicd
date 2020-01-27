@@ -1,0 +1,176 @@
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: tekton-triggers-role
+rules:
+- apiGroups:
+  - tekton.dev
+  resources:
+  - eventlisteners
+  - triggerbindings
+  - triggertemplates
+  - pipelineresources
+  verbs:
+  - get
+- apiGroups:
+  - tekton.dev
+  resources:
+  - pipelineruns
+  - pipelineresources
+  verbs:
+  - create
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tekton-triggers-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tekton-triggers-rolebinding
+subjects:
+- kind: ServiceAccount
+  name: tekton-triggers-sa
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tekton-triggers-role
+
+---
+apiVersion: tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: toolchain-pipeline-cd-triggertemplate
+  namespace: toolchain-pipeline-cd
+spec:
+  params:
+  - name: git-revision
+    description: The git revision
+    default: master
+  - name: repo-name
+    description: The repository name
+  - name: full-repo-name
+    description: The full repository name
+  - name: clone-url
+    description: The git clone url of the repo
+  - name: namespace
+    description: The namespace to create the resources
+
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1alpha1
+    kind: PipelineResource
+    metadata:
+      name: binary-image-$(params.repo-name)-$(uid)
+      namespace: toolchain-pipeline-cd
+    spec:
+      type: image
+      params:
+      - name: url
+        value: quay.io/matousjobanek/$(params.repo-name)
+#        value: quay.io/$(params.full-repo-name)
+
+  - apiVersion: tekton.dev/v1alpha1
+    kind: PipelineResource
+    metadata:
+      name: repo-$(params.repo-name)-$(uid)
+      namespace: toolchain-pipeline-cd
+    spec:
+      type: git
+      params:
+      - name: url
+        value: $(params.clone-url)
+      - name: depth
+        value: '0'
+
+  - apiVersion: tekton.dev/v1alpha1
+    kind: PipelineResource
+    metadata:
+      name: tools-image-$(params.repo-name)-$(uid)
+      namespace: toolchain-pipeline-cd
+    spec:
+      type: image
+      params:
+      - name: url
+        value: quay.io/matousjobanek/$(params.repo-name)-tools:latest
+#        value: quay.io/$(params.full-repo-name)-tools:latest
+
+  - apiVersion: tekton.dev/v1alpha1
+    kind: PipelineRun
+    metadata:
+      name: toolchain-cd-pipeline-run-$(uid)
+      namespace: $(params.namespace)
+    spec:
+      pipelineRef:
+        name: build-csv
+      params:
+      - name: repo-name
+        value: $(params.repo-name)
+      - name: git-revision
+        value: $(params.git-revision)
+      - name: repo-path
+        value: 'go/src/github.com/codeready-toolchain/$(params.repo-name)'
+      - name: quay-namespace
+        value:
+      resources:
+      - name: project-repo
+        resourceRef:
+          name: repo-$(params.repo-name)-$(uid)
+      - name: tools-image
+        resourceRef:
+          name: tools-image-$(params.repo-name)-$(uid)
+      - name: binary-image
+        resourceRef:
+          name: binary-image-$(params.repo-name)-$(uid)
+      - name: toolchain-cd-repo
+        resourceRef:
+          name: toolchain-cd-repo
+      - name: buildah-short-sha-image
+        resourceRef:
+          name: buildah-short-sha-image
+      serviceAccountName: image-pusher
+---
+apiVersion: tekton.dev/v1alpha1
+kind: TriggerBinding
+metadata:
+  name: toolchain-pipeline-cd-pipelinebinding
+  namespace: toolchain-pipeline-cd
+spec:
+  params:
+  - name: git-revision
+    value: "$(body.head_commit.id)"
+  - name: namespace
+    value: toolchain-pipeline-cd
+  - name: repo-name
+    value: "$(body.repository.name)"
+  - name: full-repo-name
+    value: "$(body.repository.full_name)"
+  - name: clone-url
+    value: "$(body.repository.clone_url)"
+---
+apiVersion: tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: toolchain-cd-listener
+  namespace: toolchain-pipeline-cd
+spec:
+  serviceAccountName: tekton-triggers-sa
+  triggers:
+  - binding:
+      name: toolchain-pipeline-cd-pipelinebinding
+    template:
+      name: toolchain-pipeline-cd-triggertemplate
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: toolchain-cd-eventlistener
+  namespace: toolchain-pipeline-cd
+spec:
+  port:
+    targetPort: 8080
+  to:
+    kind: Service
+    name: el-toolchain-cd-listener
+    weight: 100

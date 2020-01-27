@@ -1,0 +1,17 @@
+#!/bin/bash
+
+echo "Used params: $@"
+
+if [[ "$1" == "bud" ]]; then
+    ARGS=($@)
+    COMMAND="buildah bud -t $2:$(head -c 7 <<< $3) ${ARGS[@]:3}"
+    echo ${COMMAND}
+    ${COMMAND}
+fi
+
+if [[ "$1" == "push" ]]; then
+    ARGS=($@)
+    COMMAND="buildah push ${ARGS[@]:3} $2:$(head -c 7 <<< $3) docker://$2:$(head -c 7 <<< $3)"
+    echo ${COMMAND}
+    ${COMMAND}
+fi
