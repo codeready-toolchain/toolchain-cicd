@@ -243,6 +243,7 @@ spec:
     description: The git revision
   - name: quay-namespace
     description: The quay namespace CSV should be pushed to
+    default: codeready-toolchain
   resources:
   - name: project-repo
     type: git

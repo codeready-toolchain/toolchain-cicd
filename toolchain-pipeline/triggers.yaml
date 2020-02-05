@@ -15,15 +15,15 @@ spec:
     description: The full repository name
   - name: clone-url
     description: The git clone url of the repo
-  - name: namespace
-    description: The namespace to create the resources
+#  - name: namespace
+#    description: The namespace to create the resources
 
   resourcetemplates:
   - apiVersion: tekton.dev/v1alpha1
     kind: PipelineResource
     metadata:
       name: binary-image-$(params.repo-name)-$(uid)
-    #  namespace: toolchain-pipeline-cd
+#      namespace: $(params.namespace)
     spec:
       type: image
       params:
@@ -35,7 +35,7 @@ spec:
     kind: PipelineResource
     metadata:
       name: repo-$(params.repo-name)-$(uid)
-    #  namespace: toolchain-pipeline-cd
+#      namespace: $(params.namespace)
     spec:
       type: git
       params:
@@ -48,7 +48,7 @@ spec:
     kind: PipelineResource
     metadata:
       name: tools-image-$(params.repo-name)-$(uid)
-    #  namespace: toolchain-pipeline-cd
+#      namespace: $(params.namespace)
     spec:
       type: image
       params:
@@ -60,7 +60,7 @@ spec:
     kind: PipelineRun
     metadata:
       name: toolchain-cd-pipeline-run-$(uid)
-      namespace: $(params.namespace)
+#      namespace: $(params.namespace)
     spec:
       pipelineRef:
         name: build-csv
@@ -72,7 +72,7 @@ spec:
       - name: repo-path
         value: 'go/src/github.com/codeready-toolchain/$(params.repo-name)'
       - name: quay-namespace
-        value:
+        value: matousjobanek
       resources:
       - name: project-repo
         resourceRef:
@@ -100,8 +100,8 @@ spec:
   params:
   - name: git-revision
     value: "$(body.head_commit.id)"
-  - name: namespace
-    value: toolchain-pipeline-cd
+#  - name: namespace
+#    value: toolchain-pipeline-cd
   - name: repo-name
     value: "$(body.repository.name)"
   - name: full-repo-name
