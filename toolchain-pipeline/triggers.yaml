@@ -1,49 +1,9 @@
 ---
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: tekton-triggers-role
-rules:
-- apiGroups:
-  - tekton.dev
-  resources:
-  - eventlisteners
-  - triggerbindings
-  - triggertemplates
-  - pipelineresources
-  verbs:
-  - get
-- apiGroups:
-  - tekton.dev
-  resources:
-  - pipelineruns
-  - pipelineresources
-  verbs:
-  - create
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: tekton-triggers-sa
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: tekton-triggers-rolebinding
-subjects:
-- kind: ServiceAccount
-  name: tekton-triggers-sa
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: tekton-triggers-role
-
----
 apiVersion: tekton.dev/v1alpha1
 kind: TriggerTemplate
 metadata:
   name: toolchain-pipeline-cd-triggertemplate
-  namespace: toolchain-pipeline-cd
+#  namespace: toolchain-pipeline-cd
 spec:
   params:
   - name: git-revision
@@ -63,7 +23,7 @@ spec:
     kind: PipelineResource
     metadata:
       name: binary-image-$(params.repo-name)-$(uid)
-      namespace: toolchain-pipeline-cd
+    #  namespace: toolchain-pipeline-cd
     spec:
       type: image
       params:
@@ -75,7 +35,7 @@ spec:
     kind: PipelineResource
     metadata:
       name: repo-$(params.repo-name)-$(uid)
-      namespace: toolchain-pipeline-cd
+    #  namespace: toolchain-pipeline-cd
     spec:
       type: git
       params:
@@ -88,7 +48,7 @@ spec:
     kind: PipelineResource
     metadata:
       name: tools-image-$(params.repo-name)-$(uid)
-      namespace: toolchain-pipeline-cd
+    #  namespace: toolchain-pipeline-cd
     spec:
       type: image
       params:
@@ -135,7 +95,7 @@ apiVersion: tekton.dev/v1alpha1
 kind: TriggerBinding
 metadata:
   name: toolchain-pipeline-cd-pipelinebinding
-  namespace: toolchain-pipeline-cd
+#  namespace: toolchain-pipeline-cd
 spec:
   params:
   - name: git-revision
@@ -148,29 +108,3 @@ spec:
     value: "$(body.repository.full_name)"
   - name: clone-url
     value: "$(body.repository.clone_url)"
----
-apiVersion: tekton.dev/v1alpha1
-kind: EventListener
-metadata:
-  name: toolchain-cd-listener
-  namespace: toolchain-pipeline-cd
-spec:
-  serviceAccountName: tekton-triggers-sa
-  triggers:
-  - binding:
-      name: toolchain-pipeline-cd-pipelinebinding
-    template:
-      name: toolchain-pipeline-cd-triggertemplate
----
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  name: toolchain-cd-eventlistener
-  namespace: toolchain-pipeline-cd
-spec:
-  port:
-    targetPort: 8080
-  to:
-    kind: Service
-    name: el-toolchain-cd-listener
-    weight: 100
