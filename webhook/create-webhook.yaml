@@ -59,81 +59,81 @@ spec:
         METHOD="POST"
       fi
       curl -v -d "{\"name\": \"web\",\"active\": true,\"events\": $(inputs.params.WebhookEvents),\"config\": {\"url\": \"$(inputs.params.ExternalDomain)\",\"content_type\": \"json\",\"insecure_ssl\": \"1\" ,\"secret\": \"$(cat /var/secret/$(inputs.params.GitHubSecretStringKey))\"}}" -X ${METHOD} -u $(cat /var/secret/$(inputs.params.GitHubUserKey)):$(cat /var/secret/$(inputs.params.GitHubAccessTokenKey)) -L https://api.github.com/repos/$(inputs.params.GitHubOrg)/$(inputs.params.GitHubRepo)/hooks${WEBHOOK_ID_SUFFIX}
----
-apiVersion: tekton.dev/v1alpha1
-kind: TaskRun
-metadata:
-  name: create-toolchain-cd-webhook-run-$(uid)
-spec:
-  taskRef:
-    name: create-webhook
-  inputs:
-    params:
-    - name: GitHubOrg
-      value: "matousjobanek"
-    - name: GitHubRepo
-      value: "toolchain-cd"
-    - name: GitHubSecretName
-      value: webhook-secret
-    - name: GitHubAccessTokenKey
-      value: token
-    - name: GitHubUserKey
-      value: user
-    - name: GitHubSecretStringKey
-      value: secret
-    - name: ExternalDomain
-      value: http://toolchain-cd-sync-eventlistener-toolchain-cd.apps.alkazako-20200212.devcluster.openshift.com
-  timeout: 1000s
-  serviceAccountName: tekton-triggers-createwebhook
----
-apiVersion: tekton.dev/v1alpha1
-kind: TaskRun
-metadata:
-  name: create-host-operator-webhook-run-$(uid)
-spec:
-  taskRef:
-    name: create-webhook
-  inputs:
-    params:
-    - name: GitHubOrg
-      value: "matousjobanek"
-    - name: GitHubRepo
-      value: "host-operator"
-    - name: GitHubSecretName
-      value: webhook-secret
-    - name: GitHubAccessTokenKey
-      value: token
-    - name: GitHubUserKey
-      value: user
-    - name: GitHubSecretStringKey
-      value: secret
-    - name: ExternalDomain
-      value: http://toolchain-cd-eventlistener-toolchain-cd.apps.alkazako-20200212.devcluster.openshift.com
-  timeout: 1000s
-  serviceAccountName: tekton-triggers-createwebhook
----
-apiVersion: tekton.dev/v1alpha1
-kind: TaskRun
-metadata:
-  name: create-member-operator-webhook-run-$(uid)
-spec:
-  taskRef:
-    name: create-webhook
-  inputs:
-    params:
-    - name: GitHubOrg
-      value: "matousjobanek"
-    - name: GitHubRepo
-      value: "member-operator"
-    - name: GitHubSecretName
-      value: webhook-secret
-    - name: GitHubAccessTokenKey
-      value: token
-    - name: GitHubUserKey
-      value: user
-    - name: GitHubSecretStringKey
-      value: secret
-    - name: ExternalDomain
-      value: http://toolchain-cd-eventlistener-toolchain-cd.apps.alkazako-20200212.devcluster.openshift.com
-  timeout: 1000s
-  serviceAccountName: tekton-triggers-createwebhook
+#---
+#apiVersion: tekton.dev/v1alpha1
+#kind: TaskRun
+#metadata:
+#  name: create-toolchain-cd-webhook-run-$(uid)
+#spec:
+#  taskRef:
+#    name: create-webhook
+#  inputs:
+#    params:
+#    - name: GitHubOrg
+#      value: "matousjobanek"
+#    - name: GitHubRepo
+#      value: "toolchain-cd"
+#    - name: GitHubSecretName
+#      value: webhook-secret
+#    - name: GitHubAccessTokenKey
+#      value: token
+#    - name: GitHubUserKey
+#      value: user
+#    - name: GitHubSecretStringKey
+#      value: secret
+#    - name: ExternalDomain
+#      value: http://toolchain-cd-sync-eventlistener-toolchain-cd.apps.alkazako-20200212.devcluster.openshift.com
+#  timeout: 1000s
+#  serviceAccountName: tekton-triggers-createwebhook
+#---
+#apiVersion: tekton.dev/v1alpha1
+#kind: TaskRun
+#metadata:
+#  name: create-host-operator-webhook-run-$(uid)
+#spec:
+#  taskRef:
+#    name: create-webhook
+#  inputs:
+#    params:
+#    - name: GitHubOrg
+#      value: "matousjobanek"
+#    - name: GitHubRepo
+#      value: "host-operator"
+#    - name: GitHubSecretName
+#      value: webhook-secret
+#    - name: GitHubAccessTokenKey
+#      value: token
+#    - name: GitHubUserKey
+#      value: user
+#    - name: GitHubSecretStringKey
+#      value: secret
+#    - name: ExternalDomain
+#      value: http://toolchain-cd-eventlistener-toolchain-cd.apps.alkazako-20200212.devcluster.openshift.com
+#  timeout: 1000s
+#  serviceAccountName: tekton-triggers-createwebhook
+#---
+#apiVersion: tekton.dev/v1alpha1
+#kind: TaskRun
+#metadata:
+#  name: create-member-operator-webhook-run-$(uid)
+#spec:
+#  taskRef:
+#    name: create-webhook
+#  inputs:
+#    params:
+#    - name: GitHubOrg
+#      value: "matousjobanek"
+#    - name: GitHubRepo
+#      value: "member-operator"
+#    - name: GitHubSecretName
+#      value: webhook-secret
+#    - name: GitHubAccessTokenKey
+#      value: token
+#    - name: GitHubUserKey
+#      value: user
+#    - name: GitHubSecretStringKey
+#      value: secret
+#    - name: ExternalDomain
+#      value: http://toolchain-cd-eventlistener-toolchain-cd.apps.alkazako-20200212.devcluster.openshift.com
+#  timeout: 1000s
+#  serviceAccountName: tekton-triggers-createwebhook
