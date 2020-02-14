@@ -52,3 +52,24 @@ spec:
               value: $(params.gitref)
             - name: url
               value: $(params.gitrepositoryurl)
+  - apiVersion: tekton.dev/v1alpha1
+    kind: TaskRun
+    metadata:
+      name: update-from-master-webhooks-$(uid)
+    spec:
+      serviceAccountName: toolchain-cd-sync-sa
+      taskRef:
+        name: toolchain-cd-sync-task
+      inputs:
+        params:
+        - name: PATHTODEPLOYMENT
+          value: webhook
+        resources:
+        - name: source
+          resourceSpec:
+            type: git
+            params:
+            - name: revision
+              value: $(params.gitref)
+            - name: url
+              value: $(params.gitrepositoryurl)
