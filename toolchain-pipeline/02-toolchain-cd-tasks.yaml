@@ -1,39 +1,8 @@
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: image-pusher
-#  namespace: toolchain-pipeline-cd
-secrets:
-- name: matousjobanek
----
-apiVersion: tekton.dev/v1alpha1
-kind: PipelineResource
-metadata:
-  name: buildah-short-sha-image
-#  namespace: toolchain-pipeline-cd
-spec:
-  type: image
-  params:
-  - name: url
-    value: quay.io/matousjobanek/buildah-short-sha:0.1
----
-apiVersion: tekton.dev/v1alpha1
-kind: PipelineResource
-metadata:
-  name: toolchain-cd-repo
-#  namespace: toolchain-pipeline-cd
-spec:
-  type: git
-  params:
-  - name: url
-    value: https://github.com/MatousJobanek/toolchain-cd.git
----
 apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
   name: build-buildah-short-sha-image
-#  namespace: toolchain-pipeline-cd
 spec:
   inputs:
     resources:
@@ -79,7 +48,6 @@ apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
   name: build-docker-tools-image
-#  namespace: toolchain-pipeline-cd
 spec:
   inputs:
     resources:
@@ -127,7 +95,6 @@ apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
   name: build-project
-#  namespace: toolchain-pipeline-cd
 spec:
   inputs:
     resources:
@@ -189,7 +156,6 @@ apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
   name: generate-and-push-csv
-#  namespace: toolchain-pipeline-cd
 spec:
   inputs:
     resources:
@@ -229,95 +195,3 @@ spec:
   volumes:
   - name: varlibcontainers
     emptyDir: {}
----
-apiVersion: tekton.dev/v1alpha1
-kind: Pipeline
-metadata:
-  name: build-csv
-#  namespace: toolchain-pipeline-cd
-spec:
-  params:
-  - name: repo-path
-    description: Path to the repo
-  - name: git-revision
-    description: The git revision
-  - name: quay-namespace
-    description: The quay namespace CSV should be pushed to
-    default: codeready-toolchain
-  resources:
-  - name: project-repo
-    type: git
-  - name: tools-image
-    type: image
-  - name: binary-image
-    type: image
-  - name: buildah-short-sha-image
-    type: image
-  - name: toolchain-cd-repo
-    type: git
-
-  tasks:
-  - name: build-tools-image
-    taskRef:
-      name: build-docker-tools-image
-    params:
-    - name: repo-path
-      value: $(params.repo-path)
-    resources:
-      inputs:
-      - name: project-repo
-        resource: project-repo
-      outputs:
-      - name: tools-image
-        resource: tools-image
-
-  - name: build-buildah-short-sha-image
-    taskRef:
-      name: build-buildah-short-sha-image
-    resources:
-      inputs:
-      - name: toolchain-cd-repo
-        resource: toolchain-cd-repo
-      outputs:
-      - name: buildah-short-sha-image
-        resource: buildah-short-sha-image
-
-  - name: build-project
-    taskRef:
-      name: build-project
-    params:
-    - name: repo-path
-      value: $(params.repo-path)
-    - name: git-revision
-      value: $(params.git-revision)
-    resources:
-      inputs:
-      - name: project-repo
-        resource: project-repo
-      - name: tools-image
-        resource: tools-image
-      - name: buildah-short-sha-image
-        resource: buildah-short-sha-image
-      outputs:
-      - name: binary-image
-        resource: binary-image
-    runAfter:
-    - build-tools-image
-    - build-buildah-short-sha-image
-
-  - name: generate-and-push-csv
-    taskRef:
-      name: generate-and-push-csv
-    params:
-    - name: repo-path
-      value: $(params.repo-path)
-    - name: quay-namespace
-      value: $(params.quay-namespace)
-    resources:
-      inputs:
-      - name: project-repo
-        resource: project-repo
-      - name: tools-image
-        resource: tools-image
-    runAfter:
-    - build-project

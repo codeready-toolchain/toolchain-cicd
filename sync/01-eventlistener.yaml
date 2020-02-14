@@ -1,0 +1,25 @@
+---
+apiVersion: tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: toolchain-cd-sync-listener
+spec:
+  serviceAccountName: toolchain-cd-sync-sa
+  triggers:
+  - name: toolchain-cd-sync-deploy-from-master
+    binding:
+      name: update-from-master-binding
+    template:
+      name: update-from-master-template
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: toolchain-cd-sync-eventlistener
+spec:
+  port:
+    targetPort: 8080
+  to:
+    kind: Service
+    name: el-toolchain-cd-sync-listener
+    weight: 100

@@ -1,0 +1,54 @@
+apiVersion: tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: update-from-master-template
+spec:
+  params:
+  - name: gitref
+    description: The git revision
+    default: master
+  - name: gitrepositoryurl
+    description: The git repository url
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1alpha1
+    kind: TaskRun
+    metadata:
+      name: update-from-master-sync-$(uid)
+    spec:
+      serviceAccountName: toolchain-cd-sync-sa
+      taskRef:
+        name: toolchain-cd-sync-task
+      inputs:
+        params:
+        - name: PATHTODEPLOYMENT
+          value: sync
+        resources:
+        - name: source
+          resourceSpec:
+            type: git
+            params:
+            - name: revision
+              value: $(params.gitref)
+            - name: url
+              value: $(params.gitrepositoryurl)
+  - apiVersion: tekton.dev/v1alpha1
+    kind: TaskRun
+    metadata:
+      name: update-from-master-toolchain-pipeline-$(uid)
+    spec:
+      serviceAccountName: toolchain-cd-sync-sa
+      taskRef:
+        name: toolchain-cd-sync-task
+      inputs:
+        params:
+        - name: PATHTODEPLOYMENT
+          value: toolchain-pipeline
+        resources:
+        - name: source
+          resourceSpec:
+            type: git
+            params:
+            - name: revision
+              value: $(params.gitref)
+            - name: url
+              value: $(params.gitrepositoryurl)

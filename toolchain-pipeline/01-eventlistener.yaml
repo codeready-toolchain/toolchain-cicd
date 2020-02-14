@@ -3,20 +3,19 @@ apiVersion: tekton.dev/v1alpha1
 kind: EventListener
 metadata:
   name: toolchain-cd-listener
-#  namespace: toolchain-pipeline-cd
 spec:
   serviceAccountName: tekton-triggers-sa
   triggers:
-  - binding:
-      name: toolchain-pipeline-cd-pipelinebinding
+  - name: toolchain-cd-pipeline
+    binding:
+      name: toolchain-cd-pipeline-binding
     template:
-      name: toolchain-pipeline-cd-triggertemplate
+      name: toolchain-cd-pipeline-template
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
   name: toolchain-cd-eventlistener
-#  namespace: toolchain-pipeline-cd
 spec:
   port:
     targetPort: 8080
