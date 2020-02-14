@@ -31,6 +31,9 @@ spec:
               value: $(params.gitref)
             - name: url
               value: $(params.gitrepositoryurl)
+
+#  todo - use as pipelinerun - both of them to be able to update steps/tasks before upding the toolchain-pipeline resources
+
   - apiVersion: tekton.dev/v1alpha1
     kind: TaskRun
     metadata:

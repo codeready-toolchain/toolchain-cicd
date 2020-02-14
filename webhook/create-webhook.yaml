@@ -63,7 +63,7 @@ spec:
 apiVersion: tekton.dev/v1alpha1
 kind: TaskRun
 metadata:
-  generateName: create-toolchain-cd-webhook-run
+  name: create-toolchain-cd-webhook-run-$(uid)
 spec:
   taskRef:
     name: create-webhook
@@ -89,7 +89,7 @@ spec:
 apiVersion: tekton.dev/v1alpha1
 kind: TaskRun
 metadata:
-  generateName: create-host-operator-webhook-run
+  name: create-host-operator-webhook-run-$(uid)
 spec:
   taskRef:
     name: create-webhook
@@ -115,7 +115,7 @@ spec:
 apiVersion: tekton.dev/v1alpha1
 kind: TaskRun
 metadata:
-  generateName: create-member-operator-webhook-run
+  name: create-member-operator-webhook-run-$(uid)
 spec:
   taskRef:
     name: create-webhook
