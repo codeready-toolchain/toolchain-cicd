@@ -1,0 +1,59 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Pipeline
+metadata:
+  name: update-config-from-master
+spec:
+  resources:
+  - name: source-repo
+    type: git
+
+  tasks:
+  - name: apply-sync-directory
+    taskRef:
+      name: apply-resources-task
+    resources:
+      inputs:
+      - name: source
+        resource: source-repo
+    params:
+    - name: PATHTODEPLOYMENT
+      value: sync
+
+  - name: apply-toolchain-pipeline-directory
+    taskRef:
+      name: apply-resources-task
+    resources:
+      inputs:
+      - name: source
+        resource: source-repo
+    params:
+    - name: PATHTODEPLOYMENT
+      value: toolchain-pipeline
+    runAfter:
+    - apply-sync-directory
+
+  - name: apply-webhook-directory
+    taskRef:
+      name: apply-resources-task
+    resources:
+      inputs:
+      - name: source
+        resource: source-repo
+    params:
+    - name: PATHTODEPLOYMENT
+      value: webhook
+    runAfter:
+    - apply-sync-directory
+
+  - name: ensure-webhooks
+    taskRef:
+      name: create-resources-task
+    resources:
+      inputs:
+      - name: source
+        resource: source-repo
+    params:
+    - name: PATHTODEPLOYMENT
+      value: webhook/pipeline-run
+    runAfter:
+    - apply-webhook-directory

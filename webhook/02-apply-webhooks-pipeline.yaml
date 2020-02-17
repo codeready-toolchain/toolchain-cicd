@@ -1,0 +1,69 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Pipeline
+metadata:
+  name: apply-webhooks
+spec:
+  params:
+    - name: external-sync-domain
+      description: The external domain for the sync EventListener
+    - name: external-toolchain-cd-domain
+      description: The external domain for the toolchain-cd EventListener
+
+  tasks:
+  - name: apply-toolchain-cd-webhook
+    taskRef:
+      name: create-or-update-webhook
+    params:
+    - name: GitHubOrg
+      value: "matousjobanek"
+    - name: GitHubRepo
+      value: "toolchain-cd"
+    - name: GitHubSecretName
+      value: webhook-secret
+    - name: GitHubAccessTokenKey
+      value: token
+    - name: GitHubUserKey
+      value: user
+    - name: GitHubSecretStringKey
+      value: secret
+    - name: ExternalDomain
+      value: $(params.external-sync-domain)
+
+  - name: apply-host-operator-webhook
+    taskRef:
+      name: create-or-update-webhook
+    params:
+    - name: GitHubOrg
+      value: "matousjobanek"
+    - name: GitHubRepo
+      value: "host-operator"
+    - name: GitHubSecretName
+      value: webhook-secret
+    - name: GitHubAccessTokenKey
+      value: token
+    - name: GitHubUserKey
+      value: user
+    - name: GitHubSecretStringKey
+      value: secret
+    - name: ExternalDomain
+      value: $(params.external-toolchain-cd-domain)
+
+#  - name: apply-member-operator-webhook
+#    taskRef:
+#      name: create-or-update-webhook
+#    params:
+#    - name: GitHubOrg
+#      value: "matousjobanek"
+#    - name: GitHubRepo
+#      value: "member-operator"
+#    - name: GitHubSecretName
+#      value: webhook-secret
+#    - name: GitHubAccessTokenKey
+#      value: token
+#    - name: GitHubUserKey
+#      value: user
+#    - name: GitHubSecretStringKey
+#      value: secret
+#    - name: ExternalDomain
+#      value: $(params.external-toolchain-cd-domain)
+

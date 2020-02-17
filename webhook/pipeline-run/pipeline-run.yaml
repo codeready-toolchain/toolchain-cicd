@@ -1,0 +1,14 @@
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineRun
+metadata:
+  generateName: apply-webhooks-
+spec:
+  pipelineRef:
+    name: apply-webhooks
+  params:
+  - name: external-sync-domain
+    value: http://toolchain-cd-sync-eventlistener-toolchain-cd.apps.mjobanek-17-02.devcluster.openshift.com/
+  - name: external-toolchain-cd-domain
+    value: http://toolchain-cd-eventlistener-toolchain-cd.apps.mjobanek-17-02.devcluster.openshift.com/
+  serviceAccountName: tekton-triggers-createwebhook
