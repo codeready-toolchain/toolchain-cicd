@@ -48,22 +48,22 @@ spec:
     - name: ExternalDomain
       value: $(params.external-toolchain-cd-domain)
 
-#  - name: apply-member-operator-webhook
-#    taskRef:
-#      name: create-or-update-webhook
-#    params:
-#    - name: GitHubOrg
-#      value: "matousjobanek"
-#    - name: GitHubRepo
-#      value: "member-operator"
-#    - name: GitHubSecretName
-#      value: webhook-secret
-#    - name: GitHubAccessTokenKey
-#      value: token
-#    - name: GitHubUserKey
-#      value: user
-#    - name: GitHubSecretStringKey
-#      value: secret
-#    - name: ExternalDomain
-#      value: $(params.external-toolchain-cd-domain)
+  - name: apply-member-operator-webhook
+    taskRef:
+      name: create-or-update-webhook
+    params:
+    - name: GitHubOrg
+      value: "matousjobanek"
+    - name: GitHubRepo
+      value: "member-operator"
+    - name: GitHubSecretName
+      value: webhook-secret
+    - name: GitHubAccessTokenKey
+      value: token
+    - name: GitHubUserKey
+      value: user
+    - name: GitHubSecretStringKey
+      value: secret
+    - name: ExternalDomain
+      value: $(params.external-toolchain-cd-domain)
 
