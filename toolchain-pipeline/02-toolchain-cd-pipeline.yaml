@@ -24,7 +24,7 @@ spec:
   type: git
   params:
   - name: url
-    value: https://github.com/MatousJobanek/toolchain-cd.git
+    value: https://github.com/matousjobanek/toolchain-cd.git
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: Pipeline

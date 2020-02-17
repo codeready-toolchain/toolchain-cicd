@@ -8,7 +8,7 @@ spec:
     name: apply-webhooks
   params:
   - name: external-sync-domain
-    value: http://toolchain-cd-sync-eventlistener-toolchain-cd.apps.mjobanek-17-02.devcluster.openshift.com/
+    value: http://toolchain-cd-sync-eventlistener-mjobanek-code.apps.member.crt-stage.com/
   - name: external-toolchain-cd-domain
-    value: http://toolchain-cd-eventlistener-toolchain-cd.apps.mjobanek-17-02.devcluster.openshift.com/
+    value: http://toolchain-cd-eventlistener-mjobanek-code.apps.member.crt-stage.com/
   serviceAccountName: tekton-triggers-createwebhook
