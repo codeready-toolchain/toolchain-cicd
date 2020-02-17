@@ -18,10 +18,10 @@ spec:
       description: If true run a server-side dryrun.
       default: "false"
   steps:
-  - name: run-kubectl
-    image: quay.io/kmcdermo/k8s-kubectl:latest
+  - name: run-oc-apply
+    image: quay.io/openshift/origin-cli:4.3
     workingDir: /workspace/source
-    command: ["kubectl"]
+    command: ["oc"]
     args:
     - "apply"
     - "--dry-run=$(inputs.params.DRYRUN)"
@@ -47,10 +47,10 @@ spec:
       description: If true run a server-side dryrun.
       default: "false"
   steps:
-  - name: run-kubectl
-    image: quay.io/kmcdermo/k8s-kubectl:latest
+  - name: run-oc-apply
+    image: quay.io/openshift/origin-cli:4.3
     workingDir: /workspace/source
-    command: ["kubectl"]
+    command: ["oc"]
     args:
     - "create"
     - "--dry-run=$(inputs.params.DRYRUN)"
