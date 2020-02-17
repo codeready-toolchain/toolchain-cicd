@@ -18,14 +18,6 @@ spec:
       value: "matousjobanek"
     - name: GitHubRepo
       value: "toolchain-cd"
-    - name: GitHubSecretName
-      value: webhook-secret
-    - name: GitHubAccessTokenKey
-      value: token
-    - name: GitHubUserKey
-      value: user
-    - name: GitHubSecretStringKey
-      value: secret
     - name: ExternalDomain
       value: $(params.external-sync-domain)
 
@@ -37,14 +29,6 @@ spec:
       value: "matousjobanek"
     - name: GitHubRepo
       value: "host-operator"
-    - name: GitHubSecretName
-      value: webhook-secret
-    - name: GitHubAccessTokenKey
-      value: token
-    - name: GitHubUserKey
-      value: user
-    - name: GitHubSecretStringKey
-      value: secret
     - name: ExternalDomain
       value: $(params.external-toolchain-cd-domain)
 
@@ -56,14 +40,6 @@ spec:
       value: "matousjobanek"
     - name: GitHubRepo
       value: "member-operator"
-    - name: GitHubSecretName
-      value: webhook-secret
-    - name: GitHubAccessTokenKey
-      value: token
-    - name: GitHubUserKey
-      value: user
-    - name: GitHubSecretStringKey
-      value: secret
     - name: ExternalDomain
       value: $(params.external-toolchain-cd-domain)
 

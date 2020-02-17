@@ -4,7 +4,7 @@ kind: ServiceAccount
 metadata:
   name: image-pusher
 secrets:
-- name: matousjobanek
+- name: push-to-quay-secret
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: PipelineResource
