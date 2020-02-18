@@ -108,6 +108,8 @@ spec:
       value: $(params.repo-path)
     - name: quay-namespace
       value: $(params.quay-namespace)
+    - name: git-revision
+      value: $(params.git-revision)
     resources:
       inputs:
       - name: project-repo

@@ -35,6 +35,8 @@ spec:
       params:
       - name: url
         value: $(params.clone-url)
+      - name: revision
+        value: $(params.git-revision)
       - name: depth
         value: '0'
 

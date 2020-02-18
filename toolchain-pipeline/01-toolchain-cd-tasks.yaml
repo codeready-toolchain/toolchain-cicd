@@ -164,6 +164,8 @@ spec:
     - name: tools-image
       type: image
     params:
+    - name: git-revision
+      description: The git revision
     - name: repo-path
       description: The path to the repository
     - name: quay-namespace
@@ -181,6 +183,14 @@ spec:
     image: $(inputs.resources.tools-image.url)
     command: ["git"]
     args: ["clone", "$(inputs.resources.project-repo.url)", '/workspace/$(inputs.params.repo-path)/']
+    securityContext:
+      privileged: true
+
+  - name: checkout-the-revision
+    image: $(inputs.resources.tools-image.url)
+    workingDir: '/workspace/$(inputs.params.repo-path)/'
+    command: ["git"]
+    args: ["checkout", "$(inputs.params.git-revision)"]
     securityContext:
       privileged: true
 
