@@ -52,7 +52,7 @@ spec:
   - apiVersion: tekton.dev/v1alpha1
     kind: PipelineRun
     metadata:
-      name: toolchain-cd-pipeline-run-$(uid)
+      name: toolchain-cd-$(params.repo-name)-$(uid)
     spec:
       pipelineRef:
         name: build-csv
