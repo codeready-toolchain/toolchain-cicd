@@ -15,7 +15,6 @@ spec:
     metadata:
       name: toolchain-cd-sync-pipeline-run-$(uid)
     spec:
-      serviceAccountName: toolchain-cd-sync-sa
       pipelineRef:
         name: update-config-from-master
       resources:

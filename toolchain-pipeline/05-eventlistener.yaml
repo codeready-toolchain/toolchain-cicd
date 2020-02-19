@@ -4,7 +4,6 @@ kind: EventListener
 metadata:
   name: toolchain-cd-listener
 spec:
-  serviceAccountName: tekton-triggers-sa
   triggers:
   - name: toolchain-cd-pipeline
     binding:
