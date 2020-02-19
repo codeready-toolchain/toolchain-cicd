@@ -57,7 +57,7 @@ spec:
       name: toolchain-cd-$(params.repo-name)-$(uid)
     spec:
       pipelineRef:
-        name: build-csv
+        name: toolchain-cd
       params:
       - name: repo-name
         value: $(params.repo-name)
