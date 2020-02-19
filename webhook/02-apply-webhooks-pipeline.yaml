@@ -15,9 +15,9 @@ spec:
       name: create-or-update-webhook
     params:
     - name: GitHubOrg
-      value: "matousjobanek"
+      value: "codeready-toolchain"
     - name: GitHubRepo
-      value: "toolchain-cd"
+      value: "toolchain-cicd"
     - name: ExternalDomain
       value: $(params.external-sync-domain)
 
