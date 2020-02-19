@@ -21,16 +21,16 @@ spec:
     - name: ExternalDomain
       value: $(params.external-sync-domain)
 
-#  - name: apply-host-operator-webhook
-#    taskRef:
-#      name: create-or-update-webhook
-#    params:
-#    - name: GitHubOrg
-#      value: "matousjobanek"
-#    - name: GitHubRepo
-#      value: "host-operator"
-#    - name: ExternalDomain
-#      value: $(params.external-toolchain-cd-domain)
+  - name: apply-host-operator-webhook
+    taskRef:
+      name: create-or-update-webhook
+    params:
+    - name: GitHubOrg
+      value: "codeready-toolchain"
+    - name: GitHubRepo
+      value: "host-operator"
+    - name: ExternalDomain
+      value: $(params.external-toolchain-cd-domain)
 
   - name: apply-member-operator-webhook
     taskRef:
