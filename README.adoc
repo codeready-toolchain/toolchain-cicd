@@ -1,1 +1,88 @@
-# toolchain-cd
+= CodeReady Toolchain CD
+This repository contains Tekton pipelines and other configuration necessary to manage CD process ensuring that for every commit to master it will build and push to quay a new version of operator image as well as a new version of operator bundle.
+
+== Structure of the repository
+
+=== buildah-short-sha
+This directory is a workaround for the missing ability to strip a commit SHA to 7 chars in Tekton pipelines.
+The webhook event contains only the long SHA that can be read inside of the `TriggerBinding` or `TriggerTemplate`, but it cannot be modified inside of the YAML file.
+This causes an issue in building and pushing a new docker image into quay repo - the tag should contain the short version of SHA.
+
+The `buildah-short-sha` directory contains Dockerfile and a script that behaves as a wrapper of the real `buildah`.
+It takes the long SHA and transforms it into the short one and then builds or pushes the image.
+As soon as OpenShift Pipeline operator supports an advanced feature of the Triggers, then we can drop this workaround.
+
+=== sync
+The link:sync[] directory contains a pipeline definition that ensures that both pipeline configurations are up to date.
+As soon as there is a new commit to `toolchain-cd` repository, then it:
+
+1. Using `oc apply -f sync/` updates all YAML files from `sync` directory.
+2. Using `oc apply -f toolchain-pipeline/` updates all YAML files from `toolchain-pipeline` directory.
+3. Using `oc apply -f webhook/` updates all YAML files from `webhook` directory.
+4. Using `oc create -f webhook/pipeline-run/` triggers a pipeline that creates/updates all webhooks defined in the pipeline.
+
+=== toolchain-pipeline
+The link:toolchain-pipeline[] directory contains a pipeline definition that manages the CD flow.
+As soon as there is a commit pushed to a master in any of the operator repositories the webhook is defined for, then the pipeline:
+
+1. Builds `openshift-ci/Dockerfile.tools` image and pushes it to quay.
+2. Builds `buildah-short-sha` image and pushes it to quay.
+3. Inside of the tools image, it builds the operator binary.
+4. Builds the operator image (uses the binary from the previous step) and pushes it to quay.
+5. Inside of the tools image, it generates a new version of CSV and pushes it to quay.
+
+=== webhook
+The link:webhook[] directory contains a pipeline definition to establish webooks for all required repositories.
+Inside of the directory, there is another folder that contains the actual PipelineRun.
+
+== How to use it
+
+=== Prerequisites
+==== Cluster
+* A publicly accessible OpenShift 4.x cluster. You should be able to expose a publicly accessible route.
+* OpenShift Pipelines operator 0.8.+ installed inside of the cluster.
+
+==== GitHub Access Token
+To be able to run the pipeline that will configure webhooks in GitHub repositories you need GitHub token with necessary permissions.
+Create GitHub access token with the following access:
+
+* `public_repo`
+* `admin:repo_hook`
+
+==== Quay access and publicly available repositories/applications
+You are logged to your quay account using `docker login quay.io` and you have this set of repositories/applications publicly available:
+
+* repositories:
+** buildah-short-sha
+** <operator-repo>-tools
+** <operator-repo>
+
+* applications:
+** <operator-name>
+
+Check if the quay namespace and image locations in link:toolchain-pipeline/04-toolchain-cd-pipeline-template.yaml[] are set to your one.
+
+=== Steps
+Inside of one namespace (where the pipelines should be located) do the following steps:
+
+1. Create secret `webhook-secret` that will contain the GitHub token for configuring webhooks:
++
+```
+oc create secret generic webhook-secret --type=Opaque --from-literal=token=<your-github-token> --from-literal=secret=random-string-data
+```
+
+2. Create secret `push-to-quay-secret` with your `~/.docker/config.json` file that contains token to be used for pushing to quay:
++
+```
+oc create secret generic push-to-quay-secret  --from-file=.dockerconfigjson=/home/mjobanek/.docker/config.json  --type=kubernetes.io/dockerconfigjson
+```
+
+3. Apply all pipeline resources from `sync` directory: `oc apply -f sync/`
+
+4. Apply all pipeline resources from `toolchain-pipeline` directory: `oc apply -f toolchain-pipeline/`
+
+5. Check link:webhook/02-apply-webhooks-pipeline.yaml[] to make sure that it contains all repositories you want to create webhooks for
+
+6. Apply all pipeline resources from `webhook` directory: `oc apply -f webhook/`
+
+7. To set up the webhooks trigger the PipelineRun: `oc create -f webhook/pipeline-run/pipeline-run.yaml`
