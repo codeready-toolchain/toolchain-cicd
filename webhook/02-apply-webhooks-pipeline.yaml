@@ -32,6 +32,17 @@ spec:
     - name: ExternalDomain
       value: $(params.external-toolchain-cd-domain)
 
+  - name: apply-registration-service-webhook
+    taskRef:
+      name: create-or-update-webhook
+    params:
+    - name: GitHubOrg
+      value: "codeready-toolchain"
+    - name: GitHubRepo
+      value: "registration-service"
+    - name: ExternalDomain
+      value: $(params.external-toolchain-cd-domain)
+
   - name: apply-member-operator-webhook
     taskRef:
       name: create-or-update-webhook
