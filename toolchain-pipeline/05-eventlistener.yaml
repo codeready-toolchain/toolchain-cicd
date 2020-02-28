@@ -4,6 +4,7 @@ kind: EventListener
 metadata:
   name: toolchain-cd-listener
 spec:
+  serviceAccountName: pipeline
   triggers:
   - name: toolchain-cd-pipeline
     binding:

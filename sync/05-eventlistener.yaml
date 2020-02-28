@@ -4,6 +4,7 @@ kind: EventListener
 metadata:
   name: toolchain-cd-sync-listener
 spec:
+  serviceAccountName: pipeline
   triggers:
   - name: toolchain-cd-sync-deploy-from-master
     binding:
