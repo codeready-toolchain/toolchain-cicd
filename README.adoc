@@ -34,9 +34,17 @@ As soon as there is a commit pushed to master in any of the operator repositorie
 4. Builds the operator image (uses the binary from the previous step) and pushes it to quay.
 5. Inside of the tools image, it generates a new version of CSV and pushes it to quay.
 
+Inside of the directory, there is another folder called `pipeline` that contains a template with the actual CD `Pipeline`.
+It is expected that there will be one separated pipeline for each toolchain repo.
+To do that, the template expects one parameter `TOOLCHAIN_REPO` - by providing the parameter the sync logic will dynamically create one CD pipeline for each of the toolchain repositories.
+
 === webhook
 The link:webhook[] directory contains a pipeline definition to establish webooks for all required repositories.
-Inside of the directory, there is another folder that contains the actual `PipelineRun` that sets the webhooks up.
+Inside of the directory, there is another folder called `pipeline-run` that contains a template with the actual `PipelineRun` that sets the webhooks up.
+The template expects one parameter `TOOLCHAIN_CD_PROJECTS` containing a list (space separated) of all repo names the webhook should be applied for.
+
+=== toolchain-cd-projects file
+The link:toolchain-cd-projects[] file contains a list of repository names the CD pipeline should be activated for.
 
 == How to use it?
 

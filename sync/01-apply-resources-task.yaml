@@ -31,7 +31,7 @@ spec:
 apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
-  name: create-resources-task
+  name: process-project-and-apply-task
 spec:
   inputs:
     resources:
@@ -50,9 +50,44 @@ spec:
   - name: run-oc-apply
     image: quay.io/openshift/origin-cli:4.3
     workingDir: /workspace/source
-    command: ["oc"]
+    command:
+    - sh
     args:
-    - "create"
-    - "--dry-run=$(inputs.params.DRYRUN)"
-    - "-f"
-    - "$(inputs.params.PATHTODEPLOYMENT)"
+    - -ce
+    - |
+      set -e
+      for REPO in `cat toolchain-cd-projects`; do
+        oc process -f $(inputs.params.PATHTODEPLOYMENT) -p TOOLCHAIN_REPO=${REPO} | oc apply --dry-run=$(inputs.params.DRYRUN) -f -
+      done
+---
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: process-all-projects-and-create-task
+spec:
+  inputs:
+    resources:
+    - name: source
+      type: git
+    params:
+    - name: PATHTODEPLOYMENT
+      type: string
+      description: Path to the manifest to apply
+      default: deploy
+    - name: DRYRUN
+      type: string
+      description: If true run a server-side dryrun.
+      default: "false"
+  steps:
+  - name: run-oc-apply
+    image: quay.io/openshift/origin-cli:4.3
+    workingDir: /workspace/source
+    command:
+    - sh
+    args:
+    - -ce
+    - |
+      set -e
+      set -x
+      ALL_PROJECTS=`cat toolchain-cd-projects | tr "\n" " "`
+      oc create --dry-run=$(inputs.params.DRYRUN) -f - <<< `oc process -f $(inputs.params.PATHTODEPLOYMENT) -p TOOLCHAIN_CD_PROJECTS="${ALL_PROJECTS}"`

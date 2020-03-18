@@ -19,8 +19,8 @@ spec:
     params:
     - name: ExternalDomain
       description: "The external domain for the EventListener e.g. `$(inputs.params.EventListenerName).<PROXYIP>.nip.io`"
-    - name: GitHubRepo
-      description: "The GitHub repo where the webhook will be created"
+    - name: GitHubRepos
+      description: "The GitHub repos where the webhook will be created"
     - name: GitHubOrg
       description: "The GitHub organization where the webhook will be created"
     - name: GitHubSecretName
@@ -51,12 +51,15 @@ spec:
     - |
       set -e
       set -x
-      echo "Create Webhook"
-      WEBHOOK_ID=`curl -v -H "Authorization: token $(cat /var/secret/$(inputs.params.GitHubAccessTokenKey))" -L https://api.github.com/repos/$(inputs.params.GitHubOrg)/$(inputs.params.GitHubRepo)/hooks | jq '.[] | select(.config.url | contains ("$(inputs.params.ExternalDomain)")) | .id'`
-      if [ -n "${WEBHOOK_ID}" ];then
-        METHOD="PATCH"
-        WEBHOOK_ID_SUFFIX="/${WEBHOOK_ID}"
-      else
-        METHOD="POST"
-      fi
-      curl -v -d "{\"name\": \"web\",\"active\": true,\"events\": $(inputs.params.WebhookEvents),\"config\": {\"url\": \"$(inputs.params.ExternalDomain)\",\"content_type\": \"json\",\"insecure_ssl\": \"1\" ,\"secret\": \"$(cat /var/secret/$(inputs.params.GitHubSecretStringKey))\"}}" -X ${METHOD} -H "Authorization: token $(cat /var/secret/$(inputs.params.GitHubAccessTokenKey))" -L https://api.github.com/repos/$(inputs.params.GitHubOrg)/$(inputs.params.GitHubRepo)/hooks${WEBHOOK_ID_SUFFIX}
+      for REPO in $(inputs.params.GitHubRepos); do
+        echo "Create Webhook for ${REPO}"
+        WEBHOOK_ID=`curl -v -H "Authorization: token $(cat /var/secret/$(inputs.params.GitHubAccessTokenKey))" -L https://api.github.com/repos/$(inputs.params.GitHubOrg)/${REPO}/hooks | jq '.[] | select(.config.url | contains ("$(inputs.params.ExternalDomain)")) | .id'`
+        if [ -n "${WEBHOOK_ID}" ];then
+          METHOD="PATCH"
+          WEBHOOK_ID_SUFFIX="/${WEBHOOK_ID}"
+        else
+          METHOD="POST"
+          WEBHOOK_ID_SUFFIX=""
+        fi
+        curl -v -d "{\"name\": \"web\",\"active\": true,\"events\": $(inputs.params.WebhookEvents),\"config\": {\"url\": \"$(inputs.params.ExternalDomain)\",\"content_type\": \"json\",\"insecure_ssl\": \"1\" ,\"secret\": \"$(cat /var/secret/$(inputs.params.GitHubSecretStringKey))\"}}" -X ${METHOD} -H "Authorization: token $(cat /var/secret/$(inputs.params.GitHubAccessTokenKey))" -L https://api.github.com/repos/$(inputs.params.GitHubOrg)/${REPO}/hooks${WEBHOOK_ID_SUFFIX}
+      done

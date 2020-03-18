@@ -4,10 +4,12 @@ metadata:
   name: apply-webhooks
 spec:
   params:
-    - name: external-sync-domain
-      description: The external domain for the sync EventListener
-    - name: external-toolchain-cd-domain
-      description: The external domain for the toolchain-cd EventListener
+  - name: external-sync-domain
+    description: The external domain for the sync EventListener
+  - name: external-toolchain-cd-domain
+    description: The external domain for the toolchain-cd EventListener
+  - name: toolchain-cd-projects
+    description: List of projects to be used for CD flow
 
   tasks:
   - name: apply-toolchain-cd-webhook
@@ -16,52 +18,18 @@ spec:
     params:
     - name: GitHubOrg
       value: "codeready-toolchain"
-    - name: GitHubRepo
+    - name: GitHubRepos
       value: "toolchain-cicd"
     - name: ExternalDomain
       value: $(params.external-sync-domain)
 
-  - name: apply-host-operator-webhook
+  - name: apply-toolchain-cd-repo-webhook
     taskRef:
       name: create-or-update-webhook
     params:
     - name: GitHubOrg
       value: "codeready-toolchain"
-    - name: GitHubRepo
-      value: "host-operator"
+    - name: GitHubRepos
+      value: $(params.toolchain-cd-projects)
     - name: ExternalDomain
       value: $(params.external-toolchain-cd-domain)
-
-  - name: apply-registration-service-webhook
-    taskRef:
-      name: create-or-update-webhook
-    params:
-    - name: GitHubOrg
-      value: "codeready-toolchain"
-    - name: GitHubRepo
-      value: "registration-service"
-    - name: ExternalDomain
-      value: $(params.external-toolchain-cd-domain)
-
-  - name: apply-member-operator-webhook
-    taskRef:
-      name: create-or-update-webhook
-    params:
-    - name: GitHubOrg
-      value: "codeready-toolchain"
-    - name: GitHubRepo
-      value: "member-operator"
-    - name: ExternalDomain
-      value: $(params.external-toolchain-cd-domain)
-
-  - name: apply-toolchain-operator-webhook
-    taskRef:
-      name: create-or-update-webhook
-    params:
-    - name: GitHubOrg
-      value: "codeready-toolchain"
-    - name: GitHubRepo
-      value: "toolchain-operator"
-    - name: ExternalDomain
-      value: $(params.external-toolchain-cd-domain)
-
