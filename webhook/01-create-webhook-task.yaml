@@ -44,13 +44,9 @@ spec:
     volumeMounts:
     - name: github-secret
       mountPath: /var/secret
-    command:
-    - sh
-    args:
-    - -ce
-    - |
+    script: |
+      #!/bin/sh
       set -e
-      set -x
       for REPO in $(inputs.params.GitHubRepos); do
         echo "Create Webhook for ${REPO}"
         WEBHOOK_ID=`curl -v -H "Authorization: token $(cat /var/secret/$(inputs.params.GitHubAccessTokenKey))" -L https://api.github.com/repos/$(inputs.params.GitHubOrg)/${REPO}/hooks | jq '.[] | select(.config.url | contains ("$(inputs.params.ExternalDomain)")) | .id'`

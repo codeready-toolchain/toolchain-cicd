@@ -50,11 +50,8 @@ spec:
   - name: run-oc-apply
     image: quay.io/openshift/origin-cli:4.3
     workingDir: /workspace/source
-    command:
-    - sh
-    args:
-    - -ce
-    - |
+    script: |
+      #!/bin/sh
       set -e
       for REPO in `cat toolchain-cd-projects`; do
         oc process -f $(inputs.params.PATHTODEPLOYMENT) -p TOOLCHAIN_REPO=${REPO} | oc apply --dry-run=$(inputs.params.DRYRUN) -f -
@@ -82,12 +79,8 @@ spec:
   - name: run-oc-apply
     image: quay.io/openshift/origin-cli:4.3
     workingDir: /workspace/source
-    command:
-    - sh
-    args:
-    - -ce
-    - |
+    script: |
+      #!/bin/sh
       set -e
-      set -x
       ALL_PROJECTS=`cat toolchain-cd-projects | tr "\n" " "`
       oc create --dry-run=$(inputs.params.DRYRUN) -f - <<< `oc process -f $(inputs.params.PATHTODEPLOYMENT) -p TOOLCHAIN_CD_PROJECTS="${ALL_PROJECTS}"`
