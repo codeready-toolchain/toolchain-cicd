@@ -22,7 +22,7 @@ As soon as there is a new commit to `toolchain-cd` repository, then it:
 1. Using `oc apply -f sync/` updates all YAML files from the `sync` directory.
 2. Using `oc apply -f toolchain-pipeline/` updates all YAML files from the `toolchain-pipeline` directory.
 3. Using `oc apply -f webhook/` updates all YAML files from the `webhook` directory.
-4. Using `oc create -f webhook/pipeline-run/` triggers a pipeline that creates/updates all webhooks defined in the pipeline.
+4. Using `oc process -f webhook/pipeline-run/pipeline-run.yaml | oc create -f -` triggers a pipeline that creates/updates toolchain-cicd webhook defined in the pipeline.
 
 === toolchain-pipeline
 The link:toolchain-pipeline[] directory contains a pipeline definition that manages the CD flow.
@@ -92,10 +92,10 @@ oc create secret generic push-to-quay-secret  --from-file=.dockerconfigjson=/hom
 
 4. Apply all pipeline resources from `toolchain-pipeline` directory: `oc apply -f toolchain-pipeline/`.
 
-5. Check link:webhook/02-apply-webhooks-pipeline.yaml[] to make sure that it contains all repositories you want to create webhooks for.
+5. Apply all pipeline resources from `webhook` directory: `oc apply -f webhook/`.
 
-6. Apply all pipeline resources from `webhook` directory: `oc apply -f webhook/`.
+6. Make sure that the link:webhook/pipeline-run/pipeline-run.yaml[] contains correct routes - you can get them using `oc get routes`.
 
-7. Make sure that the link:webhook/pipeline-run/pipeline-run.yaml[] contains correct routes.
+7. Run `oc process -f webhook/pipeline-run/pipeline-run.yaml | oc create -f -` to set up the toolchain-cicd webhook.
 
-8. Run `oc create -f webhook/pipeline-run/pipeline-run.yaml` to set up the webhooks.
+8. The next commit to the toolchain-cicd repo will trigger the synchronization pipeline that will setup all toolchain-cd pipelines and all webhooks for projects defined in link:toolchain-cd-projects[].
