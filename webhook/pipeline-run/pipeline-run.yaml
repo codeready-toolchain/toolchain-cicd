@@ -18,4 +18,3 @@ objects:
     serviceAccountName: tekton-triggers-createwebhook
 parameters:
 - name: TOOLCHAIN_CD_PROJECTS
-  required: true
