@@ -57,7 +57,7 @@ spec:
       name: toolchain-cd-$(params.repo-name)-$(uid)
     spec:
       pipelineRef:
-        name: toolchain-cd
+        name: $(params.repo-name)-cd
       params:
       - name: repo-name
         value: $(params.repo-name)

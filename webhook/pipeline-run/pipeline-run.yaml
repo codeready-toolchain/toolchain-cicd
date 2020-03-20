@@ -1,14 +1,20 @@
----
-apiVersion: tekton.dev/v1alpha1
-kind: PipelineRun
-metadata:
-  generateName: apply-webhooks-
-spec:
-  pipelineRef:
-    name: apply-webhooks
-  params:
-  - name: external-sync-domain
-    value: http://toolchain-cd-sync-eventlistener-mjobanek-dev.apps.member.crt-stage.com/
-  - name: external-toolchain-cd-domain
-    value: http://toolchain-cd-eventlistener-mjobanek-dev.apps.member.crt-stage.com/
-  serviceAccountName: tekton-triggers-createwebhook
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: tekton.dev/v1alpha1
+  kind: PipelineRun
+  metadata:
+    generateName: apply-webhooks-
+  spec:
+    pipelineRef:
+      name: apply-webhooks
+    params:
+    - name: external-sync-domain
+      value: http://toolchain-cd-sync-eventlistener-mjobanek-dev.apps.member.crt-stage.com/
+    - name: external-toolchain-cd-domain
+      value: http://toolchain-cd-eventlistener-mjobanek-dev.apps.member.crt-stage.com/
+    - name: toolchain-cd-projects
+      value: ${TOOLCHAIN_CD_PROJECTS}
+    serviceAccountName: tekton-triggers-createwebhook
+parameters:
+- name: TOOLCHAIN_CD_PROJECTS

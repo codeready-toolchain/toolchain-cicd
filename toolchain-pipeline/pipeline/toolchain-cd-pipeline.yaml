@@ -1,0 +1,98 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: tekton.dev/v1alpha1
+  kind: Pipeline
+  metadata:
+    name: ${TOOLCHAIN_REPO}-cd
+  spec:
+    params:
+    - name: repo-path
+      description: Path to the repo
+    - name: git-revision
+      description: The git revision
+    - name: quay-namespace
+      description: The quay namespace CSV should be pushed to
+      default: codeready-toolchain
+    resources:
+    - name: project-repo
+      type: git
+    - name: tools-image
+      type: image
+    - name: binary-image
+      type: image
+    - name: buildah-short-sha-image
+      type: image
+    - name: toolchain-cd-repo
+      type: git
+
+    tasks:
+    - name: build-tools-image
+      taskRef:
+        name: build-docker-tools-image
+      params:
+      - name: repo-path
+        value: $(params.repo-path)
+      resources:
+        inputs:
+        - name: project-repo
+          resource: project-repo
+        outputs:
+        - name: tools-image
+          resource: tools-image
+
+    - name: build-buildah-short-sha-image
+      taskRef:
+        name: build-buildah-short-sha-image
+      resources:
+        inputs:
+        - name: toolchain-cd-repo
+          resource: toolchain-cd-repo
+        outputs:
+        - name: buildah-short-sha-image
+          resource: buildah-short-sha-image
+
+    - name: build-project
+      taskRef:
+        name: build-project
+      params:
+      - name: repo-path
+        value: $(params.repo-path)
+      - name: git-revision
+        value: $(params.git-revision)
+      resources:
+        inputs:
+        - name: project-repo
+          resource: project-repo
+        - name: tools-image
+          resource: tools-image
+        - name: buildah-short-sha-image
+          resource: buildah-short-sha-image
+        outputs:
+        - name: binary-image
+          resource: binary-image
+      runAfter:
+      - build-tools-image
+      - build-buildah-short-sha-image
+
+    - name: generate-and-push-csv
+      taskRef:
+        name: generate-and-push-csv
+      params:
+      - name: repo-path
+        value: $(params.repo-path)
+      - name: quay-namespace
+        value: $(params.quay-namespace)
+      - name: git-revision
+        value: $(params.git-revision)
+      resources:
+        inputs:
+        - name: project-repo
+          resource: project-repo
+        - name: tools-image
+          resource: tools-image
+      runAfter:
+      - build-project
+parameters:
+- name: TOOLCHAIN_REPO
+  required: true

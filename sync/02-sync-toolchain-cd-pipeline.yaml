@@ -32,6 +32,19 @@ spec:
     runAfter:
     - apply-sync-directory
 
+  - name: apply-toolchain-cd-pipeline
+    taskRef:
+      name: process-project-and-apply-task
+    resources:
+      inputs:
+      - name: source
+        resource: source-repo
+    params:
+    - name: PATHTODEPLOYMENT
+      value: toolchain-pipeline/pipeline/toolchain-cd-pipeline.yaml
+    runAfter:
+    - apply-toolchain-pipeline-directory
+
   - name: apply-webhook-directory
     taskRef:
       name: apply-resources-task
@@ -47,13 +60,13 @@ spec:
 
   - name: ensure-webhooks
     taskRef:
-      name: create-resources-task
+      name: process-all-projects-and-create-task
     resources:
       inputs:
       - name: source
         resource: source-repo
     params:
     - name: PATHTODEPLOYMENT
-      value: webhook/pipeline-run
+      value: webhook/pipeline-run/pipeline-run.yaml
     runAfter:
     - apply-webhook-directory
