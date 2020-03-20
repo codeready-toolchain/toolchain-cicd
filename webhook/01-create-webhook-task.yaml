@@ -48,18 +48,21 @@ spec:
       mountPath: /var/secret
     script: |
       #!/bin/sh
-      set -e
+      set -ex
       for REPO in $(inputs.params.GitHubRepos); do
-        echo "Create Webhook for ${REPO}"
+        echo "Get Webhook for ${REPO}"
         WEBHOOK_ID=`curl -v -H "Authorization: token $(cat /var/secret/$(inputs.params.GitHubAccessTokenKey))" -L https://api.github.com/repos/$(inputs.params.GitHubOrg)/${REPO}/hooks | jq '.[] | select(.config.url | contains ("$(inputs.params.ExternalDomain)")) | .id'`
-        if [[ "$(inputs.params.only-list)" != "true" ]]; then
-          if [ -n "${WEBHOOK_ID}" ];then
-            METHOD="PATCH"
-            WEBHOOK_ID_SUFFIX="/${WEBHOOK_ID}"
-          else
-            METHOD="POST"
-            WEBHOOK_ID_SUFFIX=""
-          fi
-          curl -v -d "{\"name\": \"web\",\"active\": true,\"events\": $(inputs.params.WebhookEvents),\"config\": {\"url\": \"$(inputs.params.ExternalDomain)\",\"content_type\": \"json\",\"insecure_ssl\": \"1\" ,\"secret\": \"$(cat /var/secret/$(inputs.params.GitHubSecretStringKey))\"}}" -X ${METHOD} -H "Authorization: token $(cat /var/secret/$(inputs.params.GitHubAccessTokenKey))" -L https://api.github.com/repos/$(inputs.params.GitHubOrg)/${REPO}/hooks${WEBHOOK_ID_SUFFIX}
-        done
-      fi
+        if [[ "$(inputs.params.only-list)" == "true" ]]; then
+          exit 0
+        fi
+        if [[ -n "${WEBHOOK_ID}" ]]; then
+          echo "Update Webhook for ${REPO}"
+          METHOD="PATCH"
+          WEBHOOK_ID_SUFFIX="/${WEBHOOK_ID}"
+        else
+          echo "Create Webhook for ${REPO}"
+          METHOD="POST"
+          WEBHOOK_ID_SUFFIX=""
+        fi
+        curl -v -d "{\"name\": \"web\",\"active\": true,\"events\": $(inputs.params.WebhookEvents),\"config\": {\"url\": \"$(inputs.params.ExternalDomain)\",\"content_type\": \"json\",\"insecure_ssl\": \"1\" ,\"secret\": \"$(cat /var/secret/$(inputs.params.GitHubSecretStringKey))\"}}" -X ${METHOD} -H "Authorization: token $(cat /var/secret/$(inputs.params.GitHubAccessTokenKey))" -L https://api.github.com/repos/$(inputs.params.GitHubOrg)/${REPO}/hooks${WEBHOOK_ID_SUFFIX}
+      done

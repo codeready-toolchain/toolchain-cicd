@@ -11,8 +11,6 @@ spec:
     type: string
   - name: commit-sha
     type: string
-  - name: namespace-name
-    type: string
   tasks:
 
   - name: create-pending-status
@@ -30,7 +28,6 @@ spec:
     - name: context
       value: "toolchain-cicd-dry-run-pipeline"
 
-  # create/apply yaml files
 
   - name: apply-sync-directory
     taskRef:
@@ -42,8 +39,8 @@ spec:
     params:
     - name: path-to-deployment
       value: sync
-    - name: namespace-name
-      value: $(params.namespace-name)
+    - name: dry-run
+      value: "true"
 
   - name: apply-toolchain-pipeline-directory
     taskRef:
@@ -55,8 +52,8 @@ spec:
     params:
     - name: path-to-deployment
       value: toolchain-pipeline
-    - name: namespace-name
-      value: $(params.namespace-name)
+    - name: dry-run
+      value: "true"
     runAfter:
     - apply-sync-directory
 
@@ -72,6 +69,8 @@ spec:
       value: toolchain-pipeline/pipeline/toolchain-cd-pipeline.yaml
     - name: namespace-name
       value: $(params.namespace-name)
+    - name: dry-run
+      value: "true"
     runAfter:
     - apply-toolchain-pipeline-directory
 
@@ -85,8 +84,8 @@ spec:
     params:
     - name: path-to-deployment
       value: webhook
-    - name: namespace-name
-      value: $(params.namespace-name)
+    - name: dry-run
+      value: "true"
     runAfter:
     - apply-sync-directory
 
@@ -100,8 +99,8 @@ spec:
     params:
     - name: path-to-deployment
       value: webhook/pipeline-run/pipeline-run.yaml
-    - name: namespace-name
-      value: $(params.namespace-name)
+    - name: dry-run
+      value: "true"
     runAfter:
     - apply-webhook-directory
 

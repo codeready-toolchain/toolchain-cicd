@@ -15,14 +15,8 @@ spec:
       default: deploy
     - name: dry-run
       type: string
-      description: If true run a server-side dryrun.
+      description: If true then run dryrun.
       default: "false"
-    - name: namespace-name
-      type: string
-      default: ""
-    - name: oc-command
-      type: string
-      default: "apply"
   steps:
   - name: run-oc-apply
     image: quay.io/openshift/origin-cli:4.3
@@ -30,12 +24,7 @@ spec:
     script: |
       #!/bin/sh
       set -ex
-      if [[ -z "$(inputs.params.namespace-name)" ]]; then
-        NAMESPACE=`oc project`
-      else
-        NAMESPACE=$(inputs.params.namespace-name)
-      fi
-      oc $(inputs.params.oc-command) --dry-run=$(inputs.params.dry-run) -f $(inputs.params.path-to-deployment) -n ${NAMESPACE}
+      oc apply --dry-run=$(inputs.params.dry-run) -f $(inputs.params.path-to-deployment)
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: Task
@@ -53,14 +42,8 @@ spec:
       default: deploy
     - name: dry-run
       type: string
-      description: If true run a server-side dryrun.
+      description: If true then run dryrun.
       default: "false"
-    - name: namespace-name
-      type: string
-      default: ""
-    - name: oc-command
-      type: string
-      default: "apply"
   steps:
   - name: run-oc-apply
     image: quay.io/openshift/origin-cli:4.3
@@ -68,13 +51,8 @@ spec:
     script: |
       #!/bin/sh
       set -ex
-      if [[ -z "$(inputs.params.namespace-name)" ]]; then
-        NAMESPACE=`oc project`
-      else
-        NAMESPACE=$(inputs.params.namespace-name)
-      fi
       for REPO in `cat toolchain-cd-projects`; do
-        oc process -f $(inputs.params.path-to-deployment) -p TOOLCHAIN_REPO=${REPO} | oc $(inputs.params.oc-command) --dry-run=$(inputs.params.dry-run) -n ${NAMESPACE} -f -
+        oc process -f $(inputs.params.path-to-deployment) -p TOOLCHAIN_REPO=${REPO} | oc apply --dry-run=$(inputs.params.dry-run) -f -
       done
 ---
 apiVersion: tekton.dev/v1alpha1
@@ -93,14 +71,8 @@ spec:
       default: deploy
     - name: dry-run
       type: string
-      description: If true run a server-side dryrun.
+      description: If true then run dryrun.
       default: "false"
-    - name: namespace-name
-      type: string
-      default: ""
-    - name: oc-command
-      type: string
-      default: "create"
   steps:
   - name: run-oc-apply
     image: quay.io/openshift/origin-cli:4.3
@@ -108,10 +80,5 @@ spec:
     script: |
       #!/bin/sh
       set -ex
-      if [[ -z "$(inputs.params.namespace-name)" ]]; then
-        NAMESPACE=`oc project`
-      else
-        NAMESPACE=$(inputs.params.namespace-name)
-      fi
       ALL_PROJECTS=`cat toolchain-cd-projects | tr "\n" " "`
-      oc process -f $(inputs.params.path-to-deployment) -p TOOLCHAIN_CD_PROJECTS="${ALL_PROJECTS}" | oc $(inputs.params.oc-command) --dry-run=$(inputs.params.dry-run) -n ${NAMESPACE} -f -
+      oc process -f $(inputs.params.path-to-deployment) -p TOOLCHAIN_CD_PROJECTS="${ALL_PROJECTS}" | oc create --dry-run=$(inputs.params.dry-run) -f -

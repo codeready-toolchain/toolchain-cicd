@@ -43,8 +43,6 @@ spec:
     description: The git commit sha
   - name: fullname
     description: The git description
-  - name: namespace-name
-    description: The name of namespace the resources should be applied in
   resourcetemplates:
   - apiVersion: tekton.dev/v1alpha1
     kind: PipelineRun
@@ -58,8 +56,6 @@ spec:
         value: $(params.fullname)
       - name: commit-sha
         value: $(params.gitsha)
-      - name: namespace-name
-        value: $(params.namespace-name)
       resources:
       - name: source-repo
         resourceSpec:

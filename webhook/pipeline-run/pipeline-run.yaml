@@ -10,9 +10,9 @@ objects:
       name: apply-webhooks
     params:
     - name: external-sync-domain
-      value: http://toolchain-cd-sync-eventlistener-mjobanek-dev.apps.member.crt-stage.com/
+      value: http://toolchain-cd-sync-eventlistener-toolchain-cd.apps.mjobanek-20-03.devcluster.openshift.com/
     - name: external-toolchain-cd-domain
-      value: http://toolchain-cd-eventlistener-mjobanek-dev.apps.member.crt-stage.com/
+      value: http://toolchain-cd-eventlistener-toolchain-cd.apps.mjobanek-20-03.devcluster.openshift.com/
     - name: toolchain-cd-projects
       value: ${TOOLCHAIN_CD_PROJECTS}
     - name: only-list

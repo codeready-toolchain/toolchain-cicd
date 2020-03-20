@@ -19,22 +19,25 @@ spec:
       name: create-or-update-webhook
     params:
     - name: GitHubOrg
-      value: "codeready-toolchain"
+      value: "MatousJobanek"
     - name: GitHubRepos
       value: "toolchain-cicd"
     - name: ExternalDomain
       value: $(params.external-sync-domain)
     - name: WebhookEvents
       value: '[\"push\",\"pull_request\"]'
-    - name: create-or-update
+    - name: only-list
+      value: $(params.only-list)
 
   - name: apply-toolchain-cd-repo-webhook
     taskRef:
       name: create-or-update-webhook
     params:
     - name: GitHubOrg
-      value: "codeready-toolchain"
+      value: "MatousJobanek"
     - name: GitHubRepos
       value: $(params.toolchain-cd-projects)
     - name: ExternalDomain
       value: $(params.external-toolchain-cd-domain)
+    - name: only-list
+      value: $(params.only-list)
