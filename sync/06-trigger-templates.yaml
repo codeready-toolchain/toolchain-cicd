@@ -1,0 +1,71 @@
+---
+apiVersion: tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: update-from-master-template
+spec:
+  params:
+  - name: gitref
+    description: The git revision
+    default: master
+  - name: gitrepositoryurl
+    description: The git repository url
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1alpha1
+    kind: PipelineRun
+    metadata:
+      name: toolchain-cd-sync-pipeline-run-$(uid)
+    spec:
+      pipelineRef:
+        name: update-config-from-master
+      resources:
+      - name: source-repo
+        resourceSpec:
+          type: git
+          params:
+          - name: revision
+            value: $(params.gitref)
+          - name: url
+            value: $(params.gitrepositoryurl)
+---
+apiVersion: tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: toolchain-cicd-dry-run-template
+spec:
+  params:
+  - name: gitref
+    description: The git revision
+    default: master
+  - name: gitrepositoryurl
+    description: The git repository url
+  - name: gitsha
+    description: The git commit sha
+  - name: fullname
+    description: The git description
+  - name: namespace-name
+    description: The name of namespace the resources should be applied in
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1alpha1
+    kind: PipelineRun
+    metadata:
+      name: toolchain-cicd-dry-run-pipeline-run-$(uid)
+    spec:
+      pipelineRef:
+        name: toolchain-cicd-dry-run
+      params:
+      - name: repo
+        value: $(params.fullname)
+      - name: commit-sha
+        value: $(params.gitsha)
+      - name: namespace-name
+        value: $(params.namespace-name)
+      resources:
+      - name: source-repo
+        resourceSpec:
+          type: git
+          params:
+          - name: revision
+            value: $(params.gitref)
+          - name: url
+            value: $(params.gitrepositoryurl)

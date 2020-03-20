@@ -10,6 +10,8 @@ spec:
     description: The external domain for the toolchain-cd EventListener
   - name: toolchain-cd-projects
     description: List of projects to be used for CD flow
+  - name: only-list
+    description: If the webhooks should be only listed to test the token
 
   tasks:
   - name: apply-toolchain-cd-webhook
@@ -22,6 +24,9 @@ spec:
       value: "toolchain-cicd"
     - name: ExternalDomain
       value: $(params.external-sync-domain)
+    - name: WebhookEvents
+      value: '[\"push\",\"pull_request\"]'
+    - name: create-or-update
 
   - name: apply-toolchain-cd-repo-webhook
     taskRef:

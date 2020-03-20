@@ -15,6 +15,10 @@ objects:
       value: http://toolchain-cd-eventlistener-mjobanek-dev.apps.member.crt-stage.com/
     - name: toolchain-cd-projects
       value: ${TOOLCHAIN_CD_PROJECTS}
+    - name: only-list
+      value: ${ONLY_LIST}
     serviceAccountName: tekton-triggers-createwebhook
 parameters:
 - name: TOOLCHAIN_CD_PROJECTS
+- name: ONLY_LIST
+  value: "false"

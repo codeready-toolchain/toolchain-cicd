@@ -1,13 +1,37 @@
 apiVersion: tekton.dev/v1alpha1
 kind: Pipeline
 metadata:
-  name: update-config-from-master
+  name: toolchain-cicd-dry-run-pipeline
 spec:
   resources:
   - name: source-repo
     type: git
-
+  params:
+  - name: repo
+    type: string
+  - name: commit-sha
+    type: string
+  - name: namespace-name
+    type: string
   tasks:
+
+  - name: create-pending-status
+    taskRef:
+      name: create-github-status-task
+    params:
+    - name: repo
+      value: $(params.repo)
+    - name: commit-sha
+      value: $(params.commit-sha)
+    - name: state
+      value: "pending"
+    - name: description
+      value: "Starting toolchain-cicd-dry-run-pipeline"
+    - name: context
+      value: "toolchain-cicd-dry-run-pipeline"
+
+  # create/apply yaml files
+
   - name: apply-sync-directory
     taskRef:
       name: apply-resources-task
@@ -18,6 +42,8 @@ spec:
     params:
     - name: path-to-deployment
       value: sync
+    - name: namespace-name
+      value: $(params.namespace-name)
 
   - name: apply-toolchain-pipeline-directory
     taskRef:
@@ -29,6 +55,8 @@ spec:
     params:
     - name: path-to-deployment
       value: toolchain-pipeline
+    - name: namespace-name
+      value: $(params.namespace-name)
     runAfter:
     - apply-sync-directory
 
@@ -42,6 +70,8 @@ spec:
     params:
     - name: path-to-deployment
       value: toolchain-pipeline/pipeline/toolchain-cd-pipeline.yaml
+    - name: namespace-name
+      value: $(params.namespace-name)
     runAfter:
     - apply-toolchain-pipeline-directory
 
@@ -55,6 +85,8 @@ spec:
     params:
     - name: path-to-deployment
       value: webhook
+    - name: namespace-name
+      value: $(params.namespace-name)
     runAfter:
     - apply-sync-directory
 
@@ -68,5 +100,24 @@ spec:
     params:
     - name: path-to-deployment
       value: webhook/pipeline-run/pipeline-run.yaml
+    - name: namespace-name
+      value: $(params.namespace-name)
     runAfter:
     - apply-webhook-directory
+
+  - name: create-success-status
+    taskRef:
+      name: create-github-status-task
+    runAfter:
+    - build-image
+    params:
+    - name: repo
+      value: $(params.repo)
+    - name: commit-sha
+      value: $(params.commit-sha)
+    - name: state
+      value: "success"
+    - name: description
+      value: "Completed toolchain-cicd-dry-run-pipeline"
+    - name: context
+      value: "toolchain-cicd-dry-run-pipeline"
