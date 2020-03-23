@@ -50,7 +50,7 @@ spec:
       name: toolchain-cicd-dry-run-pipeline-run-$(uid)
     spec:
       pipelineRef:
-        name: toolchain-cicd-dry-run
+        name: toolchain-cicd-dry-run-pipeline
       params:
       - name: repo
         value: $(params.fullname)
