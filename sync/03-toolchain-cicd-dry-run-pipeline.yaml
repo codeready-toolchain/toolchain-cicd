@@ -67,8 +67,6 @@ spec:
     params:
     - name: path-to-deployment
       value: toolchain-pipeline/pipeline/toolchain-cd-pipeline.yaml
-    - name: namespace-name
-      value: $(params.namespace-name)
     - name: dry-run
       value: "true"
     runAfter:
@@ -108,7 +106,8 @@ spec:
     taskRef:
       name: create-github-status-task
     runAfter:
-    - build-image
+    - ensure-webhooks
+    - apply-toolchain-cd-pipeline
     params:
     - name: repo
       value: $(params.repo)
