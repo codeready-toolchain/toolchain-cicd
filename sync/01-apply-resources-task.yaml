@@ -82,6 +82,7 @@ spec:
       set -ex
       ALL_PROJECTS=`cat toolchain-cd-projects | tr "\n" " "`
       oc process -f $(inputs.params.path-to-deployment) \
-       -p TOOLCHAIN_CD_PROJECTS="${ALL_PROJECTS}" \
-       -p EXTERNAL_SYNC_DOMAIN=`oc get route toolchain-cd-sync-eventlistener --template '{{.spec.host}}'` \
-       -p EXTERNAL_TOOLCHAIN_CD_DOMAIN=`oc get route toolchain-cd-eventlistener --template '{{.spec.host}}'` | oc create --dry-run=$(inputs.params.dry-run) -f -
+        -p TOOLCHAIN_CD_PROJECTS="${ALL_PROJECTS}" \
+        -p EXTERNAL_SYNC_DOMAIN=`oc get route toolchain-cd-sync-eventlistener --template '{{.spec.host}}'` \
+        -p EXTERNAL_TOOLCHAIN_CD_DOMAIN=`oc get route toolchain-cd-eventlistener --template '{{.spec.host}}'` \
+        -p ONLY_LIST='true' | oc create -f -
