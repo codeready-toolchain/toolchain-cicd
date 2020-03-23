@@ -28,7 +28,6 @@ spec:
     - name: context
       value: "toolchain-cicd-dry-run-pipeline"
 
-
   - name: apply-sync-directory
     taskRef:
       name: apply-resources-task
@@ -41,6 +40,8 @@ spec:
       value: sync
     - name: dry-run
       value: "true"
+    runAfter:
+    - create-pending-status
 
   - name: apply-toolchain-pipeline-directory
     taskRef:
