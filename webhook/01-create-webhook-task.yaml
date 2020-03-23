@@ -47,7 +47,7 @@ spec:
     - name: github-secret
       mountPath: /var/secret
     script: |
-      #!/bin/sh
+      #!/usr/bin/env bash
       set -ex
       for REPO in $(inputs.params.GitHubRepos); do
         echo "Get Webhook for ${REPO}"
