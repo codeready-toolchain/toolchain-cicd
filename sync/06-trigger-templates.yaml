@@ -2,7 +2,7 @@
 apiVersion: tekton.dev/v1alpha1
 kind: TriggerTemplate
 metadata:
-  name: update-from-master-template
+  name: toolchain-cicd-sync-template
 spec:
   params:
   - name: gitref
@@ -14,11 +14,13 @@ spec:
     description: The git commit sha
   - name: fullname
     description: The git description
+  - name: gitname
+
   resourcetemplates:
   - apiVersion: tekton.dev/v1alpha1
     kind: PipelineRun
     metadata:
-      name: toolchain-cicd-sync-pipeline-run-$(uid)
+      name: toolchain-cicd-sync-$(uid)
     spec:
       pipelineRef:
         name: toolchain-cicd-pipeline
@@ -28,7 +30,7 @@ spec:
       - name: commit-sha
         value: $(params.gitsha)
       - name: pipeline-run-name
-        value: toolchain-cicd-sync-pipeline-run-$(uid)
+        value: toolchain-cicd-sync-$(uid)
       - name: dry-run
         value: "false"
       resources:
@@ -56,11 +58,13 @@ spec:
     description: The git commit sha
   - name: fullname
     description: The git description
+  - name: prnumber
+    description: The number of PR
   resourcetemplates:
   - apiVersion: tekton.dev/v1alpha1
     kind: PipelineRun
     metadata:
-      name: toolchain-cicd-dry-run-pipeline-run-$(uid)
+      name: toolchain-cicd-dry-run-pr$(params.prnumber)-$(uid)
     spec:
       pipelineRef:
         name: toolchain-cicd-pipeline
@@ -70,7 +74,7 @@ spec:
       - name: commit-sha
         value: $(params.gitsha)
       - name: pipeline-run-name
-        value: toolchain-cicd-dry-run-pipeline-run-$(uid)
+        value: toolchain-cicd-dry-run-pr$(params.prnumber)-$(uid)
       - name: dry-run
         value: "true"
       resources:

@@ -31,7 +31,7 @@ spec:
     - name: description
       value: "Starting $(params.pipeline-run-name)"
     - name: context
-      value: "toolchain-cicd-dry-run-pipeline"
+      value: "toolchain-cicd-pipeline"
 
   - name: apply-sync-directory
     taskRef:
@@ -124,4 +124,4 @@ spec:
     - name: description
       value: "Completed $(params.pipeline-run-name)"
     - name: context
-      value: "toolchain-cicd-dry-run-pipeline"
+      value: "toolchain-cicd-pipeline"
