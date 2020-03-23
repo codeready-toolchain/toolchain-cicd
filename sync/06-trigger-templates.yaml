@@ -10,14 +10,27 @@ spec:
     default: master
   - name: gitrepositoryurl
     description: The git repository url
+  - name: gitsha
+    description: The git commit sha
+  - name: fullname
+    description: The git description
   resourcetemplates:
   - apiVersion: tekton.dev/v1alpha1
     kind: PipelineRun
     metadata:
-      name: toolchain-cd-sync-pipeline-run-$(uid)
+      name: toolchain-cicd-sync-pipeline-run-$(uid)
     spec:
       pipelineRef:
-        name: update-config-from-master
+        name: toolchain-cicd-pipeline
+      params:
+      - name: repo
+        value: $(params.fullname)
+      - name: commit-sha
+        value: $(params.gitsha)
+      - name: pipeline-run-name
+        value: toolchain-cicd-sync-pipeline-run-$(uid)
+      - name: dry-run
+        value: false
       resources:
       - name: source-repo
         resourceSpec:
@@ -50,12 +63,16 @@ spec:
       name: toolchain-cicd-dry-run-pipeline-run-$(uid)
     spec:
       pipelineRef:
-        name: toolchain-cicd-dry-run-pipeline
+        name: toolchain-cicd-pipeline
       params:
       - name: repo
         value: $(params.fullname)
       - name: commit-sha
         value: $(params.gitsha)
+      - name: pipeline-run-name
+        value: toolchain-cicd-dry-run-pipeline-run-$(uid)
+      - name: dry-run
+        value: true
       resources:
       - name: source-repo
         resourceSpec:
