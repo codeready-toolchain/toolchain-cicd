@@ -38,8 +38,6 @@ spec:
     - name: WebhookEvents
       description: "List of events the webhook will send notifications for"
       default: '[\"push\"]'
-    - name: only-list
-      description: If the webhooks should be only listed to test the token
   steps:
   - name: create-webhook
     image: everpeace/curl-jq:latest
@@ -52,9 +50,6 @@ spec:
       for REPO in $(inputs.params.GitHubRepos); do
         echo "Get Webhook for ${REPO}"
         WEBHOOK_ID=`curl -v -H "Authorization: token $(cat /var/secret/$(inputs.params.GitHubAccessTokenKey))" -L https://api.github.com/repos/$(inputs.params.GitHubOrg)/${REPO}/hooks | jq '.[] | select(.config.url | contains ("$(inputs.params.ExternalDomain)")) | .id'`
-        if [[ "$(inputs.params.only-list)" == "true" ]]; then
-          exit 0
-        fi
         if [[ -n "${WEBHOOK_ID}" ]]; then
           echo "Update Webhook for ${REPO}"
           METHOD="PATCH"

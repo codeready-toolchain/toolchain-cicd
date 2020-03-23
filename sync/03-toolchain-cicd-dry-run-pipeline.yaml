@@ -90,7 +90,7 @@ spec:
 
   - name: ensure-webhooks
     taskRef:
-      name: process-all-projects-and-create-task
+      name: process-and-create-pipeline-webhook-task
     resources:
       inputs:
       - name: source

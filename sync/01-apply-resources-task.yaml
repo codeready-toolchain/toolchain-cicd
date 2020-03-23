@@ -58,7 +58,7 @@ spec:
 apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
-  name: process-all-projects-and-create-task
+  name: process-and-create-pipeline-webhook-task
 spec:
   inputs:
     resources:
@@ -85,4 +85,4 @@ spec:
         -p TOOLCHAIN_CD_PROJECTS="${ALL_PROJECTS}" \
         -p EXTERNAL_SYNC_DOMAIN=`oc get route toolchain-cd-sync-eventlistener --template '{{.spec.host}}'` \
         -p EXTERNAL_TOOLCHAIN_CD_DOMAIN=`oc get route toolchain-cd-eventlistener --template '{{.spec.host}}'` \
-        -p ONLY_LIST='true' | oc create -f -
+        | oc create --dry-run=$(inputs.params.dry-run) -f -
