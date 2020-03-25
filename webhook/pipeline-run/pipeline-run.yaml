@@ -10,11 +10,17 @@ objects:
       name: apply-webhooks
     params:
     - name: external-sync-domain
-      value: http://toolchain-cd-sync-eventlistener-mjobanek-dev.apps.member.crt-stage.com/
+      value: http://${EXTERNAL_SYNC_DOMAIN}/
     - name: external-toolchain-cd-domain
-      value: http://toolchain-cd-eventlistener-mjobanek-dev.apps.member.crt-stage.com/
+      value: http://${EXTERNAL_TOOLCHAIN_CD_DOMAIN}/
     - name: toolchain-cd-projects
       value: ${TOOLCHAIN_CD_PROJECTS}
+    - name: github-org
+      value: "codeready-toolchain"
     serviceAccountName: tekton-triggers-createwebhook
 parameters:
 - name: TOOLCHAIN_CD_PROJECTS
+- name: EXTERNAL_SYNC_DOMAIN
+  required: true
+- name: EXTERNAL_TOOLCHAIN_CD_DOMAIN
+  required: true

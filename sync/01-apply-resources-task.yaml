@@ -81,6 +81,10 @@ spec:
     workingDir: /workspace/source
     script: |
       #!/bin/sh
-      set -e
+      set -ex
       ALL_PROJECTS=`cat toolchain-cd-projects | tr "\n" " "`
-      oc create --dry-run=$(inputs.params.DRYRUN) -f - <<< `oc process -f $(inputs.params.PATHTODEPLOYMENT) -p TOOLCHAIN_CD_PROJECTS="${ALL_PROJECTS}"`
+      oc process -f $(inputs.params.PATHTODEPLOYMENT) \
+        -p TOOLCHAIN_CD_PROJECTS="${ALL_PROJECTS}" \
+        -p EXTERNAL_SYNC_DOMAIN=`oc get route toolchain-cd-sync-eventlistener --template '{{.spec.host}}'` \
+        -p EXTERNAL_TOOLCHAIN_CD_DOMAIN=`oc get route toolchain-cd-eventlistener --template '{{.spec.host}}'` \
+        | oc create --dry-run=$(inputs.params.DRYRUN) -f -
