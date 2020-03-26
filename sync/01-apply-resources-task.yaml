@@ -9,24 +9,22 @@ spec:
     - name: source
       type: git
     params:
-    - name: PATHTODEPLOYMENT
+    - name: path-to-deployment
       type: string
       description: Path to the manifest to apply
       default: deploy
-    - name: DRYRUN
+    - name: dry-run
       type: string
-      description: If true run a server-side dryrun.
+      description: If true then run dryrun.
       default: "false"
   steps:
   - name: run-oc-apply
     image: quay.io/openshift/origin-cli:4.3
     workingDir: /workspace/source
-    command: ["oc"]
-    args:
-    - "apply"
-    - "--dry-run=$(inputs.params.DRYRUN)"
-    - "-f"
-    - "$(inputs.params.PATHTODEPLOYMENT)"
+    script: |
+      #!/bin/sh
+      set -ex
+      oc apply --dry-run=$(inputs.params.dry-run) -f $(inputs.params.path-to-deployment)
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: Task
@@ -38,13 +36,13 @@ spec:
     - name: source
       type: git
     params:
-    - name: PATHTODEPLOYMENT
+    - name: path-to-deployment
       type: string
       description: Path to the manifest to apply
       default: deploy
-    - name: DRYRUN
+    - name: dry-run
       type: string
-      description: If true run a server-side dryrun.
+      description: If true then run dryrun.
       default: "false"
   steps:
   - name: run-oc-apply
@@ -52,28 +50,28 @@ spec:
     workingDir: /workspace/source
     script: |
       #!/bin/sh
-      set -e
+      set -ex
       for REPO in `cat toolchain-cd-projects`; do
-        oc process -f $(inputs.params.PATHTODEPLOYMENT) -p TOOLCHAIN_REPO=${REPO} | oc apply --dry-run=$(inputs.params.DRYRUN) -f -
+        oc process -f $(inputs.params.path-to-deployment) -p TOOLCHAIN_REPO=${REPO} | oc apply --dry-run=$(inputs.params.dry-run) -f -
       done
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: Task
 metadata:
-  name: process-all-projects-and-create-task
+  name: process-and-create-pipeline-webhook-task
 spec:
   inputs:
     resources:
     - name: source
       type: git
     params:
-    - name: PATHTODEPLOYMENT
+    - name: path-to-deployment
       type: string
       description: Path to the manifest to apply
       default: deploy
-    - name: DRYRUN
+    - name: dry-run
       type: string
-      description: If true run a server-side dryrun.
+      description: If true then run dryrun.
       default: "false"
   steps:
   - name: run-oc-apply
@@ -83,8 +81,8 @@ spec:
       #!/bin/sh
       set -ex
       ALL_PROJECTS=`cat toolchain-cd-projects | tr "\n" " "`
-      oc process -f $(inputs.params.PATHTODEPLOYMENT) \
+      oc process -f $(inputs.params.path-to-deployment) \
         -p TOOLCHAIN_CD_PROJECTS="${ALL_PROJECTS}" \
         -p EXTERNAL_SYNC_DOMAIN=`oc get route toolchain-cd-sync-eventlistener --template '{{.spec.host}}'` \
         -p EXTERNAL_TOOLCHAIN_CD_DOMAIN=`oc get route toolchain-cd-eventlistener --template '{{.spec.host}}'` \
-        | oc create --dry-run=$(inputs.params.DRYRUN) -f -
+        | oc create --dry-run=$(inputs.params.dry-run) -f -

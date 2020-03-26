@@ -45,15 +45,17 @@ spec:
     - name: github-secret
       mountPath: /var/secret
     script: |
-      #!/bin/sh
+      #!/usr/bin/env bash
       set -e
       for REPO in $(inputs.params.GitHubRepos); do
-        echo "Create Webhook for ${REPO}"
+        echo "Get Webhook for ${REPO}"
         WEBHOOK_ID=`curl -v -H "Authorization: token $(cat /var/secret/$(inputs.params.GitHubAccessTokenKey))" -L https://api.github.com/repos/$(inputs.params.GitHubOrg)/${REPO}/hooks | jq '.[] | select(.config.url | contains ("$(inputs.params.ExternalDomain)")) | .id'`
-        if [ -n "${WEBHOOK_ID}" ];then
+        if [[ -n "${WEBHOOK_ID}" ]]; then
+          echo "Update Webhook for ${REPO}"
           METHOD="PATCH"
           WEBHOOK_ID_SUFFIX="/${WEBHOOK_ID}"
         else
+          echo "Create Webhook for ${REPO}"
           METHOD="POST"
           WEBHOOK_ID_SUFFIX=""
         fi

@@ -16,8 +16,10 @@ It takes the long SHA and transforms it into the short one and then builds or pu
 As soon as OpenShift Pipeline operator supports an advanced feature of the Triggers, then we can drop this workaround.
 
 === sync
-The link:sync[] directory contains a pipeline definition that ensures that both pipeline configurations are up to date.
-As soon as there is a new commit to `toolchain-cd` repository, then it:
+The link:sync[] directory contains two pipeline definitions:
+
+* *Dry-run pipeline* that works as a CI for toolchain-cicd repository - it verifies all YAML files from the PR using the `--dry-run=true` parameter.
+* *Sync pipeline* that works as a CD for toolchain-cicd repository. It ensures that all pipeline configurations from the repo are up to date. As soon as there is a new commit to `toolchain-cicd` repository, then it:
 
 1. Using `oc apply -f sync/` updates all YAML files from the `sync` directory.
 2. Using `oc apply -f toolchain-pipeline/` updates all YAML files from the `toolchain-pipeline` directory.

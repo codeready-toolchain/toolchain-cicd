@@ -24,6 +24,8 @@ spec:
       value: "toolchain-cicd"
     - name: ExternalDomain
       value: $(params.external-sync-domain)
+    - name: WebhookEvents
+      value: '[\"push\",\"pull_request\"]'
 
   - name: apply-toolchain-cd-repo-webhook
     taskRef:
