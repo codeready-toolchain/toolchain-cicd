@@ -1,0 +1,88 @@
+---
+apiVersion: tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: toolchain-cicd-sync-template
+spec:
+  params:
+  - name: gitref
+    description: The git revision
+    default: master
+  - name: gitrepositoryurl
+    description: The git repository url
+  - name: gitsha
+    description: The git commit sha
+  - name: fullname
+    description: The git description
+  - name: gitname
+
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1alpha1
+    kind: PipelineRun
+    metadata:
+      name: toolchain-cicd-sync-$(uid)
+    spec:
+      pipelineRef:
+        name: toolchain-cicd-pipeline
+      params:
+      - name: repo
+        value: $(params.fullname)
+      - name: commit-sha
+        value: $(params.gitsha)
+      - name: pipeline-run-name
+        value: toolchain-cicd-sync-$(uid)
+      - name: dry-run
+        value: "false"
+      resources:
+      - name: source-repo
+        resourceSpec:
+          type: git
+          params:
+          - name: revision
+            value: $(params.gitref)
+          - name: url
+            value: $(params.gitrepositoryurl)
+---
+apiVersion: tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: toolchain-cicd-dry-run-template
+spec:
+  params:
+  - name: gitref
+    description: The git revision
+    default: master
+  - name: gitrepositoryurl
+    description: The git repository url
+  - name: gitsha
+    description: The git commit sha
+  - name: fullname
+    description: The git description
+  - name: prnumber
+    description: The number of PR
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1alpha1
+    kind: PipelineRun
+    metadata:
+      name: toolchain-cicd-dry-run-pr$(params.prnumber)-$(uid)
+    spec:
+      pipelineRef:
+        name: toolchain-cicd-pipeline
+      params:
+      - name: repo
+        value: $(params.fullname)
+      - name: commit-sha
+        value: $(params.gitsha)
+      - name: pipeline-run-name
+        value: toolchain-cicd-dry-run-pr$(params.prnumber)-$(uid)
+      - name: dry-run
+        value: "true"
+      resources:
+      - name: source-repo
+        resourceSpec:
+          type: git
+          params:
+          - name: revision
+            value: $(params.gitref)
+          - name: url
+            value: $(params.gitrepositoryurl)
