@@ -5,9 +5,6 @@ metadata:
   name: toolchain-cicd-sync-template
 spec:
   params:
-  - name: gitref
-    description: The git revision
-    default: master
   - name: gitrepositoryurl
     description: The git repository url
   - name: gitsha
@@ -39,7 +36,7 @@ spec:
           type: git
           params:
           - name: revision
-            value: $(params.gitref)
+            value: $(params.gitsha)
           - name: url
             value: $(params.gitrepositoryurl)
 ---
@@ -49,9 +46,6 @@ metadata:
   name: toolchain-cicd-dry-run-template
 spec:
   params:
-  - name: gitref
-    description: The git revision
-    default: master
   - name: gitrepositoryurl
     description: The git repository url
   - name: gitsha
@@ -83,6 +77,6 @@ spec:
           type: git
           params:
           - name: revision
-            value: $(params.gitref)
+            value: $(params.gitsha)
           - name: url
             value: $(params.gitrepositoryurl)
