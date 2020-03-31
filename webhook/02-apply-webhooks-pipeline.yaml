@@ -10,6 +10,8 @@ spec:
     description: The external domain for the toolchain-cd EventListener
   - name: toolchain-cd-projects
     description: List of projects to be used for CD flow
+  - name: github-org
+    description: the name of the GitHub org to be used for all webhooks
 
   tasks:
   - name: apply-toolchain-cd-webhook
@@ -17,7 +19,7 @@ spec:
       name: create-or-update-webhook
     params:
     - name: GitHubOrg
-      value: "codeready-toolchain"
+      value: $(params.github-org)
     - name: GitHubRepos
       value: "toolchain-cicd"
     - name: ExternalDomain
@@ -30,7 +32,7 @@ spec:
       name: create-or-update-webhook
     params:
     - name: GitHubOrg
-      value: "codeready-toolchain"
+      value: $(params.github-org)
     - name: GitHubRepos
       value: $(params.toolchain-cd-projects)
     - name: ExternalDomain

@@ -96,8 +96,23 @@ oc create secret generic push-to-quay-secret  --from-file=.dockerconfigjson=/hom
 
 5. Apply all pipeline resources from `webhook` directory: `oc apply -f webhook/`.
 
-6. Make sure that the link:webhook/pipeline-run/pipeline-run.yaml[] contains correct routes - you can get them using `oc get routes`.
+6. Run this command to set up the toolchain-cicd webhook with correct routes:
++
+```
+oc process -f webhook/pipeline-run/pipeline-run.yaml \
+  -p EXTERNAL_SYNC_DOMAIN=`oc get route toolchain-cd-sync-eventlistener --template '{{.spec.host}}'` \
+  -p EXTERNAL_TOOLCHAIN_CD_DOMAIN=`oc get route toolchain-cd-eventlistener --template '{{.spec.host}}'` \
+  | oc create -f -
+```
 
-7. Run `oc process -f webhook/pipeline-run/pipeline-run.yaml | oc create -f -` to set up the toolchain-cicd webhook.
-
-8. The next commit to the toolchain-cicd repo will trigger the synchronization pipeline that will setup all toolchain-cd pipelines and all webhooks for projects defined in link:toolchain-cd-projects[].
+7. The next commit to the toolchain-cicd repo will trigger the synchronization pipeline that will setup all toolchain-cd pipelines and all webhooks for projects defined in link:toolchain-cd-projects[].
++
+If you want to set up webhooks for all toolchain repositories without doing a commit to toolchain-cd, you can run:
++
+```
+oc process -f webhook/pipeline-run/pipeline-run.yaml \
+  -p TOOLCHAIN_CD_PROJECTS=`cat toolchain-cd-projects | tr "\n" " "` \
+  -p EXTERNAL_SYNC_DOMAIN=`oc get route toolchain-cd-sync-eventlistener --template '{{.spec.host}}'` \
+  -p EXTERNAL_TOOLCHAIN_CD_DOMAIN=`oc get route toolchain-cd-eventlistener --template '{{.spec.host}}'` \
+  | oc create -f -
+```
