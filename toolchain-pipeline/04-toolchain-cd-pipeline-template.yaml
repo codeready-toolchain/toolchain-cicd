@@ -82,3 +82,4 @@ spec:
         resourceRef:
           name: buildah-short-sha-image
       serviceAccountName: image-pusher
+      timeout: 1h30m
