@@ -29,10 +29,6 @@ spec:
       mountPath: /var/lib/containers
     securityContext:
       privileged: true
-    resources:
-      limits:
-        memory: "2Gi"
-        cpu: "500m"
 
   - name: push
     image: quay.io/buildah/stable:v1.11.0
@@ -80,10 +76,6 @@ spec:
       mountPath: /var/lib/containers
     securityContext:
       privileged: true
-    resources:
-      limits:
-        memory: "2Gi"
-        cpu: "500m"
 
   - name: push
     image: quay.io/buildah/stable:v1.11.0
@@ -135,10 +127,6 @@ spec:
     args: ["build"]
     securityContext:
       privileged: true
-    resources:
-      limits:
-        memory: "2Gi"
-        cpu: "500m"
 
   - name: build-image
     image: $(inputs.resources.buildah-short-sha-image.url)
@@ -149,10 +137,6 @@ spec:
       mountPath: /var/lib/containers
     securityContext:
       privileged: true
-    resources:
-      limits:
-        memory: "2Gi"
-        cpu: "500m"
 
   - name: push-image
     image: $(inputs.resources.buildah-short-sha-image.url)
