@@ -24,4 +24,4 @@ spec:
   type: git
   params:
   - name: url
-    value: https://github.com/matousjobanek/toolchain-cd.git
+    value: https://github.com/codeready-toolchain/toolchain-cicd.git
