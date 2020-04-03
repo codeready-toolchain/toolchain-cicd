@@ -23,8 +23,7 @@ spec:
       type: image
       params:
       - name: url
-        value: quay.io/matousjobanek/$(params.repo-name)
-  #        value: quay.io/$(params.full-repo-name)
+        value: quay.io/$(params.full-repo-name)
 
   - apiVersion: tekton.dev/v1alpha1
     kind: PipelineResource
@@ -48,8 +47,7 @@ spec:
       type: image
       params:
       - name: url
-        value: quay.io/matousjobanek/$(params.repo-name)-tools:latest
-  #        value: quay.io/$(params.full-repo-name)-tools:latest
+        value: quay.io/$(params.full-repo-name)-tools:latest
 
   - apiVersion: tekton.dev/v1alpha1
     kind: PipelineRun
@@ -66,7 +64,7 @@ spec:
       - name: repo-path
         value: 'go/src/github.com/codeready-toolchain/$(params.repo-name)'
       - name: quay-namespace
-        value: matousjobanek
+        value: codeready-toolchain
       resources:
       - name: project-repo
         resourceRef:

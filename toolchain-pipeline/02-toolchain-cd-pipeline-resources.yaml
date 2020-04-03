@@ -14,7 +14,7 @@ spec:
   type: image
   params:
   - name: url
-    value: quay.io/matousjobanek/buildah-short-sha:0.1
+    value: quay.io/codeready-toolchain/buildah-short-sha:0.1
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: PipelineResource
@@ -24,4 +24,4 @@ spec:
   type: git
   params:
   - name: url
-    value: https://github.com/matousjobanek/toolchain-cd.git
+    value: https://github.com/codeready-toolchain/toolchain-cicd.git
