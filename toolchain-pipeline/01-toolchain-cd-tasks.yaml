@@ -161,6 +161,7 @@ spec:
     resources:
     - name: project-repo
       type: git
+      targetPath: $(inputs.params.repo-path)
     - name: tools-image
       type: image
     params:
@@ -171,28 +172,6 @@ spec:
     - name: quay-namespace
       description: The quay namespace CSV should be pushed to
   steps:
-
-  - name: mkdir
-    image: $(inputs.resources.tools-image.url)
-    command: ["mkdir"]
-    args: ["-p", "$(inputs.params.repo-path)/"]
-    securityContext:
-      privileged: true
-
-  - name: clone
-    image: $(inputs.resources.tools-image.url)
-    command: ["git"]
-    args: ["clone", "$(inputs.resources.project-repo.url)", '/workspace/$(inputs.params.repo-path)/']
-    securityContext:
-      privileged: true
-
-  - name: checkout-the-revision
-    image: $(inputs.resources.tools-image.url)
-    workingDir: '/workspace/$(inputs.params.repo-path)/'
-    command: ["git"]
-    args: ["checkout", "$(inputs.params.git-revision)"]
-    securityContext:
-      privileged: true
 
   - name: csv
     workingDir: '/workspace/$(inputs.params.repo-path)/'
