@@ -30,7 +30,7 @@ spec:
       privileged: true
     resources:
       limits:
-        cpu: 500m
+        cpu: 400m
         memory: 2Gi
     script: |
       #!/bin/sh
@@ -75,7 +75,7 @@ spec:
       privileged: true
     resources:
       limits:
-        cpu: 500m
+        cpu: 400m
         memory: 2Gi
     script: |
       #!/bin/sh
@@ -123,6 +123,10 @@ spec:
     args: ["build"]
     securityContext:
       privileged: true
+    resources:
+      limits:
+        cpu: 400m
+        memory: 2Gi
 
   - name: build-and-push-image
     image: $(inputs.resources.buildah-short-sha-image.url)
@@ -132,10 +136,6 @@ spec:
       mountPath: /var/lib/containers
     securityContext:
       privileged: true
-    resources:
-      limits:
-        cpu: 500m
-        memory: 2Gi
     script: |
       #!/bin/sh
       set -ex
