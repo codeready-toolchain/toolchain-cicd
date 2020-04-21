@@ -28,10 +28,6 @@ spec:
       mountPath: /var/lib/containers
     securityContext:
       privileged: true
-    resources:
-      limits:
-        cpu: 400m
-        memory: 2Gi
     script: |
       #!/bin/sh
       set -ex
@@ -75,7 +71,7 @@ spec:
       privileged: true
     resources:
       limits:
-        cpu: 400m
+        cpu: 500m
         memory: 2Gi
     script: |
       #!/bin/sh
