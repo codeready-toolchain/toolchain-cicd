@@ -20,25 +20,19 @@ spec:
       type: image
 
   steps:
-  - name: build
+  - name: build-and-push-short-sha
     image: quay.io/buildah/stable:v1.11.0
     workingDir: '/workspace/toolchain-cd/'
-    command: ['buildah', 'bud', '--tls-verify=$(inputs.params.tls-verify)', '--layers', '-f', '/workspace/toolchain-cd/buildah-short-sha/Dockerfile', '-t', '$(outputs.resources.buildah-short-sha-image.url)', '.']
     volumeMounts:
     - name: varlibcontainers
       mountPath: /var/lib/containers
     securityContext:
       privileged: true
-
-  - name: push
-    image: quay.io/buildah/stable:v1.11.0
-    workingDir: '/workspace/toolchain-cd/'
-    command: ['buildah', 'push', '--tls-verify=$(inputs.params.tls-verify)', '$(outputs.resources.buildah-short-sha-image.url)', 'docker://$(outputs.resources.buildah-short-sha-image.url)']
-    volumeMounts:
-    - name: varlibcontainers
-      mountPath: /var/lib/containers
-    securityContext:
-      privileged: true
+    script: |
+      #!/bin/sh
+      set -ex
+      buildah bud --tls-verify=$(inputs.params.tls-verify) --layers -f /workspace/toolchain-cd/buildah-short-sha/Dockerfile -t $(outputs.resources.buildah-short-sha-image.url) .
+      buildah push --tls-verify=$(inputs.params.tls-verify) $(outputs.resources.buildah-short-sha-image.url) docker://$(outputs.resources.buildah-short-sha-image.url)
 
   volumes:
   - name: varlibcontainers
@@ -67,25 +61,23 @@ spec:
       type: image
 
   steps:
-  - name: build
+  - name: build-and-push-tools
     image: quay.io/buildah/stable:v1.11.0
     workingDir: '/workspace/$(inputs.params.repo-path)/'
-    command: ['buildah', 'bud', '--tls-verify=$(inputs.params.tls-verify)', '--layers', '-f', '/workspace/$(inputs.params.repo-path)/openshift-ci/Dockerfile.tools', '-t', '$(outputs.resources.tools-image.url)', '.']
     volumeMounts:
     - name: varlibcontainers
       mountPath: /var/lib/containers
     securityContext:
       privileged: true
-
-  - name: push
-    image: quay.io/buildah/stable:v1.11.0
-    workingDir: '/workspace/$(inputs.params.repo-path)/'
-    command: ['buildah', 'push', '--tls-verify=$(inputs.params.tls-verify)', '$(outputs.resources.tools-image.url)', 'docker://$(outputs.resources.tools-image.url)']
-    volumeMounts:
-    - name: varlibcontainers
-      mountPath: /var/lib/containers
-    securityContext:
-      privileged: true
+    resources:
+      limits:
+        cpu: 500m
+        memory: 2Gi
+    script: |
+      #!/bin/sh
+      set -ex
+      buildah bud --tls-verify=$(inputs.params.tls-verify) --layers -f /workspace/$(inputs.params.repo-path)/openshift-ci/Dockerfile.tools -t $(outputs.resources.tools-image.url) .
+      buildah push --tls-verify=$(inputs.params.tls-verify) $(outputs.resources.tools-image.url) docker://$(outputs.resources.tools-image.url)
 
   volumes:
   - name: varlibcontainers
@@ -127,26 +119,24 @@ spec:
     args: ["build"]
     securityContext:
       privileged: true
+    resources:
+      limits:
+        cpu: 400m
+        memory: 2Gi
 
-  - name: build-image
+  - name: build-and-push-image
     image: $(inputs.resources.buildah-short-sha-image.url)
     workingDir: '/workspace/$(inputs.params.repo-path)/'
-    command: ['buildah-short-sha', 'bud', '$(outputs.resources.binary-image.url)', '$(inputs.params.git-revision)', '--tls-verify=$(inputs.params.tls-verify)', '--layers', '-f', '/workspace/$(inputs.params.repo-path)/build/Dockerfile', '.']
     volumeMounts:
     - name: varlibcontainers
       mountPath: /var/lib/containers
     securityContext:
       privileged: true
-
-  - name: push-image
-    image: $(inputs.resources.buildah-short-sha-image.url)
-    workingDir: '/workspace/$(inputs.params.repo-path)/'
-    command: ['buildah-short-sha', 'push', '$(outputs.resources.binary-image.url)', '$(inputs.params.git-revision)', '--tls-verify=$(inputs.params.tls-verify)']
-    volumeMounts:
-    - name: varlibcontainers
-      mountPath: /var/lib/containers
-    securityContext:
-      privileged: true
+    script: |
+      #!/bin/sh
+      set -ex
+      buildah-short-sha bud $(outputs.resources.binary-image.url) $(inputs.params.git-revision) --tls-verify=$(inputs.params.tls-verify) --layers -f /workspace/$(inputs.params.repo-path)/build/Dockerfile .
+      buildah-short-sha push $(outputs.resources.binary-image.url) $(inputs.params.git-revision) --tls-verify=$(inputs.params.tls-verify)
 
   volumes:
   - name: varlibcontainers
