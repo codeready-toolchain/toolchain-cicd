@@ -1,10 +1,10 @@
-apiVersion: tekton.dev/v1alpha1
+apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerTemplate
 metadata:
   name: toolchain-cd-pipeline-template
 spec:
   params:
-  - name: git-revision
+  - name: repo-revision
     description: The git revision
     default: master
   - name: repo-name
@@ -32,24 +32,14 @@ spec:
     spec:
       type: git
       params:
-      - name: url
-        value: $(params.clone-url)
+
       - name: revision
-        value: $(params.git-revision)
+        value: $(params.repo-revision)
       - name: depth
         value: '0'
 
-  - apiVersion: tekton.dev/v1alpha1
-    kind: PipelineResource
-    metadata:
-      name: tools-image-$(params.repo-name)-$(uid)
-    spec:
-      type: image
-      params:
-      - name: url
-        value: quay.io/$(params.full-repo-name)-tools:latest
 
-  - apiVersion: tekton.dev/v1alpha1
+  - apiVersion: tekton.dev/v1beta1
     kind: PipelineRun
     metadata:
       name: toolchain-cd-$(params.repo-name)-$(uid)
@@ -57,10 +47,12 @@ spec:
       pipelineRef:
         name: $(params.repo-name)-cd
       params:
+      - name: repo-url
+        value: $(params.clone-url)
       - name: repo-name
         value: $(params.repo-name)
-      - name: git-revision
-        value: $(params.git-revision)
+      - name: repo-revision
+        value: $(params.repo-revision)
       - name: repo-path
         value: 'go/src/github.com/codeready-toolchain/$(params.repo-name)'
       - name: quay-namespace

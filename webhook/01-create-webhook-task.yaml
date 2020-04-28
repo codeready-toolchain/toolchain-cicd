@@ -6,7 +6,7 @@ metadata:
 secrets:
 - name: webhook-secret
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: create-or-update-webhook

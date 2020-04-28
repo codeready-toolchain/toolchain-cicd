@@ -1,88 +1,148 @@
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: build-buildah-short-sha-image
+spec:
+  workspaces:
+  - name: source
+    mountPath: /source
+
+  params:
+  - name: tls-verify
+    description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
+    default: "true"
+  - name: subdirectory
+    description: Subdirectory inside "source" workspace that contains the repo.
+    default: "toolchain-cicd"
+  - name: dry-run
+    type: string
+    description: If true then run dryrun.
+    default: "false"
+  - name: buildah-short-sha-image
+    type: string
+  - name: quay-namespace
+    type: string
+
+  steps:
+  - name: build-and-push-short-sha
+    image: quay.io/buildah/stable:v1.11.0
+    workingDir: '$(workspaces.source.path)/$(params.subdirectory)/'
+    volumeMounts:
+    - name: varlibcontainers
+      mountPath: /var/lib/containers
+    resources:
+      limits:
+        memory: 1500Mi
+    script: |
+      #!/bin/sh
+      set -ex
+        buildah bud --tls-verify=$(params.tls-verify) --layers -f ./buildah-short-sha/Dockerfile -t  quay.io/$(params.quay-namespace)/buildah-short-sha:0.1 .
+      if [[ "$(params.dry-run)" != "true" ]]; then
+        buildah push --tls-verify=$(params.tls-verify) quay.io/$(params.quay-namespace)/buildah-short-sha:0.1 docker://quay.io/$(params.quay-namespace)/buildah-short-sha:0.1
+      fi
+
+  volumes:
+  - name: varlibcontainers
+    emptyDir: {}
+---
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: apply-resources-task
 spec:
-  inputs:
-    resources:
-    - name: source
-      type: git
-    params:
-    - name: path-to-deployment
-      type: string
-      description: Path to the manifest to apply
-      default: deploy
-    - name: dry-run
-      type: string
-      description: If true then run dryrun.
-      default: "false"
+  workspaces:
+  - name: source
+    mountPath: /source
+
+  params:
+  - name: path-to-deployment
+    type: string
+    description: Path to the manifest to apply
+    default: deploy
+  - name: dry-run
+    type: string
+    description: If true then run dryrun.
+    default: "false"
+  - name: subdirectory
+    description: Subdirectory inside "source" workspace that contains the repo.
+    default: "toolchain-cicd"
+
   steps:
   - name: run-oc-apply
     image: quay.io/openshift/origin-cli:4.3
-    workingDir: /workspace/source
+    workingDir: '$(workspaces.source.path)/$(params.subdirectory)/'
     script: |
       #!/bin/sh
       set -ex
-      oc apply --dry-run=$(inputs.params.dry-run) -f $(inputs.params.path-to-deployment)
+      oc apply --dry-run=$(params.dry-run) -f $(params.path-to-deployment)
+
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: process-project-and-apply-task
 spec:
-  inputs:
-    resources:
-    - name: source
-      type: git
-    params:
-    - name: path-to-deployment
-      type: string
-      description: Path to the manifest to apply
-      default: deploy
-    - name: dry-run
-      type: string
-      description: If true then run dryrun.
-      default: "false"
+  workspaces:
+  - name: source
+    mountPath: /source
+
+  params:
+  - name: path-to-deployment
+    type: string
+    description: Path to the manifest to apply
+    default: deploy
+  - name: dry-run
+    type: string
+    description: If true then run dryrun.
+    default: "false"
+  - name: subdirectory
+    description: Subdirectory inside "source" workspace that contains the repo.
+    default: "toolchain-cicd"
+
   steps:
   - name: run-oc-apply
     image: quay.io/openshift/origin-cli:4.3
-    workingDir: /workspace/source
+    workingDir: '$(workspaces.source.path)/$(params.subdirectory)/'
     script: |
       #!/bin/sh
       set -ex
       for REPO in `cat toolchain-cd-projects`; do
-        oc process -f $(inputs.params.path-to-deployment) -p TOOLCHAIN_REPO=${REPO} | oc apply --dry-run=$(inputs.params.dry-run) -f -
+        oc process -f $(params.path-to-deployment) -p TOOLCHAIN_REPO=${REPO} | oc apply --dry-run=$(params.dry-run) -f -
       done
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: process-and-create-pipeline-webhook-task
 spec:
-  inputs:
-    resources:
-    - name: source
-      type: git
-    params:
-    - name: path-to-deployment
-      type: string
-      description: Path to the manifest to apply
-      default: deploy
-    - name: dry-run
-      type: string
-      description: If true then run dryrun.
-      default: "false"
+  workspaces:
+  - name: source
+    mountPath: /source
+
+  params:
+  - name: path-to-deployment
+    type: string
+    description: Path to the manifest to apply
+    default: deploy
+  - name: dry-run
+    type: string
+    description: If true then run dryrun.
+    default: "false"
+  - name: subdirectory
+    description: Subdirectory inside "source" workspace that contains the repo.
+    default: "toolchain-cicd"
+
   steps:
   - name: run-oc-apply
     image: quay.io/openshift/origin-cli:4.3
-    workingDir: /workspace/source
+    workingDir: '$(workspaces.source.path)/$(params.subdirectory)/'
     script: |
       #!/bin/sh
       set -ex
       ALL_PROJECTS=`cat toolchain-cd-projects | tr "\n" " "`
-      oc process -f $(inputs.params.path-to-deployment) \
+      oc process -f $(params.path-to-deployment) \
         -p TOOLCHAIN_CD_PROJECTS="${ALL_PROJECTS}" \
         -p EXTERNAL_SYNC_DOMAIN=`oc get route toolchain-cd-sync-eventlistener --template '{{.spec.host}}'` \
         -p EXTERNAL_TOOLCHAIN_CD_DOMAIN=`oc get route toolchain-cd-eventlistener --template '{{.spec.host}}'` \
-        | oc create --dry-run=$(inputs.params.dry-run) -f -
+        | oc create --dry-run=$(params.dry-run) -f -

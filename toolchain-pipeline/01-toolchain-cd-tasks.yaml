@@ -1,77 +1,28 @@
 ---
-apiVersion: tekton.dev/v1alpha1
-kind: Task
-metadata:
-  name: build-buildah-short-sha-image
-spec:
-  inputs:
-    resources:
-    - name: toolchain-cd-repo
-      type: git
-      targetPath: toolchain-cd
-    params:
-    - name: tls-verify
-      description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
-      default: "true"
-
-  outputs:
-    resources:
-    - name: buildah-short-sha-image
-      type: image
-
-  steps:
-  - name: build-and-push-short-sha
-    image: quay.io/buildah/stable:v1.11.0
-    workingDir: '/workspace/toolchain-cd/'
-    volumeMounts:
-    - name: varlibcontainers
-      mountPath: /var/lib/containers
-    securityContext:
-      privileged: true
-    resources:
-      limits:
-        memory: 1500Mi
-    script: |
-      #!/bin/sh
-      set -ex
-      buildah bud --tls-verify=$(inputs.params.tls-verify) --layers -f /workspace/toolchain-cd/buildah-short-sha/Dockerfile -t $(outputs.resources.buildah-short-sha-image.url) .
-      buildah push --tls-verify=$(inputs.params.tls-verify) $(outputs.resources.buildah-short-sha-image.url) docker://$(outputs.resources.buildah-short-sha-image.url)
-
-  volumes:
-  - name: varlibcontainers
-    emptyDir: {}
----
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: build-docker-tools-image
 spec:
-  inputs:
-    resources:
-    - name: project-repo
-      type: git
-      targetPath: $(inputs.params.repo-path)
-    params:
-    - name: repo-path
-      description: The path to the repository
-    - name: tls-verify
-      description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
-      default: "true"
-
-  outputs:
-    resources:
-    - name: tools-image
-      type: image
+  workspaces:
+  - name: source
+    mountPath: /source
+  params:
+  - name: repo-path
+    description: The path to the repository
+  - name: tls-verify
+    description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
+    default: "true"
+  - name: tools-image-url
+    type: string
 
   steps:
   - name: build-and-push-tools
     image: quay.io/buildah/stable:v1.11.0
-    workingDir: '/workspace/$(inputs.params.repo-path)/'
+    workingDir: '$(workspaces.source.path)/$(params.repo-path)/'
     volumeMounts:
     - name: varlibcontainers
       mountPath: /var/lib/containers
-    securityContext:
-      privileged: true
     resources:
       limits:
         cpu: 500m
@@ -79,100 +30,88 @@ spec:
     script: |
       #!/bin/sh
       set -ex
-      buildah bud --tls-verify=$(inputs.params.tls-verify) --layers -f /workspace/$(inputs.params.repo-path)/openshift-ci/Dockerfile.tools -t $(outputs.resources.tools-image.url) .
-      buildah push --tls-verify=$(inputs.params.tls-verify) $(outputs.resources.tools-image.url) docker://$(outputs.resources.tools-image.url)
+      buildah bud --tls-verify=$(params.tls-verify) --layers -f /workspace/$(params.repo-path)/openshift-ci/Dockerfile.tools -t $(params.tools-image-url) .
+      buildah push --tls-verify=$(params.tls-verify) $(params.tools-image-url) docker://$(params.tools-image-url)
 
   volumes:
   - name: varlibcontainers
     emptyDir: {}
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: build-project
 spec:
-  inputs:
-    resources:
-    - name: project-repo
-      type: git
-      targetPath: $(inputs.params.repo-path)
-    - name: tools-image
-      type: image
-    - name: buildah-short-sha-image
-      type: image
-    params:
-    - name: git-revision
-      description: The git revision
-    - name: repo-path
-      description: The path to the repository
-    - name: tls-verify
-      description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
-      default: "true"
-
-  outputs:
-    resources:
-    - name: binary-image
-      type: image
+  workspaces:
+  - name: source
+    mountPath: /source
+  params:
+  - name: git-revision
+    description: The git revision
+  - name: repo-path
+    description: The path to the repository
+  - name: tls-verify
+    description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
+    default: "true"
+  - name: buildah-short-sha-image-url
+    type: string
+  - name: tools-image-url
+    type: string
+  - name: binary-image-url
+    type: string
 
   steps:
   - name: make-build
-    workingDir: '/workspace/$(inputs.params.repo-path)/'
-    image: $(inputs.resources.tools-image.url)
+    workingDir: '$(workspaces.source.path)/$(params.repo-path)/'
+    image: $(params.tools-image-url)
     command: ["make"]
     args: ["build"]
-    securityContext:
-      privileged: true
     resources:
       limits:
         cpu: 400m
         memory: 2Gi
 
   - name: build-and-push-image
-    image: $(inputs.resources.buildah-short-sha-image.url)
-    workingDir: '/workspace/$(inputs.params.repo-path)/'
+    image: $(params.buildah-short-sha-image-url)
+    workingDir: '$(workspaces.source.path)/$(params.repo-path)/'
     volumeMounts:
     - name: varlibcontainers
       mountPath: /var/lib/containers
-    securityContext:
-      privileged: true
     script: |
       #!/bin/sh
       set -ex
-      buildah-short-sha bud $(outputs.resources.binary-image.url) $(inputs.params.git-revision) --tls-verify=$(inputs.params.tls-verify) --layers -f /workspace/$(inputs.params.repo-path)/build/Dockerfile .
-      buildah-short-sha push $(outputs.resources.binary-image.url) $(inputs.params.git-revision) --tls-verify=$(inputs.params.tls-verify)
+      buildah-short-sha bud $(params.binary-image-url) $(params.git-revision) --tls-verify=$(params.tls-verify) --layers -f ./build/Dockerfile .
+      buildah-short-sha push $(params.binary-image-url) $(params.git-revision) --tls-verify=$(params.tls-verify)
 
   volumes:
   - name: varlibcontainers
     emptyDir: {}
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: generate-and-push-csv
 spec:
-  inputs:
-    resources:
-    - name: project-repo
-      type: git
-      targetPath: $(inputs.params.repo-path)
-    - name: tools-image
-      type: image
-    params:
-    - name: git-revision
-      description: The git revision
-    - name: repo-path
-      description: The path to the repository
-    - name: quay-namespace
-      description: The quay namespace CSV should be pushed to
+  workspaces:
+  - name: source
+    mountPath: /source
+  params:
+  - name: git-revision
+    description: The git revision
+  - name: repo-path
+    description: The path to the repository
+  - name: quay-namespace
+    description: The quay namespace CSV should be pushed to
+  - name: tools-image-url
+    type: string
   steps:
 
   - name: csv
-    workingDir: '/workspace/$(inputs.params.repo-path)/'
-    image: $(inputs.resources.tools-image.url)
+    workingDir: '$(workspaces.source.path)/$(params.repo-path)/'
+    image: $(resources.tools-image-url)
     command: ["make"]
-    args: ["push-to-quay-nightly", "QUAY_NAMESPACE=$(inputs.params.quay-namespace)"]
-    securityContext:
-      privileged: true
+    args: ["push-to-quay-nightly", "QUAY_NAMESPACE=$(params.quay-namespace)"]
+
 
   volumes:
   - name: varlibcontainers

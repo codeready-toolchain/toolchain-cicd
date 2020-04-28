@@ -1,10 +1,10 @@
-apiVersion: tekton.dev/v1alpha1
+apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerBinding
 metadata:
   name: toolchain-cd-pipeline-binding
 spec:
   params:
-  - name: git-revision
+  - name: repo-revision
     value: "$(body.head_commit.id)"
   - name: repo-name
     value: "$(body.repository.name)"

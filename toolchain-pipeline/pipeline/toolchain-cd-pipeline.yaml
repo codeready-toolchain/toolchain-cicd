@@ -1,96 +1,102 @@
 apiVersion: template.openshift.io/v1
 kind: Template
 objects:
-- apiVersion: tekton.dev/v1alpha1
+- apiVersion: tekton.dev/v1beta1
   kind: Pipeline
   metadata:
     name: ${TOOLCHAIN_REPO}-cd
   spec:
+    workspaces:
+    - name: shared-workspace
     params:
+    - name: repo-url
+      type: string
+    - name: repo-name
+      type: string
     - name: repo-path
       description: Path to the repo
-    - name: git-revision
+    - name: repo-revision
       description: The git revision
     - name: quay-namespace
       description: The quay namespace CSV should be pushed to
       default: codeready-toolchain
-    resources:
-    - name: project-repo
-      type: git
-    - name: tools-image
-      type: image
-    - name: binary-image
-      type: image
-    - name: buildah-short-sha-image
-      type: image
-    - name: toolchain-cd-repo
-      type: git
+
+    - name: buildah-short-sha-image-url
+      type: string
+      default: quay.io/$(params.quay-namespace)/buildah-short-sha:0.1
+    - name: tools-image-url
+      type: string
+      default: quay.io/$(params.quay-namespace)/$(params.repo-name)-tools:latest
+    - name: binary-image-url
+      type: string
+      default: quay.io/$(params.quay-namespace)/$(params.repo-name):latest
 
     tasks:
+    - name: fetch-repository
+      taskRef:
+        name: git-clone
+      workspaces:
+      - name: output
+        workspace: shared-workspace
+      params:
+      - name: url
+        value: $(params.repo-url)
+      - name: subdirectory
+        value: $(params.repo-path)
+      - name: revision
+        value: $(params.repo-revision)
+      - name: depth
+        value: "0"
+
     - name: build-tools-image
       taskRef:
         name: build-docker-tools-image
+      workspaces:
+      - name: source
+        workspace: shared-workspace
       params:
       - name: repo-path
         value: $(params.repo-path)
-      resources:
-        inputs:
-        - name: project-repo
-          resource: project-repo
-        outputs:
-        - name: tools-image
-          resource: tools-image
-
-    - name: build-buildah-short-sha-image
-      taskRef:
-        name: build-buildah-short-sha-image
-      resources:
-        inputs:
-        - name: toolchain-cd-repo
-          resource: toolchain-cd-repo
-        outputs:
-        - name: buildah-short-sha-image
-          resource: buildah-short-sha-image
+      - name: tools-image-url
+        value: $(params.tools-image-url)
+      runAfter:
+      - fetch-repository
 
     - name: build-project
       taskRef:
         name: build-project
+      workspaces:
+      - name: source
+        workspace: shared-workspace
       params:
       - name: repo-path
         value: $(params.repo-path)
-      - name: git-revision
-        value: $(params.git-revision)
-      resources:
-        inputs:
-        - name: project-repo
-          resource: project-repo
-        - name: tools-image
-          resource: tools-image
-        - name: buildah-short-sha-image
-          resource: buildah-short-sha-image
-        outputs:
-        - name: binary-image
-          resource: binary-image
+      - name: repo-revision
+        value: $(params.repo-revision)
+      - name: buildah-short-sha-image-url
+        value: $(params.buildah-short-sha-image-url)
+      - name: tools-image-url
+        value: $(params.tools-image-url)
+      - name: binary-image-url
+        value: $(params.binary-image-url)
       runAfter:
       - build-tools-image
-      - build-buildah-short-sha-image
 
     - name: generate-and-push-csv
       taskRef:
         name: generate-and-push-csv
+      workspaces:
+      - name: source
+        workspace: shared-workspace
       params:
       - name: repo-path
         value: $(params.repo-path)
       - name: quay-namespace
         value: $(params.quay-namespace)
-      - name: git-revision
-        value: $(params.git-revision)
-      resources:
-        inputs:
-        - name: project-repo
-          resource: project-repo
-        - name: tools-image
-          resource: tools-image
+      - name: repo-revision
+        value: $(params.repo-revision)
+      - name: tools-image-url
+        value: $(params.tools-image-url)
       runAfter:
       - build-project
 parameters:
