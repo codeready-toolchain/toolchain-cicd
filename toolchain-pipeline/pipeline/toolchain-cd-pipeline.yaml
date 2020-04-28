@@ -23,13 +23,10 @@ objects:
 
     - name: buildah-short-sha-image-url
       type: string
-      default: quay.io/$(params.quay-namespace)/buildah-short-sha:0.1
     - name: tools-image-url
       type: string
-      default: quay.io/$(params.quay-namespace)/$(params.repo-name)-tools:latest
     - name: binary-image-url
       type: string
-      default: quay.io/$(params.quay-namespace)/$(params.repo-name):latest
 
     tasks:
     - name: fetch-repository

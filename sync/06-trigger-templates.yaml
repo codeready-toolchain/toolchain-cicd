@@ -1,15 +1,4 @@
 ---
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: pipeline-resources
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 500Mi
----
 apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerTemplate
 metadata:
@@ -45,8 +34,6 @@ spec:
         value: toolchain-cicd-sync-$(uid)
       - name: dry-run
         value: "false"
-      - name: repo-revision
-        value: $(params.gitsha)
       - name: repo-url
         value: $(params.gitrepositoryurl)
       - name: quay-namespace
@@ -88,8 +75,6 @@ spec:
         value: toolchain-cicd-dry-run-pr$(params.prnumber)-$(uid)
       - name: dry-run
         value: "true"
-      - name: repo-revision
-        value: $(params.gitsha)
       - name: repo-url
         value: $(params.gitrepositoryurl)
       - name: quay-namespace

@@ -23,6 +23,8 @@ spec:
     volumeMounts:
     - name: varlibcontainers
       mountPath: /var/lib/containers
+    securityContext:
+      privileged: true
     resources:
       limits:
         cpu: 500m
@@ -30,7 +32,7 @@ spec:
     script: |
       #!/bin/sh
       set -ex
-      buildah bud --tls-verify=$(params.tls-verify) --layers -f /workspace/$(params.repo-path)/openshift-ci/Dockerfile.tools -t $(params.tools-image-url) .
+      buildah bud --tls-verify=$(params.tls-verify) --layers -f $(workspaces.source.path)/$(params.repo-path)/openshift-ci/Dockerfile.tools -t $(params.tools-image-url) .
       buildah push --tls-verify=$(params.tls-verify) $(params.tools-image-url) docker://$(params.tools-image-url)
 
   volumes:
@@ -46,7 +48,7 @@ spec:
   - name: source
     mountPath: /source
   params:
-  - name: git-revision
+  - name: repo-revision
     description: The git revision
   - name: repo-path
     description: The path to the repository
@@ -62,14 +64,18 @@ spec:
 
   steps:
   - name: make-build
+    securityContext:
+      privileged: true
     workingDir: '$(workspaces.source.path)/$(params.repo-path)/'
     image: $(params.tools-image-url)
-    command: ["make"]
-    args: ["build"]
     resources:
       limits:
         cpu: 400m
         memory: 2Gi
+    script: |
+      #!/bin/sh
+      set -ex
+      make build
 
   - name: build-and-push-image
     image: $(params.buildah-short-sha-image-url)
@@ -77,11 +83,13 @@ spec:
     volumeMounts:
     - name: varlibcontainers
       mountPath: /var/lib/containers
+    securityContext:
+      privileged: true
     script: |
       #!/bin/sh
       set -ex
-      buildah-short-sha bud $(params.binary-image-url) $(params.git-revision) --tls-verify=$(params.tls-verify) --layers -f ./build/Dockerfile .
-      buildah-short-sha push $(params.binary-image-url) $(params.git-revision) --tls-verify=$(params.tls-verify)
+      buildah-short-sha bud $(params.binary-image-url) $(params.repo-revision) --tls-verify=$(params.tls-verify) --layers -f ./build/Dockerfile .
+      buildah-short-sha push $(params.binary-image-url) $(params.repo-revision) --tls-verify=$(params.tls-verify)
 
   volumes:
   - name: varlibcontainers
@@ -96,7 +104,7 @@ spec:
   - name: source
     mountPath: /source
   params:
-  - name: git-revision
+  - name: repo-revision
     description: The git revision
   - name: repo-path
     description: The path to the repository
@@ -107,6 +115,8 @@ spec:
   steps:
 
   - name: csv
+    securityContext:
+      privileged: true
     workingDir: '$(workspaces.source.path)/$(params.repo-path)/'
     image: $(resources.tools-image-url)
     command: ["make"]

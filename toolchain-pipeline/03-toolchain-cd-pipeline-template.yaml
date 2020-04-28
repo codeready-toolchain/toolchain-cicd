@@ -1,0 +1,50 @@
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: toolchain-cd-pipeline-template
+spec:
+  params:
+  - name: repo-revision
+    description: The git revision
+    default: master
+  - name: repo-name
+    description: The repository name
+  - name: full-repo-name
+    description: The full repository name
+  - name: clone-url
+    description: The git clone url of the repo
+  - name: quay-namespace
+    default: codeready-toolchain
+
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1beta1
+    kind: PipelineRun
+    metadata:
+      name: toolchain-cd-$(params.repo-name)-$(uid)
+    spec:
+      workspaces:
+      - name: shared-workspace
+        persistentVolumeClaim:
+          claimName: pipeline-resources
+      pipelineRef:
+        name: $(params.repo-name)-cd
+      params:
+      - name: repo-url
+        value: $(params.clone-url)
+      - name: repo-name
+        value: $(params.repo-name)
+      - name: repo-revision
+        value: $(params.repo-revision)
+      - name: repo-path
+        value: 'go/src/github.com/codeready-toolchain/$(params.repo-name)'
+      - name: quay-namespace
+        value: $(params.quay-namespace)
+      - name: buildah-short-sha-image-url
+        value: quay.io/$(params.quay-namespace)/buildah-short-sha:0.1
+      - name: tools-image-url
+        value: quay.io/$(params.quay-namespace)/$(params.repo-name)-tools:latest
+      - name: binary-image-url
+        value: quay.io/$(params.quay-namespace)/$(params.repo-name)
+
+      serviceAccountName: image-pusher
+      timeout: 1h30m

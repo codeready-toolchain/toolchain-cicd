@@ -19,8 +19,6 @@ spec:
     type: string
     description: If true then run dryrun.
     default: "false"
-  - name: buildah-short-sha-image
-    type: string
   - name: quay-namespace
     type: string
 
@@ -34,6 +32,8 @@ spec:
     resources:
       limits:
         memory: 1500Mi
+    securityContext:
+      privileged: true
     script: |
       #!/bin/sh
       set -ex
@@ -72,6 +72,8 @@ spec:
   - name: run-oc-apply
     image: quay.io/openshift/origin-cli:4.3
     workingDir: '$(workspaces.source.path)/$(params.subdirectory)/'
+    securityContext:
+      privileged: true
     script: |
       #!/bin/sh
       set -ex
@@ -103,6 +105,8 @@ spec:
   steps:
   - name: run-oc-apply
     image: quay.io/openshift/origin-cli:4.3
+    securityContext:
+      privileged: true
     workingDir: '$(workspaces.source.path)/$(params.subdirectory)/'
     script: |
       #!/bin/sh
@@ -137,6 +141,8 @@ spec:
   - name: run-oc-apply
     image: quay.io/openshift/origin-cli:4.3
     workingDir: '$(workspaces.source.path)/$(params.subdirectory)/'
+    securityContext:
+      privileged: true
     script: |
       #!/bin/sh
       set -ex

@@ -14,18 +14,10 @@ spec:
     description: git revision to checkout (branch, tag, sha, ref…)
     type: string
     default: master
-  - name: submodules
-    description: defines if the resource should initialize and fetch the submodules
-    type: string
-    default: "true"
   - name: depth
     description: performs a shallow clone where only the most recent commit(s) will be fetched
     type: string
     default: "1"
-  - name: sslVerify
-    description: defines if http.sslVerify should be set to true or false in the global git config
-    type: string
-    default: "true"
   - name: subdirectory
     description: subdirectory inside the "output" workspace to clone the git repo into
     type: string
@@ -34,44 +26,34 @@ spec:
     description: clean out the contents of the repo's destination directory (if it already exists) before trying to clone the repo there
     type: string
     default: "true"
-  results:
-  - name: commit
-    description: The precise commit SHA that was fetched by this Task
   steps:
   - name: clone
-    image: gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init:latest
+    image: alpine/git:latest
     script: |
-      CHECKOUT_DIR="$(workspaces.output.path)/$(params.subdirectory)"
+      ROOT_DIR="$(workspaces.output.path)/$(params.subdirectory)"
       cleandir() {
         # Delete any existing contents of the repo directory if it exists.
         #
-        # We don't just "rm -rf $CHECKOUT_DIR" because $CHECKOUT_DIR might be "/"
+        # We don't just "rm -rf ${ROOT_DIR}" because ${ROOT_DIR} might be "/"
         # or the root of a mounted volume.
-        if [[ -d "$CHECKOUT_DIR" ]] ; then
+        if [[ -d "${ROOT_DIR}" ]] ; then
           # Delete non-hidden files and directories
-          rm -rf "$CHECKOUT_DIR"/*
+          rm -rf "${ROOT_DIR}"
           # Delete files and directories starting with . but excluding ..
-          rm -rf "$CHECKOUT_DIR"/.[!.]*
+          rm -rf "${ROOT_DIR}"/.[!.]*
           # Delete files and directories starting with .. plus any other character
-          rm -rf "$CHECKOUT_DIR"/..?*
+          rm -rf "${ROOT_DIR}"/..?*
         fi
       }
       if [[ "$(params.deleteExisting)" == "true" ]] ; then
         cleandir
       fi
-      /ko-app/git-init \
-        -url "$(params.url)" \
-        -revision "$(params.revision)" \
-        -path "$CHECKOUT_DIR" \
-        -sslVerify "$(params.sslVerify)" \
-        -submodules "$(params.submodules)" \
-        -depth "$(params.depth)"
-      cd "$CHECKOUT_DIR"
-      RESULT_SHA="$(git rev-parse HEAD | tr -d '\n')"
-      EXIT_CODE="$?"
-      if [ "$EXIT_CODE" != 0 ]
-      then
-        exit $EXIT_CODE
+      if [[ "$(params.depth)" != "0" ]] ; then
+        DEPTH_PARAM="--depth $(params.depth)"
       fi
-      # Make sure we don't add a trailing newline to the result!
-      echo -n "$RESULT_SHA" > $(results.commit.path)
+
+      git init ${ROOT_DIR}
+      cd ${ROOT_DIR}
+      git remote add origin "$(params.url)"
+      git fetch ${DEPTH_PARAM} origin "$(params.revision)"
+      git reset --hard FETCH_HEAD
