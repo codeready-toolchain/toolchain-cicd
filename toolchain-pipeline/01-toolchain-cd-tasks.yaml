@@ -118,7 +118,7 @@ spec:
     securityContext:
       privileged: true
     workingDir: '$(workspaces.source.path)/$(params.repo-path)/'
-    image: $(resources.tools-image-url)
+    image: $(params.tools-image-url)
     command: ["make"]
     args: ["push-to-quay-nightly", "QUAY_NAMESPACE=$(params.quay-namespace)"]
 
