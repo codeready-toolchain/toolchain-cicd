@@ -15,6 +15,9 @@ The `buildah-short-sha` directory contains Dockerfile and a script that behaves 
 It takes the long SHA and transforms it into the short one and then builds or pushes the image.
 As soon as OpenShift Pipeline operator supports an advanced feature of the Triggers, then we can drop this workaround.
 
+=== common
+The link:common[] directory contains definitions for resources/tasks that are used by all pipelines that are described below.
+
 === sync
 The link:sync[] directory contains two pipeline definitions:
 
@@ -90,13 +93,23 @@ oc create secret generic webhook-secret --type=Opaque --from-literal=token=<your
 oc create secret generic push-to-quay-secret  --from-file=.dockerconfigjson=/home/mjobanek/.docker/config.json  --type=kubernetes.io/dockerconfigjson
 ```
 
-3. Apply all pipeline resources from `sync` directory: `oc apply -f sync/`.
+3. Apply all pipeline resources from `common` directory: `oc apply -f common/`.
 
-4. Apply all pipeline resources from `toolchain-pipeline` directory: `oc apply -f toolchain-pipeline/`.
+4. Apply all pipeline resources from `sync` directory: `oc apply -f sync/`.
 
-5. Apply all pipeline resources from `webhook` directory: `oc apply -f webhook/`.
+5. Apply all pipeline resources from `toolchain-pipeline` directory: `oc apply -f toolchain-pipeline/`.
++
+If you want to set up pipelines for all toolchain repositories without doing a commit to toolchain-cicd, you can run:
++
+```
+cat toolchain-cd-projects | xargs -I {REPO_NAME} \
+ oc process -f toolchain-pipeline/pipeline/toolchain-cd-pipeline.yaml -p TOOLCHAIN_REPO={REPO_NAME} \
+ | oc apply -f -
+```
 
-6. Run this command to set up the toolchain-cicd webhook with correct routes:
+6. Apply all pipeline resources from `webhook` directory: `oc apply -f webhook/`.
+
+7. Run this command to set up the toolchain-cicd webhook with correct routes:
 +
 ```
 oc process -f webhook/pipeline-run/pipeline-run.yaml \
@@ -105,13 +118,13 @@ oc process -f webhook/pipeline-run/pipeline-run.yaml \
   | oc create -f -
 ```
 
-7. The next commit to the toolchain-cicd repo will trigger the synchronization pipeline that will setup all toolchain-cd pipelines and all webhooks for projects defined in link:toolchain-cd-projects[].
+8. The next commit to the toolchain-cicd repo will trigger the synchronization pipeline that will setup all toolchain-cicd pipelines and all webhooks for projects defined in link:toolchain-cd-projects[].
 +
-If you want to set up webhooks for all toolchain repositories without doing a commit to toolchain-cd, you can run:
+If you want to set up webhooks for all toolchain repositories without doing a commit to toolchain-cicd, you can run:
 +
 ```
 oc process -f webhook/pipeline-run/pipeline-run.yaml \
-  -p TOOLCHAIN_CD_PROJECTS=`cat toolchain-cd-projects | tr "\n" " "` \
+  -p TOOLCHAIN_CD_PROJECTS="$(cat toolchain-cd-projects | tr "\n" " ")" \
   -p EXTERNAL_SYNC_DOMAIN=`oc get route toolchain-cd-sync-eventlistener --template '{{.spec.host}}'` \
   -p EXTERNAL_TOOLCHAIN_CD_DOMAIN=`oc get route toolchain-cd-eventlistener --template '{{.spec.host}}'` \
   | oc create -f -

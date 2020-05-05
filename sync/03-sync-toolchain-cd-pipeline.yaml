@@ -1,11 +1,10 @@
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   name: toolchain-cicd-pipeline
 spec:
-  resources:
-  - name: source-repo
-    type: git
+  workspaces:
+  - name: shared-workspace
   params:
   - name: repo
     type: string
@@ -15,7 +14,10 @@ spec:
     type: string
   - name: dry-run
     type: string
-
+  - name: repo-url
+    type: string
+  - name: quay-namespace
+    type: string
   tasks:
 
   - name: create-pending-status
@@ -33,28 +35,72 @@ spec:
     - name: context
       value: "toolchain-cicd-pipeline"
 
+  - name: fetch-repository
+    taskRef:
+      name: git-clone
+    workspaces:
+    - name: output
+      workspace: shared-workspace
+    params:
+    - name: url
+      value: $(params.repo-url)
+    - name: subdirectory
+      value: toolchain-cicd
+    - name: revision
+      value: $(params.commit-sha)
+    - name: depth
+      value: "0"
+    runAfter:
+    - create-pending-status
+
+  - name: build-buildah-short-sha-image
+    taskRef:
+      name: build-buildah-short-sha-image
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+    params:
+    - name: dry-run
+      value: $(params.dry-run)
+    - name: quay-namespace
+      value: $(params.quay-namespace)
+    runAfter:
+    - fetch-repository
+
+  - name: apply-common-directory
+    taskRef:
+      name: apply-resources-task
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+    params:
+    - name: path-to-deployment
+      value: common
+    - name: dry-run
+      value: $(params.dry-run)
+    runAfter:
+    - fetch-repository
+
   - name: apply-sync-directory
     taskRef:
       name: apply-resources-task
-    resources:
-      inputs:
-      - name: source
-        resource: source-repo
+    workspaces:
+    - name: source
+      workspace: shared-workspace
     params:
     - name: path-to-deployment
       value: sync
     - name: dry-run
       value: $(params.dry-run)
     runAfter:
-    - create-pending-status
+    - apply-common-directory
 
   - name: apply-toolchain-pipeline-directory
     taskRef:
       name: apply-resources-task
-    resources:
-      inputs:
-      - name: source
-        resource: source-repo
+    workspaces:
+    - name: source
+      workspace: shared-workspace
     params:
     - name: path-to-deployment
       value: toolchain-pipeline
@@ -66,10 +112,9 @@ spec:
   - name: apply-toolchain-cd-pipeline
     taskRef:
       name: process-project-and-apply-task
-    resources:
-      inputs:
-      - name: source
-        resource: source-repo
+    workspaces:
+    - name: source
+      workspace: shared-workspace
     params:
     - name: path-to-deployment
       value: toolchain-pipeline/pipeline/toolchain-cd-pipeline.yaml
@@ -81,10 +126,9 @@ spec:
   - name: apply-webhook-directory
     taskRef:
       name: apply-resources-task
-    resources:
-      inputs:
-      - name: source
-        resource: source-repo
+    workspaces:
+    - name: source
+      workspace: shared-workspace
     params:
     - name: path-to-deployment
       value: webhook
@@ -96,10 +140,9 @@ spec:
   - name: ensure-webhooks
     taskRef:
       name: process-and-create-pipeline-webhook-task
-    resources:
-      inputs:
-      - name: source
-        resource: source-repo
+    workspaces:
+    - name: source
+      workspace: shared-workspace
     params:
     - name: path-to-deployment
       value: webhook/pipeline-run/pipeline-run.yaml
@@ -114,6 +157,7 @@ spec:
     runAfter:
     - ensure-webhooks
     - apply-toolchain-cd-pipeline
+    - build-buildah-short-sha-image
     params:
     - name: repo
       value: $(params.repo)

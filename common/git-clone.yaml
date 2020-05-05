@@ -1,0 +1,59 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: git-clone
+spec:
+  workspaces:
+  - name: output
+    description: The git repo will be cloned onto the volume backing this workspace
+  params:
+  - name: url
+    description: git url to clone
+    type: string
+  - name: revision
+    description: git revision to checkout (branch, tag, sha, ref…)
+    type: string
+    default: master
+  - name: depth
+    description: performs a shallow clone where only the most recent commit(s) will be fetched
+    type: string
+    default: "1"
+  - name: subdirectory
+    description: subdirectory inside the "output" workspace to clone the git repo into
+    type: string
+    default: "src"
+  - name: deleteExisting
+    description: clean out the contents of the repo's destination directory (if it already exists) before trying to clone the repo there
+    type: string
+    default: "true"
+  steps:
+  - name: clone
+    image: alpine/git:latest
+    script: |
+      ROOT_DIR="$(workspaces.output.path)/$(params.subdirectory)"
+      cleandir() {
+        # Delete any existing contents of the repo directory if it exists.
+        #
+        # We don't just "rm -rf ${ROOT_DIR}" because ${ROOT_DIR} might be "/"
+        # or the root of a mounted volume.
+        if [[ -d "${ROOT_DIR}" ]] ; then
+          # Delete non-hidden files and directories
+          rm -rf "${ROOT_DIR}"
+          # Delete files and directories starting with . but excluding ..
+          rm -rf "${ROOT_DIR}"/.[!.]*
+          # Delete files and directories starting with .. plus any other character
+          rm -rf "${ROOT_DIR}"/..?*
+        fi
+      }
+      if [[ "$(params.deleteExisting)" == "true" ]] ; then
+        cleandir
+      fi
+      if [[ "$(params.depth)" != "0" ]] ; then
+        DEPTH_PARAM="--depth $(params.depth)"
+      fi
+
+      git init ${ROOT_DIR}
+      cd ${ROOT_DIR}
+      git remote add origin "$(params.url)"
+      git fetch ${DEPTH_PARAM} origin "$(params.revision)"
+      git reset --hard FETCH_HEAD

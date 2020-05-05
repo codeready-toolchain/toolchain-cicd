@@ -1,5 +1,5 @@
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerBinding
 metadata:
   name: toolchain-cicd-sync-binding
@@ -12,7 +12,7 @@ spec:
   - name: fullname
     value: $(body.repository.full_name)
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerBinding
 metadata:
   name: toolchain-cicd-dry-run-binding

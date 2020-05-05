@@ -1,5 +1,5 @@
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerTemplate
 metadata:
   name: toolchain-cicd-sync-template
@@ -19,6 +19,10 @@ spec:
     metadata:
       name: toolchain-cicd-sync-$(uid)
     spec:
+      workspaces:
+      - name: shared-workspace
+        persistentVolumeClaim:
+          claimName: pipeline-resources
       pipelineRef:
         name: toolchain-cicd-pipeline
       params:
@@ -30,17 +34,13 @@ spec:
         value: toolchain-cicd-sync-$(uid)
       - name: dry-run
         value: "false"
-      resources:
-      - name: source-repo
-        resourceSpec:
-          type: git
-          params:
-          - name: revision
-            value: $(params.gitsha)
-          - name: url
-            value: $(params.gitrepositoryurl)
+      - name: repo-url
+        value: $(params.gitrepositoryurl)
+      - name: quay-namespace
+        value: codeready-toolchain
+      serviceAccountName: image-pusher
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerTemplate
 metadata:
   name: toolchain-cicd-dry-run-template
@@ -55,11 +55,15 @@ spec:
   - name: prnumber
     description: The number of PR
   resourcetemplates:
-  - apiVersion: tekton.dev/v1alpha1
+  - apiVersion: tekton.dev/v1beta1
     kind: PipelineRun
     metadata:
       name: toolchain-cicd-dry-run-pr$(params.prnumber)-$(uid)
     spec:
+      workspaces:
+      - name: shared-workspace
+        persistentVolumeClaim:
+          claimName: pipeline-resources
       pipelineRef:
         name: toolchain-cicd-pipeline
       params:
@@ -71,12 +75,7 @@ spec:
         value: toolchain-cicd-dry-run-pr$(params.prnumber)-$(uid)
       - name: dry-run
         value: "true"
-      resources:
-      - name: source-repo
-        resourceSpec:
-          type: git
-          params:
-          - name: revision
-            value: $(params.gitsha)
-          - name: url
-            value: $(params.gitrepositoryurl)
+      - name: repo-url
+        value: $(params.gitrepositoryurl)
+      - name: quay-namespace
+        value: codeready-toolchain

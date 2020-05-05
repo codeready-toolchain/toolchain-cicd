@@ -1,5 +1,5 @@
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: triggers.tekton.dev/v1alpha1
 kind: EventListener
 metadata:
   name: toolchain-cd-sync-listener
@@ -10,8 +10,8 @@ spec:
     interceptors:
     - cel:
         filter: header.match('X-GitHub-Event', 'push') && body.ref.startsWith('refs/heads/master')
-    binding:
-      name: toolchain-cicd-sync-binding
+    bindings:
+      - name: toolchain-cicd-sync-binding
     template:
       name: toolchain-cicd-sync-template
 
@@ -19,8 +19,8 @@ spec:
     interceptors:
     - cel:
         filter: header.match('X-GitHub-Event', 'pull_request') && body.action == 'opened' || body.action == 'synchronize'
-    binding:
-      name: toolchain-cicd-dry-run-binding
+    bindings:
+      - name: toolchain-cicd-dry-run-binding
     template:
       name: toolchain-cicd-dry-run-template
 ---
