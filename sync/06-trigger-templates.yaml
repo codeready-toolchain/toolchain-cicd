@@ -38,7 +38,6 @@ spec:
         value: $(params.gitrepositoryurl)
       - name: quay-namespace
         value: codeready-toolchain
-      serviceAccountName: image-pusher
 ---
 apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerTemplate
