@@ -53,20 +53,6 @@ spec:
     runAfter:
     - create-pending-status
 
-  - name: build-buildah-short-sha-image
-    taskRef:
-      name: build-buildah-short-sha-image
-    workspaces:
-    - name: source
-      workspace: shared-workspace
-    params:
-    - name: dry-run
-      value: $(params.dry-run)
-    - name: quay-namespace
-      value: $(params.quay-namespace)
-    runAfter:
-    - fetch-repository
-
   - name: apply-common-directory
     taskRef:
       name: apply-resources-task
@@ -157,7 +143,6 @@ spec:
     runAfter:
     - ensure-webhooks
     - apply-toolchain-cd-pipeline
-    - build-buildah-short-sha-image
     params:
     - name: repo
       value: $(params.repo)
