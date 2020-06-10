@@ -39,8 +39,6 @@ spec:
         value: 'go/src/github.com/codeready-toolchain/$(params.repo-name)'
       - name: quay-namespace
         value: $(params.quay-namespace)
-      - name: buildah-short-sha-image-url
-        value: quay.io/$(params.quay-namespace)/buildah-short-sha:0.1
       - name: tools-image-url
         value: quay.io/$(params.quay-namespace)/$(params.repo-name)-tools:latest
       - name: binary-image-url

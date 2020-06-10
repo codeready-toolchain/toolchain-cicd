@@ -5,16 +5,6 @@ The CD process builds and pushes a new version of operator image as well as a ne
 == Structure of the repository
 The repository contains several directories whose purpose and usage is described below.
 
-=== buildah-short-sha
-The link:buildah-short-sha[] directory contains a temporary workaround for stripping a commit SHA to the short version containing 7 chars (this functionality is missing in OSP operator).
-
-The webhook event contains only the long commit SHA that can be read inside of the `TriggerBinding` or `TriggerTemplate` objects.
-However, this string cannot be anyhow modified afterwards which causes an issue in building and pushing a new docker image into quay repo (the tag should contain the short version of SHA).
-
-The `buildah-short-sha` directory contains Dockerfile and a script that behaves as a wrapper of the real `buildah`.
-It takes the long SHA and transforms it into the short one and then builds or pushes the image.
-As soon as OpenShift Pipeline operator supports an advanced feature of the Triggers, then we can drop this workaround.
-
 === common
 The link:common[] directory contains definitions for resources/tasks that are used by all pipelines that are described below.
 
@@ -34,10 +24,9 @@ The link:toolchain-pipeline[] directory contains a pipeline definition that mana
 As soon as there is a commit pushed to master in any of the operator repositories the webhook is configured for, then the pipeline:
 
 1. Builds `openshift-ci/Dockerfile.tools` image and pushes it to quay.
-2. Builds `buildah-short-sha` image and pushes it to quay.
-3. Inside of the tools image, it builds the operator binary.
-4. Builds the operator image (uses the binary from the previous step) and pushes it to quay.
-5. Inside of the tools image, it generates a new version of CSV and pushes it to quay.
+2. Inside of the tools image, it builds the operator binary.
+3. Builds the operator image (uses the binary from the previous step) and pushes it to quay.
+4. Inside of the tools image, it generates a new version of CSV and pushes it to quay.
 
 Inside of the directory, there is another folder called `pipeline` that contains a template with the actual CD `Pipeline`.
 It is expected that there will be one separated pipeline for each toolchain repo.
@@ -69,7 +58,6 @@ Create GitHub access token with the following access:
 You are logged to your quay account using `docker login quay.io` and you have this set of repositories/applications publicly available:
 
 * repositories:
-** buildah-short-sha
 ** <operator-repo>-tools
 ** <operator-repo>
 

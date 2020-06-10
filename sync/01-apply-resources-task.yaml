@@ -2,53 +2,6 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: build-buildah-short-sha-image
-spec:
-  workspaces:
-  - name: source
-    mountPath: /source
-
-  params:
-  - name: tls-verify
-    description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
-    default: "true"
-  - name: subdirectory
-    description: Subdirectory inside "source" workspace that contains the repo.
-    default: "toolchain-cicd"
-  - name: dry-run
-    type: string
-    description: If true then run dryrun.
-    default: "false"
-  - name: quay-namespace
-    type: string
-
-  steps:
-  - name: build-and-push-short-sha
-    image: quay.io/buildah/stable:v1.11.0
-    workingDir: '$(workspaces.source.path)/$(params.subdirectory)/'
-    volumeMounts:
-    - name: varlibcontainers
-      mountPath: /var/lib/containers
-    resources:
-      limits:
-        memory: 1500Mi
-    securityContext:
-      privileged: true
-    script: |
-      #!/bin/sh
-      set -ex
-        buildah bud --tls-verify=$(params.tls-verify) --layers -f ./buildah-short-sha/Dockerfile -t  quay.io/$(params.quay-namespace)/buildah-short-sha:0.1 .
-      if [[ "$(params.dry-run)" != "true" ]]; then
-        buildah push --tls-verify=$(params.tls-verify) quay.io/$(params.quay-namespace)/buildah-short-sha:0.1 docker://quay.io/$(params.quay-namespace)/buildah-short-sha:0.1
-      fi
-
-  volumes:
-  - name: varlibcontainers
-    emptyDir: {}
----
-apiVersion: tekton.dev/v1beta1
-kind: Task
-metadata:
   name: apply-resources-task
 spec:
   workspaces:
