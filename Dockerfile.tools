@@ -8,6 +8,8 @@ ENV USER_UID=1001 \
     LANG=en_US.utf8 \
     OPM_VERSION=v1.12.5
 
+RUN yum install -y make && yum clean all
+
 RUN curl -Lo opm https://github.com/operator-framework/operator-registry/releases/download/${OPM_VERSION}/linux-amd64-opm \
     && chmod +x opm \
     && cp opm /usr/bin/opm \
