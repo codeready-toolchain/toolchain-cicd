@@ -25,6 +25,8 @@ objects:
       type: string
     - name: binary-image-url
       type: string
+    - name: cicd-tools-image-url
+      type: string
 
     tasks:
     - name: fetch-repository
@@ -90,6 +92,8 @@ objects:
         value: $(params.repo-revision)
       - name: tools-image-url
         value: $(params.tools-image-url)
+      - name: cicd-tools-image-url
+        value: $(params.cicd-tools-image-url)
       runAfter:
       - build-project
 parameters:

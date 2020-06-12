@@ -111,16 +111,30 @@ spec:
     description: The quay namespace CSV should be pushed to
   - name: tools-image-url
     type: string
+  - name: cicd-tools-image-url
+    type: string
   steps:
 
-  - name: csv
+  - name: generate-cd-release-manifests
     securityContext:
       privileged: true
     workingDir: '$(workspaces.source.path)/$(params.repo-path)/'
     image: $(params.tools-image-url)
-    command: ["make"]
-    args: ["push-to-quay-nightly", "QUAY_NAMESPACE=$(params.quay-namespace)"]
+    script: |
+      #!/bin/sh
+      set -e
+      make push-to-quay-nightly QUAY_NAMESPACE=$(params.quay-namespace) TMP_DIR=$(workspaces.source.path)/$(params.repo-path)/tmp
+      make push-manifests-as-app QUAY_NAMESPACE=$(params.quay-namespace) TMP_DIR=$(workspaces.source.path)/$(params.repo-path)/tmp
 
+  - name: push-bundle-and-index-image
+    securityContext:
+      privileged: true
+    workingDir: '$(workspaces.source.path)/$(params.repo-path)/'
+    image: $(params.cicd-tools-image-url)
+    script: |
+      #!/bin/sh
+      set -e
+      make push-bundle-and-index-image QUAY_NAMESPACE=$(params.quay-namespace) TMP_DIR=$(workspaces.source.path)/$(params.repo-path)/tmp
 
   volumes:
   - name: varlibcontainers
