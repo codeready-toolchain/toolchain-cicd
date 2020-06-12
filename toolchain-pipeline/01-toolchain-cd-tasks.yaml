@@ -134,7 +134,7 @@ spec:
     script: |
       #!/bin/sh
       set -e
-      make push-bundle-and-index-image QUAY_NAMESPACE=$(params.quay-namespace) TMP_DIR=$(workspaces.source.path)/$(params.repo-path)/tmp
+      make push-bundle-and-index-image QUAY_NAMESPACE=$(params.quay-namespace) TMP_DIR=$(workspaces.source.path)/$(params.repo-path)/tmp SKIP_TOOLS=true
 
   volumes:
   - name: varlibcontainers
