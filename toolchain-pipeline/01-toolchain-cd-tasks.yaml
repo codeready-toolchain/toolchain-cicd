@@ -115,7 +115,7 @@ spec:
     type: string
   steps:
 
-  - name: generate-cd-release-manifests
+  - name: generate-cd-release-manifests-and-push-as-app
     securityContext:
       privileged: true
     workingDir: '$(workspaces.source.path)/$(params.repo-path)/'
@@ -123,7 +123,7 @@ spec:
     script: |
       #!/bin/sh
       set -e
-      make push-to-quay-nightly QUAY_NAMESPACE=$(params.quay-namespace) TMP_DIR=$(workspaces.source.path)/$(params.repo-path)/tmp
+      make generate-cd-release-manifests QUAY_NAMESPACE=$(params.quay-namespace) TMP_DIR=$(workspaces.source.path)/$(params.repo-path)/tmp
       make push-manifests-as-app QUAY_NAMESPACE=$(params.quay-namespace) TMP_DIR=$(workspaces.source.path)/$(params.repo-path)/tmp
 
   - name: push-bundle-and-index-image
