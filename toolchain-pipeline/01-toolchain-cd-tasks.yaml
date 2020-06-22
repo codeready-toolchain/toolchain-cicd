@@ -116,6 +116,9 @@ spec:
   steps:
 
   - name: generate-cd-release-manifests-and-push-as-app
+    volumeMounts:
+    - name: varlibcontainers
+      mountPath: /var/lib/containers
     securityContext:
       privileged: true
     workingDir: '$(workspaces.source.path)/$(params.repo-path)/'
@@ -127,6 +130,9 @@ spec:
       make push-manifests-as-app QUAY_NAMESPACE=$(params.quay-namespace) TMP_DIR=$(workspaces.source.path)/$(params.repo-path)/tmp
 
   - name: push-bundle-and-index-image
+    volumeMounts:
+    - name: varlibcontainers
+      mountPath: /var/lib/containers
     securityContext:
       privileged: true
     workingDir: '$(workspaces.source.path)/$(params.repo-path)/'
@@ -134,7 +140,7 @@ spec:
     script: |
       #!/bin/sh
       set -e
-      make push-bundle-and-index-image QUAY_NAMESPACE=$(params.quay-namespace) TMP_DIR=$(workspaces.source.path)/$(params.repo-path)/tmp SKIP_TOOLS=true
+      make push-bundle-and-index-image QUAY_NAMESPACE=$(params.quay-namespace) TMP_DIR=$(workspaces.source.path)/$(params.repo-path)/tmp IMAGE_BUILDER=podman
 
   volumes:
   - name: varlibcontainers
