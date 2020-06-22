@@ -1,4 +1,4 @@
-FROM quay.io/buildah/stable:v1.11.0
+FROM marshallford/podman:1.9.3
 
 LABEL maintainer "Devtools <devtools@redhat.com>"
 LABEL author "Devtools <devtools@redhat.com>"
@@ -8,10 +8,14 @@ ENV USER_UID=1001 \
     LANG=en_US.utf8 \
     OPM_VERSION=v1.12.5
 
-RUN yum install -y make && yum clean all
+RUN apk add --update \
+    curl make cmake bash
 
-RUN curl -Lo opm https://github.com/operator-framework/operator-registry/releases/download/${OPM_VERSION}/linux-amd64-opm \
-    && chmod +x opm \
-    && cp opm /usr/bin/opm \
-    && rm opm \
-    && opm version
+RUN curl -Lo opm https://github.com/operator-framework/operator-registry/releases/download/${OPM_VERSION}/linux-amd64-opm
+RUN chmod +x opm \
+    && cp opm /bin/opm \
+    && rm opm
+
+RUN mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
+
+ENTRYPOINT []
