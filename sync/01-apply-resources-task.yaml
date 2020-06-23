@@ -37,9 +37,9 @@ spec:
     script: |
       #!/bin/sh
       set -ex
-        buildah bud --tls-verify=$(params.tls-verify) --layers -f ./Dockerfile.tools -t  quay.io/$(params.quay-namespace)/cicd-tools:0.1 .
+        buildah bud --tls-verify=$(params.tls-verify) --layers -f ./Dockerfile.tools -t  quay.io/$(params.quay-namespace)/cicd-tools:0.2 .
       if [[ "$(params.dry-run)" != "true" ]]; then
-        buildah push --tls-verify=$(params.tls-verify) quay.io/$(params.quay-namespace)/cicd-tools:0.1 docker://quay.io/$(params.quay-namespace)/cicd-tools:0.1
+        buildah push --tls-verify=$(params.tls-verify) quay.io/$(params.quay-namespace)/cicd-tools:0.2 docker://quay.io/$(params.quay-namespace)/cicd-tools:0.2
       fi
 
   volumes:
