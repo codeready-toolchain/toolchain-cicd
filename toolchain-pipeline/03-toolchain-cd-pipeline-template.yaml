@@ -43,6 +43,7 @@ spec:
         value: quay.io/$(params.quay-namespace)/$(params.repo-name)-tools:latest
       - name: binary-image-url
         value: quay.io/$(params.quay-namespace)/$(params.repo-name)
-
+      - name: cicd-tools-image-url
+        value: quay.io/$(params.quay-namespace)/cicd-tools:0.2
       serviceAccountName: image-pusher
       timeout: 1h30m
