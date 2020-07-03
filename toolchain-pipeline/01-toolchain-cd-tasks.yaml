@@ -123,11 +123,14 @@ spec:
       privileged: true
     workingDir: '$(workspaces.source.path)/$(params.repo-path)/'
     image: $(params.tools-image-url)
+    resources:
+      limits:
+        cpu: 800m
     script: |
       #!/bin/sh
       set -e
       make generate-cd-release-manifests QUAY_NAMESPACE=$(params.quay-namespace) TMP_DIR=$(workspaces.source.path)/$(params.repo-path)/tmp
-      make push-manifests-as-app QUAY_NAMESPACE=$(params.quay-namespace) TMP_DIR=$(workspaces.source.path)/$(params.repo-path)/tmp
+      make push-manifests-as-app QUAY_NAMESPACE=$(params.quay-namespace) TMP_DIR=$(workspaces.source.path)/$(params.repo-path)/tmp || true
 
   - name: push-bundle-and-index-image
     volumeMounts:
