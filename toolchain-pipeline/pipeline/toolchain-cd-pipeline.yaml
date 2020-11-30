@@ -66,6 +66,8 @@ objects:
       - name: source
         workspace: shared-workspace
       params:
+      - name: repo-name
+        value: $(params.repo-name)
       - name: repo-path
         value: $(params.repo-path)
       - name: repo-revision

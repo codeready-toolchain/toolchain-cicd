@@ -48,6 +48,8 @@ spec:
   - name: source
     mountPath: /source
   params:
+  - name: repo-name
+    description: The name of the repository
   - name: repo-revision
     description: The git revision
   - name: repo-path
@@ -89,6 +91,10 @@ spec:
       SHORT_SHA=`head -c 7 <<< $(params.repo-revision)`
       buildah bud -t $(params.binary-image-url):${SHORT_SHA} --tls-verify=$(params.tls-verify) --layers -f ./build/Dockerfile .
       buildah push --tls-verify=$(params.tls-verify) $(params.binary-image-url):${SHORT_SHA} docker://$(params.binary-image-url):${SHORT_SHA}
+      if [[ "$(params.repo-name)" == "member-operator" ]]; then
+        buildah bud -t $(params.binary-image-url)-webhook:${SHORT_SHA} --tls-verify=$(params.tls-verify) --layers -f ./build/Dockerfile.webhook .
+        buildah push --tls-verify=$(params.tls-verify) $(params.binary-image-url)-webhook:${SHORT_SHA} docker://$(params.binary-image-url)-webhook:${SHORT_SHA}
+      fi
 
   volumes:
   - name: varlibcontainers
