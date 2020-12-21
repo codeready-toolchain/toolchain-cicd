@@ -11,7 +11,7 @@ spec:
     - cel:
         filter: header.match('X-GitHub-Event', 'push') && body.ref.startsWith('refs/heads/master')
     bindings:
-      - name: toolchain-cicd-sync-binding
+      - ref: toolchain-cicd-sync-binding
     template:
       name: toolchain-cicd-sync-template
 
@@ -20,7 +20,7 @@ spec:
     - cel:
         filter: header.match('X-GitHub-Event', 'pull_request') && body.action == 'opened' || body.action == 'synchronize'
     bindings:
-      - name: toolchain-cicd-dry-run-binding
+      - ref: toolchain-cicd-dry-run-binding
     template:
       name: toolchain-cicd-dry-run-template
 ---
