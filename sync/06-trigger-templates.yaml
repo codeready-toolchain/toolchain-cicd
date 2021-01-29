@@ -27,15 +27,15 @@ spec:
         name: toolchain-cicd-pipeline
       params:
       - name: repo
-        value: $(params.fullname)
+        value: $(tt.params.fullname)
       - name: commit-sha
-        value: $(params.gitsha)
+        value: $(tt.params.gitsha)
       - name: pipeline-run-name
         value: toolchain-cicd-sync-$(uid)
       - name: dry-run
         value: "false"
       - name: repo-url
-        value: $(params.gitrepositoryurl)
+        value: $(tt.params.gitrepositoryurl)
       - name: quay-namespace
         value: codeready-toolchain
 ---
@@ -57,7 +57,7 @@ spec:
   - apiVersion: tekton.dev/v1beta1
     kind: PipelineRun
     metadata:
-      name: toolchain-cicd-dry-run-pr$(params.prnumber)-$(uid)
+      name: toolchain-cicd-dry-run-pr$(tt.params.prnumber)-$(uid)
     spec:
       workspaces:
       - name: shared-workspace
@@ -67,14 +67,14 @@ spec:
         name: toolchain-cicd-pipeline
       params:
       - name: repo
-        value: $(params.fullname)
+        value: $(tt.params.fullname)
       - name: commit-sha
-        value: $(params.gitsha)
+        value: $(tt.params.gitsha)
       - name: pipeline-run-name
-        value: toolchain-cicd-dry-run-pr$(params.prnumber)-$(uid)
+        value: toolchain-cicd-dry-run-pr$(tt.params.prnumber)-$(uid)
       - name: dry-run
         value: "true"
       - name: repo-url
-        value: $(params.gitrepositoryurl)
+        value: $(tt.params.gitrepositoryurl)
       - name: quay-namespace
         value: codeready-toolchain
