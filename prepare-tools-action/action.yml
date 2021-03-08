@@ -12,7 +12,7 @@ inputs:
   opm-version:
     description: Version of opm binary
     required: false
-    default: v1.12.5
+    default: v1.16.1
 runs:
   using: "composite"
   steps:
