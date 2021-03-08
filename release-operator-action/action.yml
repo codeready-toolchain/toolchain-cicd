@@ -1,0 +1,42 @@
+name: 'Release Toolchain Operator'
+description: 'An action that releases a new version of a Toolchain Operator'
+inputs:
+  quay-token:
+    description: Quay token
+    required: true
+  quay-namespace:
+    description: Quay namespace
+    required: false
+    default: codeready-toolchain
+runs:
+  using: "composite"
+  steps:
+  - name: Login to quay
+    shell: bash
+    run: |
+      set -e
+      mkdir -p  ~/.docker || true
+      echo "{
+                    \"auths\": {
+                            \"quay.io\": {
+                                    \"auth\": \"${{ inputs.quay-token }}\"
+                            }
+                    }
+            }"> ~/.docker/config.json
+
+      podman login quay.io  --authfile=~/.docker/config.json
+
+  - name: Build & push
+    shell: bash
+    run: |
+      set -ex
+      make podman-push QUAY_NAMESPACE=${{ inputs.quay-namespace }}
+
+  - name: generate manifests
+    shell: bash
+    run: |
+      set -ex
+
+      make generate-cd-release-manifests QUAY_NAMESPACE=${{ inputs.quay-namespace }}
+
+      make push-bundle-and-index-image QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman

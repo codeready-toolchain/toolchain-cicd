@@ -1,0 +1,63 @@
+name: 'Prepare tools for Toolchain Operator release'
+description: 'An action that installs tools like operator-sdk, podman, and opm'
+inputs:
+  operator-sdk-version:
+    description: Version of operator-sdk binary
+    required: false
+    default: v0.19.2
+  operator-sdk-gpg-key:
+    description: Gpg key to use to verify operator-sdk binary
+    required: false
+    default: 9AF46519
+  opm-version:
+    description: Version of opm binary
+    required: false
+    default: v1.12.5
+runs:
+  using: "composite"
+  steps:
+  - name: Install Podman
+    shell: bash
+    run: |
+      set -ex
+      sudo apt-get update \
+        && sudo apt-get remove buildah podman -y \
+        && sudo apt-get autoremove -y \
+        && sudo apt-get upgrade \
+        && sudo apt-get -y install podman dbus-x11 \
+        && podman version
+
+  - name: Install operator-sdk, yq and opm
+    shell: bash
+    run: |
+      set -ex
+
+      # download, verify and install operator-sdk
+      curl -L -s https://github.com/operator-framework/operator-sdk/releases/download/${{ inputs.operator-sdk-version }}/operator-sdk-${{ inputs.operator-sdk-version }}-x86_64-linux-gnu -o operator-sdk \
+        && curl -L -s https://github.com/operator-framework/operator-sdk/releases/download/${{ inputs.operator-sdk-version }}/operator-sdk-${{ inputs.operator-sdk-version }}-x86_64-linux-gnu.asc -o operator-sdk.asc \
+        && gpg --keyserver keyserver.ubuntu.com --recv-key ${{ inputs.operator-sdk-gpg-key }} \
+        && gpg --verify operator-sdk.asc \
+        && chmod +x operator-sdk \
+        && sudo cp operator-sdk /bin/operator-sdk \
+        && rm operator-sdk \
+        && operator-sdk version
+
+  - name: Install yq
+    shell: bash
+    run: |
+      set -ex
+
+      pip3 install yq
+
+  - name: Install opm
+    shell: bash
+    run: |
+      set -ex
+
+      curl -Lo opm https://github.com/operator-framework/operator-registry/releases/download/${{ inputs.opm-version }}/linux-amd64-opm
+      chmod +x opm \
+        && sudo cp opm /bin/opm \
+        && rm opm \
+        && opm version
+
+
