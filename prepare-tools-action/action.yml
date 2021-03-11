@@ -21,7 +21,6 @@ runs:
     run: |
       set -ex
       sudo apt-get update \
-        && sudo apt-get upgrade \
         && sudo apt-get -y install podman dbus-x11 \
         && podman version
 
