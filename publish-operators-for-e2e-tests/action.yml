@@ -1,0 +1,34 @@
+name: 'Publish Current Toolchain Operators (Host & Member)'
+description: 'An action that publishes the current version of Toolchain Operators as single releases'
+inputs:
+  quay-token:
+    description: Quay token
+    required: true
+  quay-namespace:
+    description: Quay namespace
+    required: false
+    default: codeready-toolchain
+runs:
+  using: "composite"
+  steps:
+  - name: Login to quay
+    shell: bash
+    run: |
+      set -e
+      mkdir -p  ~/.docker || true
+      echo "{
+                    \"auths\": {
+                            \"quay.io\": {
+                                    \"auth\": \"${{ inputs.quay-token }}\"
+                            }
+                    }
+            }"> ~/.docker/config.json
+
+      podman login quay.io  --authfile=~/.docker/config.json
+
+  - name: Publish current bundle for e2e tests
+    shell: bash
+    run: |
+      if [[ -n $(grep "publish-current-bundles-for-e2e" make/* || true) ]]; then
+        make publish-current-bundles-for-e2e QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman
+      fi
