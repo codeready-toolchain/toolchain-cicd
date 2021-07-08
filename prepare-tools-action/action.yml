@@ -4,11 +4,7 @@ inputs:
   operator-sdk-version:
     description: Version of operator-sdk binary
     required: false
-    default: v0.19.2
-  operator-sdk-gpg-key:
-    description: Gpg key to use to verify operator-sdk binary
-    required: false
-    default: 9AF46519
+    default: v1.8.0
   opm-version:
     description: Version of opm binary
     required: false
@@ -30,10 +26,11 @@ runs:
       set -ex
 
       # download, verify and install operator-sdk
-      curl -L -s https://github.com/operator-framework/operator-sdk/releases/download/${{ inputs.operator-sdk-version }}/operator-sdk-${{ inputs.operator-sdk-version }}-x86_64-linux-gnu -o operator-sdk \
-        && curl -L -s https://github.com/operator-framework/operator-sdk/releases/download/${{ inputs.operator-sdk-version }}/operator-sdk-${{ inputs.operator-sdk-version }}-x86_64-linux-gnu.asc -o operator-sdk.asc \
-        && gpg --keyserver keyserver.ubuntu.com --recv-key ${{ inputs.operator-sdk-gpg-key }} \
-        && gpg --verify operator-sdk.asc \
+      curl -L -s https://github.com/operator-framework/operator-sdk/releases/download/${{ inputs.operator-sdk-version }}/operator-sdk_linux_amd64 -o operator-sdk \
+        && gpg --keyserver keyserver.ubuntu.com --recv-keys 052996E2A20B5C7E \
+        && curl -L -s https://github.com/operator-framework/operator-sdk/releases/download/${{ inputs.operator-sdk-version }}/checksums.txt -o checksums.txt \
+        && curl -L -s https://github.com/operator-framework/operator-sdk/releases/download/${{ inputs.operator-sdk-version }}/checksums.txt.asc -o checksums.txt.asc \
+        && gpg -u "Operator SDK (release) <cncf-operator-sdk@cncf.io>" --verify checksums.txt.asc \
         && chmod +x operator-sdk \
         && sudo cp operator-sdk /bin/operator-sdk \
         && rm operator-sdk \
