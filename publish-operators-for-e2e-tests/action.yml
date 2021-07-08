@@ -29,6 +29,4 @@ runs:
   - name: Publish current bundle for e2e tests
     shell: bash
     run: |
-      if [[ -n $(grep "publish-current-bundles-for-e2e" make/* || true) ]]; then
-        make publish-current-bundles-for-e2e QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman PULL_PULL_SHA=${{ github.event.pull_request.head.sha }}
-      fi
+      make publish-current-bundles-for-e2e QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman PULL_PULL_SHA=${{ github.event.pull_request.head.sha }}
