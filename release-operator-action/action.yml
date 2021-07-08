@@ -39,4 +39,4 @@ runs:
 
       make generate-cd-release-manifests QUAY_NAMESPACE=${{ inputs.quay-namespace }}
 
-      make push-bundle-and-index-image QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman
+      make push-bundle-and-index-image QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman FIRST_RELEASE=true
