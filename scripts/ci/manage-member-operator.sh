@@ -1,5 +1,85 @@
 #!/usr/bin/env bash
 
+user_help () {
+    echo "Publishes member operator to quay and deploys it to an OpenShift cluster"
+    echo "options:"
+    echo "-po, --publish-operator   Builds and pushes the operator to quay"
+    echo "-qn, --quay-namespace     Quay namespace the images should be pushed to"
+    echo "-io, --install-operator   Installs the operator to an OpenShift cluster"
+    echo "-mn, --member-namespace   Namespace the operator should be installed to"
+    echo "-mn2,--member-namespace-2 Namespace name of the second installation of member operator, if needed"
+    echo "-mr, --member-repo-path   Path to the member operator repo"
+    echo "-e,  --environment        Environment to be used for the deployment"
+    echo "-ds, --date-suffix        Date suffix to be added to some resources that are created"
+    echo "-h,  --help               To show this help text"
+    echo ""
+    exit 0
+}
+
+read_arguments() {
+    if [[ $# -lt 2 ]]
+    then
+        user_help
+    fi
+
+    while test $# -gt 0; do
+           case "$1" in
+                -h|--help)
+                    user_help
+                    ;;
+                -po|--publish-operator)
+                    shift
+                    PUBLISH_OPERATOR=$1
+                    shift
+                    ;;
+                -qn|--quay-namespace)
+                    shift
+                    QUAY_NAMESPACE=$1
+                    shift
+                    ;;
+                -io|--install-operator)
+                    shift
+                    INSTALL_OPERATOR=$1
+                    shift
+                    ;;
+                -mn|--member-namespace)
+                    shift
+                    MEMBER_NS=$1
+                    shift
+                    ;;
+                -mn2|--member-namespace-2)
+                    shift
+                    MEMBER_NS_2=$1
+                    shift
+                    ;;
+                -mr|--member-repo-path)
+                    shift
+                    MEMBER_REPO_PATH=$1
+                    shift
+                    ;;
+                -e|--environment)
+                    shift
+                    ENVIRONMENT=$1
+                    shift
+                    ;;
+                -ds|--date-suffix)
+                    shift
+                    DATE_SUFFIX=$1
+                    shift
+                    ;;
+                *)
+                   echo "$1 is not a recognized flag!" >> /dev/stderr
+                   user_help
+                   exit -1
+                   ;;
+          esac
+    done
+}
+
+set -e
+
+read_arguments $@
+
 set -ex
 
 MANAGE_OPERATOR_FILE=scripts/ci/manage-operator.sh
