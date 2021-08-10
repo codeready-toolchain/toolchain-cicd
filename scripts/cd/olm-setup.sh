@@ -269,14 +269,14 @@ generate_bundle() {
 enrich-by-envs-from-yaml() {
     ENRICHED_CSV="${TEMP_DIR}/${OPERATOR_NAME}_${NEXT_CSV_VERSION}-enriched-file"
 
-    ENRICH_BY_ENVS_FROM_YAML=scripts/enrich-by-envs-from-yaml.sh
+    ENRICH_BY_ENVS_FROM_YAML=scripts/cd/enrich-by-envs-from-yaml.sh
     if [[ -f ${ENRICH_BY_ENVS_FROM_YAML} ]]; then
         ${ENRICH_BY_ENVS_FROM_YAML} $@ > ${ENRICHED_CSV}
     else
         if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/api/${ENRICH_BY_ENVS_FROM_YAML} ]]; then
-            ${GOPATH}/src/github.com/codeready-toolchain/api/${ENRICH_BY_ENVS_FROM_YAML} $@ > ${ENRICHED_CSV}
+            ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${ENRICH_BY_ENVS_FROM_YAML} $@ > ${ENRICHED_CSV}
         else
-            curl -sSL  https://raw.githubusercontent.com/codeready-toolchain/api/master/${ENRICH_BY_ENVS_FROM_YAML} | bash -s -- $@ > ${ENRICHED_CSV}
+            curl -sSL  https://raw.githubusercontent.com/codeready-toolchain/toolchain-cicd/master/${ENRICH_BY_ENVS_FROM_YAML} | bash -s -- $@ > ${ENRICHED_CSV}
         fi
     fi
     cat ${ENRICHED_CSV} > $1
