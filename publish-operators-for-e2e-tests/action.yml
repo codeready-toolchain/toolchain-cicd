@@ -8,6 +8,18 @@ inputs:
     description: Quay namespace
     required: false
     default: codeready-toolchain
+  sha:
+    description: PR head sha
+    default: ${{ github.event.pull_request.head.sha }}
+    required: false
+  pr-number:
+    description: Number of the PR
+    default: ${{ github.event.pull_request.number }}
+    required: false
+  author:
+    description: Author of the PR
+    default: ${{ github.event.pull_request.head.user.login }}
+    required: false
 runs:
   using: "composite"
   steps:
@@ -29,4 +41,4 @@ runs:
   - name: Publish current bundle for e2e tests
     shell: bash
     run: |
-      make publish-current-bundles-for-e2e QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman PULL_PULL_SHA=${{ github.event.pull_request.head.sha }} PULL_NUMBER=${{ github.event.pull_request.number }} AUTHOR=${{ github.event.pull_request.head.user.login }}
+      make publish-current-bundles-for-e2e QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman PULL_PULL_SHA=${{ inputs.sha }} PULL_NUMBER=${{ inputs.pr-number }} AUTHOR=${{ inputs.author }}
