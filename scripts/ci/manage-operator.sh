@@ -159,7 +159,7 @@ metadata:
   name: ${SUBSCRIPTION_NAME}
   namespace: ${NAMESPACE}
 spec:
-  channel: ${CHANNEL}
+  channel: alpha
   installPlanApproval: Automatic
   name: ${OPERATOR_NAME}
   source: ${CATALOGSOURCE_NAME}
