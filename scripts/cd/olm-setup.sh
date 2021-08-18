@@ -273,7 +273,7 @@ enrich-by-envs-from-yaml() {
     if [[ -f ${ENRICH_BY_ENVS_FROM_YAML} ]]; then
         ${ENRICH_BY_ENVS_FROM_YAML} $@ > ${ENRICHED_CSV}
     else
-        if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/api/${ENRICH_BY_ENVS_FROM_YAML} ]]; then
+        if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${ENRICH_BY_ENVS_FROM_YAML} ]]; then
             ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${ENRICH_BY_ENVS_FROM_YAML} $@ > ${ENRICHED_CSV}
         else
             curl -sSL  https://raw.githubusercontent.com/codeready-toolchain/toolchain-cicd/master/${ENRICH_BY_ENVS_FROM_YAML} | bash -s -- $@ > ${ENRICHED_CSV}
