@@ -144,6 +144,21 @@ install_operator() {
     INDEX_IMAGE=quay.io/${QUAY_NAMESPACE}/${INDEX_IMAGE_NAME}:${BUNDLE_AND_INDEX_TAG}
     CATALOGSOURCE_NAME=source-${OPERATOR_NAME}-${GIT_COMMIT_ID}
     SUBSCRIPTION_NAME=subscription-${OPERATOR_NAME}-${GIT_COMMIT_ID}
+
+    # if the operator was already installed in the cluster, then delete all OLM related resources
+    for SUB in $(oc get Subscription -n ${NAMESPACE} -o name | grep  "subscription-${OPERATOR_NAME}"); do
+        oc delete ${SUB} -n ${NAMESPACE}
+        sleep 5
+    done
+    for CAT in $(oc get CatalogSource -n ${NAMESPACE} -o name | grep  "source-${OPERATOR_NAME}"); do
+        oc delete ${CAT} -n ${NAMESPACE}
+        sleep 5
+    done
+    for CSV in $(oc get csv -n ${NAMESPACE} -o name | grep  "${OPERATOR_NAME}"); do
+        oc delete ${CSV} -n ${NAMESPACE}
+        sleep 5
+    done
+
     INSTALL_OBJECTS="apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
