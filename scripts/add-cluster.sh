@@ -60,11 +60,9 @@ rules:
   resources:
   - "bannedusers"
   - "changetierrequests"
-  - "hostoperatorconfigs"
   - "masteruserrecords"
   - "notifications"
   - "nstemplatetiers"
-  - "registrationservices"
   - "templateupdaterequests"
   - "tiertemplates"
   - "toolchainconfigs"
