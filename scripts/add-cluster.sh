@@ -267,12 +267,14 @@ if [[ -n ${SANDBOX_CONFIG} ]]; then
     CLUSTER_JOIN_TO_NAME=$(yq -r .\"${CLUSTER_JOIN_TO}\".serverName ${SANDBOX_CONFIG})
 else
     API_ENDPOINT=`oc get infrastructure cluster -o jsonpath='{.status.apiServerURL}' ${OC_ADDITIONAL_PARAMS}`
-    JOINING_CLUSTER_NAME=`echo "${API_ENDPOINT}" | sed 's/.*api\.\([^:]*\):.*/\1/'`
+    # The regexp below extracts the domain name from the API server URL, taking everything after "//" until a ":" or "/" (or end of line) is reached.
+    # The "api." prefix is removed from the domain if present. E.g. "https://api.server.domain.net:6443" -> "server.domain.net".
+    JOINING_CLUSTER_NAME=`echo "${API_ENDPOINT}" | sed 's/^[^/]*\/\/\([^:/]*\)\(:.*\)\{0,1\}\(\/.*\)\{0,1\}$/\1/' | sed 's/^api\.//'`
 
     login_to_cluster ${CLUSTER_JOIN_TO}
 
     CLUSTER_JOIN_TO_API_ENDPOINT=`oc get infrastructure cluster -o jsonpath='{.status.apiServerURL}' ${OC_ADDITIONAL_PARAMS}`
-    CLUSTER_JOIN_TO_NAME=`echo "${CLUSTER_JOIN_TO_API_ENDPOINT}" | sed 's/.*api\.\([^:]*\):.*/\1/'`
+    CLUSTER_JOIN_TO_NAME=`echo "${CLUSTER_JOIN_TO_API_ENDPOINT}" | sed 's/^[^/]*\/\/\([^:/]*\)\(:.*\)\{0,1\}\(\/.*\)\{0,1\}$/\1/' | sed 's/^api\.//'`
 fi
 
 echo "Creating ${JOINING_CLUSTER_TYPE} secret"
