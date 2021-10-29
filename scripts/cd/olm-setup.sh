@@ -24,7 +24,6 @@ user_help () {
     echo "-bt, --bundle-tag        Tag of the bundle image."
     echo "-fr, --first-release     If set to true, then it will generate CSV without replaces clause."
     echo "-ci, --component-image   The name of the image to be used as a component of this operator."
-    echo "-e,  --env               Environment name to be set in operator CSV/deployment."
     echo "-h,  --help              To show this help text"
     echo ""
     additional_help 2>/dev/null || true
@@ -132,11 +131,6 @@ read_arguments() {
                     COMPONENT_IMAGE=$1
                     shift
                     ;;
-                -e|--env)
-                    shift
-                    ENV=$1
-                    shift
-                    ;;
                 *)
                    echo "$1 is not a recognized flag!" >> /dev/stderr
                    user_help
@@ -227,15 +221,6 @@ generate_bundle() {
         CSV_SED_REPLACE+=";s|  annotations:|  annotations:\n    olm.skipRange: '<${NEXT_CSV_VERSION}'|g;"
     fi
 
-    CSV_LOCATION=${MANIFESTS_DIR}/*clusterserviceversion.yaml
-    replace_with_sed "${CSV_SED_REPLACE}" "${CSV_LOCATION}"
-    if [[ -n "${ENV}" ]]; then
-        CONFIG_ENV_FILE=${PRJ_ROOT_DIR}/deploy/env/${ENV}.yaml
-
-        echo "enriching ${CSV_LOCATION} by params defined in ${CONFIG_ENV_FILE}"
-        enrich-by-envs-from-yaml ${CSV_LOCATION} ${CONFIG_ENV_FILE}
-    fi
-
     echo "-> Bundle generated."
 }
 
@@ -264,23 +249,6 @@ generate_bundle() {
 #
 #    echo ${IMG_LOC}@${IMG_DIGEST}
 #}
-
-
-enrich-by-envs-from-yaml() {
-    ENRICHED_CSV="${TEMP_DIR}/${OPERATOR_NAME}_${NEXT_CSV_VERSION}-enriched-file"
-
-    ENRICH_BY_ENVS_FROM_YAML=scripts/cd/enrich-by-envs-from-yaml.sh
-    if [[ -f ${ENRICH_BY_ENVS_FROM_YAML} ]]; then
-        ${ENRICH_BY_ENVS_FROM_YAML} $@ > ${ENRICHED_CSV}
-    else
-        if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${ENRICH_BY_ENVS_FROM_YAML} ]]; then
-            ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${ENRICH_BY_ENVS_FROM_YAML} $@ > ${ENRICHED_CSV}
-        else
-            curl -sSL  https://raw.githubusercontent.com/codeready-toolchain/toolchain-cicd/master/${ENRICH_BY_ENVS_FROM_YAML} | bash -s -- $@ > ${ENRICHED_CSV}
-        fi
-    fi
-    cat ${ENRICHED_CSV} > $1
-}
 
 replace_with_sed() {
     TMP_CSV="${TEMP_DIR}/${OPERATOR_NAME}_${NEXT_CSV_VERSION}_replace-file"
