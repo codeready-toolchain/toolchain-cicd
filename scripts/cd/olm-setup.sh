@@ -221,6 +221,9 @@ generate_bundle() {
         CSV_SED_REPLACE+=";s|  annotations:|  annotations:\n    olm.skipRange: '<${NEXT_CSV_VERSION}'|g;"
     fi
 
+    CSV_LOCATION=${MANIFESTS_DIR}/*clusterserviceversion.yaml
+    replace_with_sed "${CSV_SED_REPLACE}" "${CSV_LOCATION}"
+
     echo "-> Bundle generated."
 }
 
