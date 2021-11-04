@@ -9,7 +9,6 @@ user_help () {
     echo "-mn, --member-namespace   Namespace the operator should be installed to"
     echo "-mn2,--member-namespace-2 Namespace name of the second installation of member operator, if needed"
     echo "-mr, --member-repo-path   Path to the member operator repo"
-    echo "-e,  --environment        Environment to be used for the deployment"
     echo "-ds, --date-suffix        Date suffix to be added to some resources that are created"
     echo "-h,  --help               To show this help text"
     echo ""
@@ -55,11 +54,6 @@ read_arguments() {
                 -mr|--member-repo-path)
                     shift
                     MEMBER_REPO_PATH=$1
-                    shift
-                    ;;
-                -e|--environment)
-                    shift
-                    ENVIRONMENT=$1
                     shift
                     ;;
                 -ds|--date-suffix)
@@ -108,7 +102,7 @@ if [[ ${PUBLISH_OPERATOR} == "true" ]]; then
     OPERATOR_IMAGE_LOC=${IMAGE_LOC}
     COMPONENT_IMAGE_LOC=$(echo ${IMAGE_LOC} | sed 's/\/member-operator/\/member-operator-webhook/')
 
-    make -C ${REPOSITORY_PATH} publish-current-bundle ENV=${ENVIRONMENT} INDEX_IMAGE_TAG=${BUNDLE_AND_INDEX_TAG} BUNDLE_TAG=${BUNDLE_AND_INDEX_TAG} QUAY_NAMESPACE=${QUAY_NAMESPACE} COMPONENT_IMAGE=${COMPONENT_IMAGE_LOC} IMAGE=${OPERATOR_IMAGE_LOC}
+    make -C ${REPOSITORY_PATH} publish-current-bundle INDEX_IMAGE_TAG=${BUNDLE_AND_INDEX_TAG} BUNDLE_TAG=${BUNDLE_AND_INDEX_TAG} QUAY_NAMESPACE=${QUAY_NAMESPACE} COMPONENT_IMAGE=${COMPONENT_IMAGE_LOC} IMAGE=${OPERATOR_IMAGE_LOC}
 fi
 
 if [[ ${INSTALL_OPERATOR} == "true" ]]; then

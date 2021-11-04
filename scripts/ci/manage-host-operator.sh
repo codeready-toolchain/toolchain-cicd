@@ -9,7 +9,6 @@ user_help () {
     echo "-hn, --host-namespace    Namespace the operator should be installed to"
     echo "-hr, --host-repo-path    Path to the host operator repo"
     echo "-rr, --reg-repo-path     Path to the registation service repo"
-    echo "-e,  --environment       Environment to be used for the deployment"
     echo "-ds, --date-suffix       Date suffix to be added to some resources that are created"
     echo "-h,  --help              To show this help text"
     echo ""
@@ -56,11 +55,6 @@ read_arguments() {
                 -rr|--reg-path)
                     shift
                     REG_REPO_PATH=$1
-                    shift
-                    ;;
-                -e|--environment)
-                    shift
-                    ENVIRONMENT=$1
                     shift
                     ;;
                 -ds|--date-suffix)
@@ -118,7 +112,7 @@ set_tags
 if [[ ${PUBLISH_OPERATOR} == "true" ]]; then
     push_image
     OPERATOR_IMAGE_LOC=${IMAGE_LOC}
-    make -C ${REPOSITORY_PATH} publish-current-bundle ENV=${ENVIRONMENT} INDEX_IMAGE_TAG=${BUNDLE_AND_INDEX_TAG} BUNDLE_TAG=${BUNDLE_AND_INDEX_TAG} QUAY_NAMESPACE=${QUAY_NAMESPACE} OTHER_REPO_PATH=${REG_REPO_PATH} OTHER_REPO_IMAGE_LOC=${REG_SERV_IMAGE_LOC} IMAGE=${OPERATOR_IMAGE_LOC}
+    make -C ${REPOSITORY_PATH} publish-current-bundle INDEX_IMAGE_TAG=${BUNDLE_AND_INDEX_TAG} BUNDLE_TAG=${BUNDLE_AND_INDEX_TAG} QUAY_NAMESPACE=${QUAY_NAMESPACE} OTHER_REPO_PATH=${REG_REPO_PATH} OTHER_REPO_IMAGE_LOC=${REG_SERV_IMAGE_LOC} IMAGE=${OPERATOR_IMAGE_LOC}
 fi
 
 if [[ ${INSTALL_OPERATOR} == "true" ]]; then
