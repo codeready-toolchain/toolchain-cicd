@@ -67,6 +67,7 @@ rules:
   - "tiertemplates"
   - "toolchainconfigs"
   - "toolchainclusters"
+  - "toolchainevents"
   - "toolchainstatuses"
   - "usersignups"
   verbs:
