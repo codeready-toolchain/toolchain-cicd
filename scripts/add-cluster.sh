@@ -64,6 +64,7 @@ rules:
   - "notifications"
   - "nstemplatetiers"
   - "templateupdaterequests"
+  - "spaces"
   - "tiertemplates"
   - "toolchainconfigs"
   - "toolchainclusters"
