@@ -202,22 +202,18 @@ wait_until_is_installed
 }
 
 wait_until_is_installed() {
-    set -e
-    NEXT_WAIT_TIME=0
-    while [[ -z `oc get crd | grep ${EXPECT_CRD} || true` ]]; do
-        if [[ ${NEXT_WAIT_TIME} -eq 100 ]]; then
-           echo "reached timeout of waiting for CRD ${EXPECT_CRD} to be available in the cluster - see following info for debugging:"
-           echo "================================ CatalogSource =================================="
-           oc get catalogsource ${CATALOGSOURCE_NAME} -n ${NAMESPACE} -o yaml
-           echo "================================ CatalogSource Pod Logs =================================="
-           oc logs `oc get pods -l "olm.catalogSource=${CATALOGSOURCE_NAME#*/}" -n ${NAMESPACE} -o name` -n ${NAMESPACE}
-           echo "================================ Subscription =================================="
-           oc get subscription ${SUBSCRIPTION_NAME} -n ${NAMESPACE} -o yaml
-           echo "================================ InstallPlans =================================="
-           oc get installplans -n ${NAMESPACE} -o yaml
-           exit 1
+    WAIT_UNTIL_IS_INSTALLED=scripts/ci/wait-until-is-installed.sh
+    PARAMS="-crd ${EXPECT_CRD} -cs ${CATALOGSOURCE_NAME} -n ${NAMESPACE} -s ${SUBSCRIPTION_NAME}"
+    OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION:-codeready-toolchain/toolchain-cicd/master}
+
+    if [[ -f ${WAIT_UNTIL_IS_INSTALLED} ]]; then
+        source ${WAIT_UNTIL_IS_INSTALLED}
+    else
+        if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${WAIT_UNTIL_IS_INSTALLED} ]]; then
+            ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${WAIT_UNTIL_IS_INSTALLED} ${PARAMS}
+        else
+            SCRIPT_NAME=$(basename ${WAIT_UNTIL_IS_INSTALLED})
+	        curl -sSL https://raw.githubusercontent.com/${OWNER_AND_BRANCH_LOCATION}/${WAIT_UNTIL_IS_INSTALLED} > /tmp/${SCRIPT_NAME} && chmod +x /tmp/${SCRIPT_NAME} && OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION} /tmp/${SCRIPT_NAME} ${PARAMS}
         fi
-        echo "$(( NEXT_WAIT_TIME++ )). attempt of waiting for CRD ${EXPECT_CRD} to be available in the cluster"
-        sleep 1
-    done
+    fi
 }
