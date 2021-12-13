@@ -54,6 +54,7 @@ read_arguments() {
 }
 
 wait_until_is_installed() {
+    echo "Waiting for CRD ${EXPECT_CRD} to be available in the cluster..."
     NEXT_WAIT_TIME=0
     while [[ -z `oc get crd | grep ${EXPECT_CRD} || true` ]]; do
         if [[ ${NEXT_WAIT_TIME} -eq 100 ]]; then
@@ -68,7 +69,7 @@ wait_until_is_installed() {
            oc get installplans -n ${NAMESPACE} -o yaml
            exit 1
         fi
-        echo "$(( NEXT_WAIT_TIME++ )). attempt of waiting for CRD ${EXPECT_CRD} to be available in the cluster"
+        echo "$(( NEXT_WAIT_TIME++ )). attempt (out of 100) of waiting for CRD ${EXPECT_CRD} to be available in the cluster"
         sleep 1
     done
 }
