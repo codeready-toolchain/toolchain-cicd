@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-set -ex
+if [[ -n "${CI}" ]]; then
+    set -ex
+else
+    set -e
+fi
 
 WAS_ALREADY_PAIRED_FILE=/tmp/toolchain_e2e_already_paired
 
@@ -33,10 +37,7 @@ set_tags() {
             TAGS="from.$(echo ${REPO_NAME} | sed 's/"//g').PR${PULL_NUMBER}.${COMMIT_ID_SUFFIX}"
         fi
     fi
-#    can be used only when the operator CSV doesn't bundle the environment information, but now we want to build bundle for both operators
-#    if is_provided_or_paired; then
-        BUNDLE_AND_INDEX_TAG=${TAGS}
-#    fi
+    BUNDLE_AND_INDEX_TAG=${TAGS}
 }
 
 push_image() {
@@ -140,24 +141,45 @@ Note: If you have already deleted one of the branches from your fork, it can tak
 install_operator() {
     DISPLAYNAME=$(echo ${OPERATOR_NAME} | tr '-' ' ' | awk '{for (i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
 
-    GIT_COMMIT_ID=`git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} rev-parse --short HEAD`
-    INDEX_IMAGE=quay.io/${QUAY_NAMESPACE}/${INDEX_IMAGE_NAME}:${BUNDLE_AND_INDEX_TAG}
+    if [[ -z "${INDEX_IMAGE_LOC}" ]]; then
+        GIT_COMMIT_ID=`git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} rev-parse --short HEAD`
+        INDEX_IMAGE=quay.io/${QUAY_NAMESPACE}/${INDEX_IMAGE_NAME}:${BUNDLE_AND_INDEX_TAG}
+        CHANNEL=alpha
+    else
+        GIT_COMMIT_ID="latest"
+        INDEX_IMAGE=${INDEX_IMAGE_LOC}
+        CHANNEL=staging
+    fi
     CATALOGSOURCE_NAME=source-${OPERATOR_NAME}-${GIT_COMMIT_ID}
     SUBSCRIPTION_NAME=subscription-${OPERATOR_NAME}-${GIT_COMMIT_ID}
 
     # if the operator was already installed in the cluster, then delete all OLM related resources
     for SUB in $(oc get Subscription -n ${NAMESPACE} -o name | grep  "subscription-${OPERATOR_NAME}"); do
         oc delete ${SUB} -n ${NAMESPACE}
-        sleep 5
+        UNINSTALLED=true
     done
     for CAT in $(oc get CatalogSource -n ${NAMESPACE} -o name | grep  "source-${OPERATOR_NAME}"); do
         oc delete ${CAT} -n ${NAMESPACE}
-        sleep 5
+        UNINSTALLED=true
     done
     for CSV in $(oc get csv -n ${NAMESPACE} -o name | grep  "${OPERATOR_NAME}"); do
         oc delete ${CSV} -n ${NAMESPACE}
-        sleep 5
+        UNINSTALLED=true
     done
+
+    if [[ ${UNINSTALLED} == "true" ]]; then
+        echo "Waiting for the already installed operator ${OPERATOR_NAME} to be uninstalled from the cluster, so the new version can be installed..."
+        NEXT_WAIT_TIME=0
+        while [[ -n `oc get pods -l control-plane=controller-manager -n ${NAMESPACE} 2>/dev/null || true` ]]; do
+            if [[ ${NEXT_WAIT_TIME} -eq 30 ]]; then
+               echo "reached timeout of waiting for the already installed operator ${OPERATOR_NAME} to be uninstalled from the cluster, so the new version can be installed..."
+               exit 1
+            fi
+            echo "$(( NEXT_WAIT_TIME++ )). attempt (out of 30) of waiting for operator ${OPERATOR_NAME} to be uninstalled from the cluster."
+            sleep 1
+        done
+    fi
+
 
     INSTALL_OBJECTS="apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
@@ -174,7 +196,7 @@ metadata:
   name: ${SUBSCRIPTION_NAME}
   namespace: ${NAMESPACE}
 spec:
-  channel: alpha
+  channel: ${CHANNEL}
   installPlanApproval: Automatic
   name: ${OPERATOR_NAME}
   source: ${CATALOGSOURCE_NAME}
