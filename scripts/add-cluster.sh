@@ -65,6 +65,7 @@ rules:
   - "nstemplatetiers"
   - "templateupdaterequests"
   - "spaces"
+  - "spacebindings"
   - "tiertemplates"
   - "toolchainconfigs"
   - "toolchainclusters"
