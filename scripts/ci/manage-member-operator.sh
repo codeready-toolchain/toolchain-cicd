@@ -99,7 +99,7 @@ else
     fi
 fi
 
-if [[ DEPLOY_LATEST != "true" ]] && [[ -n "${CI}${MEMBER_REPO_PATH}" ]]; then
+if [[ ${DEPLOY_LATEST} != "true" ]] && [[ -n "${CI}${MEMBER_REPO_PATH}" ]]; then
     REPOSITORY_NAME=member-operator
     PROVIDED_REPOSITORY_PATH=${MEMBER_REPO_PATH}
     get_repo
