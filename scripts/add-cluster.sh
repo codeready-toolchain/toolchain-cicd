@@ -254,14 +254,19 @@ fi
 
 echo "Getting ${JOINING_CLUSTER_TYPE} SA token"
 SA_SECRET=`oc get sa ${SA_NAME} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r .secrets[].name | grep token`
+echo "SA secret found: ${SA_SECRET}"
 SA_TOKEN=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS}  -o json ${OC_ADDITIONAL_PARAMS} | jq -r '.data["token"]' | base64 --decode`
+echo "SA token retrieved"
 if [[ ${LETS_ENCRYPT} == "true" ]]; then
+    echo "Using let's encrypt certificate"
     SA_CA_CRT=`curl https://letsencrypt.org/certs/lets-encrypt-r3.pem | base64 -w 0`
 else
+    echo "Using standard OpenShift certificate"
     SA_CA_CRT=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r '.data["ca.crt"]'`
 fi
 
 if [[ -n ${SANDBOX_CONFIG} ]]; then
+    echo "Using sandbox.yaml file as a config"
     API_ENDPOINT=$(yq -r .\"${JOINING_CLUSTER_TYPE}\".serverAPI ${SANDBOX_CONFIG})
     JOINING_CLUSTER_NAME=$(yq -r .\"${JOINING_CLUSTER_TYPE}\".serverName ${SANDBOX_CONFIG})
 
@@ -269,15 +274,20 @@ if [[ -n ${SANDBOX_CONFIG} ]]; then
 
     CLUSTER_JOIN_TO_NAME=$(yq -r .\"${CLUSTER_JOIN_TO}\".serverName ${SANDBOX_CONFIG})
 else
+    echo "Fetching information about the clusters"
     API_ENDPOINT=`oc get infrastructure cluster -o jsonpath='{.status.apiServerURL}' ${OC_ADDITIONAL_PARAMS}`
+    echo "API endpoint retrieved: ${API_ENDPOINT}"
     # The regexp below extracts the domain name from the API server URL, taking everything after "//" until a ":" or "/" (or end of line) is reached.
     # The "api." prefix is removed from the domain if present. E.g. "https://api.server.domain.net:6443" -> "server.domain.net".
     JOINING_CLUSTER_NAME=`echo "${API_ENDPOINT}" | sed 's/^[^/]*\/\/\([^:/]*\)\(:.*\)\{0,1\}\(\/.*\)\{0,1\}$/\1/' | sed 's/^api\.//'`
+    echo "Joining cluster name: ${JOINING_CLUSTER_NAME}"
 
     login_to_cluster ${CLUSTER_JOIN_TO}
 
     CLUSTER_JOIN_TO_API_ENDPOINT=`oc get infrastructure cluster -o jsonpath='{.status.apiServerURL}' ${OC_ADDITIONAL_PARAMS}`
+    echo "API endpoint of the cluster it is joining to: ${CLUSTER_JOIN_TO_API_ENDPOINT}"
     CLUSTER_JOIN_TO_NAME=`echo "${CLUSTER_JOIN_TO_API_ENDPOINT}" | sed 's/^[^/]*\/\/\([^:/]*\)\(:.*\)\{0,1\}\(\/.*\)\{0,1\}$/\1/' | sed 's/^api\.//'`
+    echo "The cluster name it is joining to: ${CLUSTER_JOIN_TO_NAME}"
 fi
 
 echo "Creating ${JOINING_CLUSTER_TYPE} secret"
