@@ -131,7 +131,9 @@ Note: If you have already deleted one of the branches from your fork, it can tak
                 git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} fetch external ${BRANCH_REF}
                 # merge the branch with master
                 git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} merge --allow-unrelated-histories --no-commit FETCH_HEAD
-
+                # print information about the last three commits, so we know what was merged plus some additional context/history
+                git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} log --ancestry-path HEAD~3..HEAD
+                
                 PAIRED=true
             fi
         fi
