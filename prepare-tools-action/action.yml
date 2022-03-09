@@ -4,11 +4,11 @@ inputs:
   operator-sdk-version:
     description: Version of operator-sdk binary
     required: false
-    default: v1.8.0
+    default: v1.16.0
   opm-version:
     description: Version of opm binary
     required: false
-    default: v1.15.3
+    default: v1.19.5
 runs:
   using: "composite"
   steps:
