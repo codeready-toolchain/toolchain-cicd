@@ -107,11 +107,11 @@ CURRENT_VERSION=`grep "^  version: " ${CSV_LOCATION} | awk '{print $2}'`
 # set the image names variables
 BUNDLE_IMAGE=quay.io/${QUAY_NAMESPACE_TO_PUSH}/${PRJ_NAME}-bundle:${BUNDLE_TAG:-${CURRENT_VERSION}}
 INDEX_IMAGE=quay.io/${QUAY_NAMESPACE_TO_PUSH}/${INDEX_IMAGE_NAME}:latest
-FROM_INDEX_IMAGE="${INDEX_IMAGE}"
 
 if [[ -n "${INDEX_IMAGE_TAG}" ]]; then
     INDEX_IMAGE=quay.io/${QUAY_NAMESPACE_TO_PUSH}/${INDEX_IMAGE_NAME}:${INDEX_IMAGE_TAG}
 fi
+FROM_INDEX_IMAGE="${INDEX_IMAGE}"
 
 # get the current version that is in the "replaces" clause of the CSV
 REPLACE_VERSION=`grep "^  replaces: " ${CSV_LOCATION} | awk '{print $2}'`
