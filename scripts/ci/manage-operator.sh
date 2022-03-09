@@ -129,8 +129,18 @@ Note: If you have already deleted one of the branches from your fork, it can tak
                 git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} remote add external ${AUTHOR_LINK}/${REPOSITORY_NAME}.git
                 # fetch the branch
                 git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} fetch external ${BRANCH_REF}
-                # merge the branch with master
-                git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} merge --allow-unrelated-histories --no-commit FETCH_HEAD
+
+                # check if fast-forward merge is possible
+                git merge-base --is-ancestor master FETCH_HEAD
+                if [[ $? == 1 ]]; then
+                    echo "ERROR: The paired PR in https://github.com/codeready-toolchain/${REPOSITORY_NAME}/ from branch ${BRANCH_NAME} is not up-to-date with master. The fast-forward merge cannot be performed."
+                    echo "       Rebase the PR with the latest changes from master and rerun this GH Actions build (or comment /retest in this PR)."
+                    echo "       https://github.com/codeready-toolchain/${REPOSITORY_NAME}/pulls?q=head%3A${BRANCH_NAME}"
+                    exit 1
+                fi
+
+                # merge the branch with master using fast-forward
+                git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} merge --ff-only FETCH_HEAD
                 # print information about the last three commits, so we know what was merged plus some additional context/history
                 git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} log --ancestry-path HEAD~3..HEAD
                 
