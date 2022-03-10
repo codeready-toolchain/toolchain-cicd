@@ -20,6 +20,10 @@ inputs:
     description: Author of the PR
     default: ${{ github.event.pull_request.head.user.login }}
     required: false
+  gh-head-ref:
+    description: Branch name the PR was opened from
+    default: ${{ github.event.pull_request.head.ref }}
+    required: false
 runs:
   using: "composite"
   steps:
@@ -41,4 +45,8 @@ runs:
   - name: Publish current bundle for e2e tests
     shell: bash
     run: |
-      make publish-current-bundles-for-e2e QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman PULL_PULL_SHA=${{ inputs.sha }} PULL_NUMBER=${{ inputs.pr-number }} AUTHOR=${{ inputs.author }}
+      PROVIDED_REF=${{ inputs.gh-head-ref }}
+      if [[ -n ${PROVIDED_REF} ]]; then
+        GH_HEAD_REF_PARAM="GITHUB_HEAD_REF=${PROVIDED_REF}"
+      fi
+      make publish-current-bundles-for-e2e QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman PULL_PULL_SHA=${{ inputs.sha }} PULL_NUMBER=${{ inputs.pr-number }} AUTHOR=${{ inputs.author }} ${GH_HEAD_REF_PARAM}
