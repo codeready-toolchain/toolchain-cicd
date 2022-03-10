@@ -131,7 +131,7 @@ Note: If you have already deleted one of the branches from your fork, it can tak
                 git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} fetch external ${BRANCH_REF}
 
                 # check if fast-forward merge is possible
-                git merge-base --is-ancestor master FETCH_HEAD
+                git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} merge-base --is-ancestor master FETCH_HEAD
                 if [[ $? == 1 ]]; then
                     echo "ERROR: The paired PR in https://github.com/codeready-toolchain/${REPOSITORY_NAME}/ from branch ${BRANCH_NAME} is not up-to-date with master. The fast-forward merge cannot be performed."
                     echo "       Rebase the PR with the latest changes from master and rerun this GH Actions build (or comment /retest in this PR)."
