@@ -130,15 +130,18 @@ Note: If you have already deleted one of the branches from your fork, it can tak
                 # fetch the branch
                 git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} fetch external ${BRANCH_REF}
 
-                # check if fast-forward merge is possible
-                git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} merge-base --is-ancestor master FETCH_HEAD
-                if [[ $? == 1 ]]; then
-                    echo "ERROR: The paired PR in https://github.com/codeready-toolchain/${REPOSITORY_NAME}/ from branch ${BRANCH_NAME} is not up-to-date with master. The fast-forward merge cannot be performed."
-                    echo "       Rebase the PR with the latest changes from master and rerun this GH Actions build (or comment /retest in this PR)."
-                    echo "       https://github.com/codeready-toolchain/${REPOSITORY_NAME}/pulls?q=head%3A${BRANCH_NAME}"
-                    exit 1
-                fi
-
+                echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    WARNING    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                echo ""
+                echo "The following command will try to merge the paired PR using fast-forward way."
+                echo "If the command fails, then it means that the paired PR https://github.com/codeready-toolchain/${REPOSITORY_NAME}/ from branch ${BRANCH_NAME}"
+                echo "is not up-to-date with master and the fast-forward merge cannot be performed."
+                echo "If this happens, then rebase the PR with the latest changes from master and rerun this GH Actions build (or comment /retest in this PR)."
+                echo "       https://github.com/codeready-toolchain/${REPOSITORY_NAME}/pulls?q=head%3A${BRANCH_NAME}"
+                echo ""
+                echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
                 # merge the branch with master using fast-forward
                 git --git-dir=${REPOSITORY_PATH}/.git --work-tree=${REPOSITORY_PATH} merge --ff-only FETCH_HEAD
                 # print information about the last three commits, so we know what was merged plus some additional context/history
