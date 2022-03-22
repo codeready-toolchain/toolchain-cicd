@@ -66,9 +66,17 @@ printAllPodLogsInNamespace() {
 wait_until_is_installed() {
     echo "Waiting for CRD ${EXPECT_CRD} to be available in the cluster..."
     OLM_NS="openshift-operator-lifecycle-manager"
+
     NEXT_WAIT_TIME=0
+    MAX_NUM_ATTEMPTS=100
+    SLEEP_TIME=1
+    if [[ -n "${CI}${CLONEREFS_OPTIONS}" ]]; then
+        MAX_NUM_ATTEMPTS=200
+        SLEEP_TIME=3
+    fi
+
     while [[ -z `oc get crd | grep ${EXPECT_CRD} || true` ]]; do
-        if [[ ${NEXT_WAIT_TIME} -eq 100 ]]; then
+        if [[ ${NEXT_WAIT_TIME} -eq ${MAX_NUM_ATTEMPTS} ]]; then
            echo "reached timeout of waiting for CRD ${EXPECT_CRD} to be available in the cluster - see following info for debugging:"
            echo "================================ CatalogSource =================================="
            oc get catalogsource ${CATALOGSOURCE_NAME} -n ${NAMESPACE} -o yaml
@@ -82,8 +90,8 @@ wait_until_is_installed() {
            printAllPodLogsInNamespace $NAMESPACE
            exit 1
         fi
-        echo "$(( NEXT_WAIT_TIME++ )). attempt (out of 100) of waiting for CRD ${EXPECT_CRD} to be available in the cluster"
-        sleep 1
+        echo "$(( NEXT_WAIT_TIME++ )). attempt (out of ${MAX_NUM_ATTEMPTS}) of waiting for CRD ${EXPECT_CRD} to be available in the cluster"
+        sleep ${SLEEP_TIME}
     done
 }
 
