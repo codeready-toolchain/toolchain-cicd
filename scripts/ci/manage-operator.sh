@@ -196,6 +196,7 @@ install_operator() {
         done
     fi
 
+    start_collecting_logs
 
     CATALOG_SOURCE_OBJECT="
 apiVersion: operators.coreos.com/v1alpha1
@@ -257,13 +258,32 @@ spec:
 ${INSTALL_OBJECTS}
 EOF
 
+OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION:-codeready-toolchain/toolchain-cicd/master}
+
+start_collecting_logs
 wait_until_is_installed
+}
+
+
+start_collecting_logs() {
+    COLLECT_LOGS=scripts/ci/collect-logs.sh
+    PARAMS="-n ${NAMESPACE}"
+
+
+    if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${COLLECT_LOGS} ]]; then
+        ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${COLLECT_LOGS} -n ${NAMESPACE} &
+        ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${COLLECT_LOGS} -n "openshift-operator-lifecycle-manager"  &
+    else
+        SCRIPT_NAME=$(basename ${COLLECT_LOGS})
+        curl -sSL https://raw.githubusercontent.com/${OWNER_AND_BRANCH_LOCATION}/${COLLECT_LOGS} > /tmp/${SCRIPT_NAME} && chmod +x /tmp/${SCRIPT_NAME}
+        OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION} /tmp/${SCRIPT_NAME} -n ${NAMESPACE} &
+        OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION} /tmp/${SCRIPT_NAME} -n "openshift-operator-lifecycle-manager" &
+    fi
 }
 
 wait_until_is_installed() {
     WAIT_UNTIL_IS_INSTALLED=scripts/ci/wait-until-is-installed.sh
     PARAMS="-crd ${EXPECT_CRD} -cs ${CATALOGSOURCE_NAME} -n ${NAMESPACE} -s ${SUBSCRIPTION_NAME}"
-    OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION:-codeready-toolchain/toolchain-cicd/master}
 
     if [[ -f ${WAIT_UNTIL_IS_INSTALLED} ]]; then
         source ${WAIT_UNTIL_IS_INSTALLED}
