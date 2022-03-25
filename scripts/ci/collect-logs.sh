@@ -42,16 +42,22 @@ start_collecting_logs() {
             echo "ERROR: the ARTIFACT_DIR env var is set to ${ARTIFACT_DIR}, but the directory does not exist"
             exit 1
         fi
-    COLLECTING_FILE="${ARTIFACT_DIR}/collecting_${NAMESPACE}"
+        COLLECTING_FILE="${ARTIFACT_DIR}/collecting_${NAMESPACE}"
 
         if [[ ! -f ${COLLECTING_FILE} ]]; then
             touch ${COLLECTING_FILE}
-            echo "collecting logs from namespace ${NAMESPACE}"
+            echo "Collecting logs from namespace ${NAMESPACE}"
 
             LOGS_DIR=${ARTIFACT_DIR}/logs_${NAMESPACE}
             mkdir ${LOGS_DIR} || true
 
-            while [[ -n "$(oc whoami 2>/dev/null)" ]]; do
+            COUNTER=0
+            PROCESSES=""
+            while [[ -n "$(oc whoami 2>/dev/null)" ]] && [[ -f ${COLLECTING_FILE} ]]; do
+                if [[ -z "${CI}" ]] && [[ $((  ${COUNTER} % 20 )) == 0 ]]; then
+                    echo "Collecting logs from namespace ${NAMESPACE} - to stop the process please delete ${COLLECTING_FILE} file or log out from the cluster"
+                fi
+
                 for POD in $(oc get pods -o name -n ${NAMESPACE});
                 do
 
@@ -64,12 +70,16 @@ start_collecting_logs() {
                             if [[ -n $(oc logs ${POD} -c ${CONTAINER} -n ${NAMESPACE}) ]]; then
                                 echo "collecting logs from container ${CONTAINER} in pod ${POD} in namespace ${NAMESPACE} to file ${LOG_FILE}"
                                 oc logs ${POD} -c ${CONTAINER} -n ${NAMESPACE} -f > ${LOG_FILE} &
+                                PROCESSES="${PROCESSES}$! "
                             fi
                         fi
                     done
                 done
                 sleep 1
+                COUNTER=$(( COUNTER + 1 ))
             done
+            echo "killing the daemon processes ${PROCESSES}"
+            kill ${PROCESSES}
         fi
     else
         echo "ARTIFACT_DIR env var is not set - no logs will be collected"
