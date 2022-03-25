@@ -267,8 +267,6 @@ wait_until_is_installed
 
 start_collecting_logs() {
     COLLECT_LOGS=scripts/ci/collect-logs.sh
-    PARAMS="-n ${NAMESPACE}"
-
 
     if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${COLLECT_LOGS} ]]; then
         ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${COLLECT_LOGS} -n ${NAMESPACE} &
