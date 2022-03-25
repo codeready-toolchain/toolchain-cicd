@@ -38,6 +38,10 @@ read_arguments() {
 
 start_collecting_logs() {
     if [[ -n ${ARTIFACT_DIR} ]]; then
+        if [[ ! -d ${ARTIFACT_DIR} ]]; then
+            echo "ERROR: the ARTIFACT_DIR env var is set to ${ARTIFACT_DIR}, but the directory does not exist"
+            exit 1
+        fi
     COLLECTING_FILE="${ARTIFACT_DIR}/collecting_${NAMESPACE}"
 
         if [[ ! -f ${COLLECTING_FILE} ]]; then
@@ -67,6 +71,8 @@ start_collecting_logs() {
                 sleep 1
             done
         fi
+    else
+        echo "ARTIFACT_DIR env var is not set - no logs will be collected"
     fi
 }
 
