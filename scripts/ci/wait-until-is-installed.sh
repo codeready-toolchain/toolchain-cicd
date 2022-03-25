@@ -53,20 +53,8 @@ read_arguments() {
     done
 }
 
-printAllPodLogsInNamespace() {
-    echo "================================ $1 Namespace Pod Logs =================================="
-    oc get po -n $1 -o name | \
-    while IFS= read -r po; do \
-        echo "================================ $1 Namespace Pod Log - ${po#*/} =================================="
-        oc logs $po -n $1
-    done
-    echo "================================ End of $1 Namespace Pod Logs =================================="
-}
-
 wait_until_is_installed() {
     echo "Waiting for CRD ${EXPECT_CRD} to be available in the cluster..."
-    OLM_NS="openshift-operator-lifecycle-manager"
-
     NEXT_WAIT_TIME=0
     MAX_NUM_ATTEMPTS=100
     SLEEP_TIME=1
@@ -86,8 +74,6 @@ wait_until_is_installed() {
            oc get subscription ${SUBSCRIPTION_NAME} -n ${NAMESPACE} -o yaml
            echo "================================ InstallPlans =================================="
            oc get installplans -n ${NAMESPACE} -o yaml
-           printAllPodLogsInNamespace $OLM_NS
-           printAllPodLogsInNamespace $NAMESPACE
            exit 1
         fi
         echo "$(( NEXT_WAIT_TIME++ )). attempt (out of ${MAX_NUM_ATTEMPTS}) of waiting for CRD ${EXPECT_CRD} to be available in the cluster"
