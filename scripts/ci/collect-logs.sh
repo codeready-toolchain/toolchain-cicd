@@ -42,13 +42,16 @@ start_collecting_logs() {
             echo "ERROR: the ARTIFACT_DIR env var is set to ${ARTIFACT_DIR}, but the directory does not exist"
             exit 1
         fi
+        echo "ARTIFACT_DIR env var is set to ${ARTIFACT_DIR}"
         COLLECTING_FILE="${ARTIFACT_DIR}/collecting_${NAMESPACE}"
 
         if [[ ! -f ${COLLECTING_FILE} ]]; then
+            echo "the current content of the ${ARTIFACT_DIR} directory is $(ls ${ARTIFACT_DIR})"
             touch ${COLLECTING_FILE}
             echo "Collecting logs from namespace ${NAMESPACE}"
 
             LOGS_DIR=${ARTIFACT_DIR}/logs_${NAMESPACE}
+            echo "Creating directory ${LOGS_DIR}"
             mkdir ${LOGS_DIR} || true
 
             COUNTER=0

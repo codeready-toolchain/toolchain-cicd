@@ -86,8 +86,11 @@ wait_until_is_installed() {
            oc get subscription ${SUBSCRIPTION_NAME} -n ${NAMESPACE} -o yaml
            echo "================================ InstallPlans =================================="
            oc get installplans -n ${NAMESPACE} -o yaml
-           printAllPodLogsInNamespace $OLM_NS
-           printAllPodLogsInNamespace $NAMESPACE
+#           printAllPodLogsInNamespace $OLM_NS
+#           printAllPodLogsInNamespace $NAMESPACE
+           if [[ -n ${ARTIFACT_DIR} ]]; then
+             oc adm must-gather --dest-dir=${ARTIFACT_DIR}
+           fi
            exit 1
         fi
         echo "$(( NEXT_WAIT_TIME++ )). attempt (out of ${MAX_NUM_ATTEMPTS}) of waiting for CRD ${EXPECT_CRD} to be available in the cluster"
