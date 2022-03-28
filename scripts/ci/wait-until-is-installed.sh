@@ -90,6 +90,8 @@ wait_until_is_installed() {
 #           printAllPodLogsInNamespace $NAMESPACE
            if [[ -n ${ARTIFACT_DIR} ]]; then
              oc adm must-gather --dest-dir=${ARTIFACT_DIR}
+             oc get jobs -o yaml -n ${NAMESPACE} > ${ARTIFACT_DIR}/jobs_${NAMESPACE}
+             oc get jobs -o yaml -A > ${ARTIFACT_DIR}/all_jobs_${NAMESPACE}
            fi
            exit 1
         fi
