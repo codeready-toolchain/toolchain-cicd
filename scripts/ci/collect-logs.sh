@@ -67,7 +67,7 @@ start_collecting_logs() {
                         LOG_FILE=${LOGS_DIR}/${LOG_FILE_NAME}
 
                         if [[ ! -f ${LOG_FILE} ]]; then
-                            if [[ -n $(oc logs ${POD} -c ${CONTAINER} -n ${NAMESPACE}) ]]; then
+                            if [[ -n $(oc logs ${POD} -c ${CONTAINER} -n ${NAMESPACE} 2>/dev/null || true) ]]; then
                                 echo "collecting logs from container ${CONTAINER} in pod ${POD} in namespace ${NAMESPACE} to file ${LOG_FILE}"
                                 oc logs ${POD} -c ${CONTAINER} -n ${NAMESPACE} -f > ${LOG_FILE} &
                                 PROCESSES="${PROCESSES}$! "
