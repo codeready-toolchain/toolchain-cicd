@@ -197,6 +197,41 @@ install_operator() {
     fi
 
 
+    CATALOG_SOURCE_OBJECT="
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: ${CATALOGSOURCE_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  sourceType: grpc
+  image: ${INDEX_IMAGE}
+  displayName: ${DISPLAYNAME}
+  publisher: Red Hat
+  updateStrategy:
+    registryPoll:
+      interval: 1m0s"
+    echo "objects to be created in order to create CatalogSource"
+    cat <<EOF | oc apply -f -
+${CATALOG_SOURCE_OBJECT}
+EOF
+
+    echo "Waiting until the CatalogSource ${CATALOGSOURCE_NAME} in the namespace ${NAMESPACE} gets ready"
+    NEXT_WAIT_TIME=0
+    while [[ -z `oc get catalogsource ${CATALOGSOURCE_NAME} -n ${NAMESPACE} -o jsonpath='${.status.connectionState.lastObservedState}' 2>/dev/null | grep READY || true` ]]; do
+        if [[ ${NEXT_WAIT_TIME} -eq 100 ]]; then
+           echo "reached timeout of waiting for the CatalogSource ${CATALOGSOURCE_NAME} in the namespace ${NAMESPACE} to be ready..."
+           if [[ -n ${ARTIFACT_DIR} ]]; then
+             oc adm must-gather --dest-dir=${ARTIFACT_DIR}
+           fi
+           exit 1
+        fi
+        echo "$(( NEXT_WAIT_TIME++ )). attempt (out of 100) of waiting for the CatalogSource ${CATALOGSOURCE_NAME} in the namespace ${NAMESPACE} to be ready."
+        sleep 1
+    done
+
+    echo "The CatalogSource ${CATALOGSOURCE_NAME} in the namespace ${NAMESPACE} is ready - installing the operator"
+
     INSTALL_OBJECTS="apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -216,21 +251,7 @@ spec:
   installPlanApproval: Automatic
   name: ${OPERATOR_NAME}
   source: ${CATALOGSOURCE_NAME}
-  sourceNamespace: ${NAMESPACE}
----
-apiVersion: operators.coreos.com/v1alpha1
-kind: CatalogSource
-metadata:
-  name: ${CATALOGSOURCE_NAME}
-  namespace: ${NAMESPACE}
-spec:
-  sourceType: grpc
-  image: ${INDEX_IMAGE}
-  displayName: ${DISPLAYNAME}
-  publisher: Red Hat
-  updateStrategy:
-    registryPoll:
-      interval: 1m0s"
+  sourceNamespace: ${NAMESPACE}"
     echo "objects to be created in order to install operator"
     cat <<EOF | oc apply -f -
 ${INSTALL_OBJECTS}
