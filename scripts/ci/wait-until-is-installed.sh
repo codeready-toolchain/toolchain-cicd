@@ -55,7 +55,8 @@ read_arguments() {
 
 wait_until_is_installed() {
     echo "Waiting for CRD ${EXPECT_CRD} to be available in the cluster..."
-    NEXT_WAIT_TIME=0
+
+    ATTEMPT=0
     MAX_NUM_ATTEMPTS=100
     SLEEP_TIME=1
     if [[ -n "${CI}${CLONEREFS_OPTIONS}" ]]; then
@@ -64,7 +65,11 @@ wait_until_is_installed() {
     fi
 
     while [[ -z `oc get crd | grep ${EXPECT_CRD} || true` ]]; do
-        if [[ ${NEXT_WAIT_TIME} -eq ${MAX_NUM_ATTEMPTS} ]]; then
+        if [[ ${ATTEMPT} != 0 ]] && [[ $(( ${ATTEMPT} % 40 )) == 0 ]]; then
+            echo "The installation takes suspiciously too long - deleting jobs. This may happen and is caused by flaky OLM installation."
+            oc delete jobs --all -n ${NAMESPACE}
+        fi
+        if [[ ${ATTEMPT} -eq ${MAX_NUM_ATTEMPTS} ]]; then
            echo "reached timeout of waiting for CRD ${EXPECT_CRD} to be available in the cluster - see following info for debugging:"
            echo "================================ CatalogSource =================================="
            oc get catalogsource ${CATALOGSOURCE_NAME} -n ${NAMESPACE} -o yaml
@@ -79,7 +84,7 @@ wait_until_is_installed() {
            fi
            exit 1
         fi
-        echo "$(( NEXT_WAIT_TIME++ )). attempt (out of ${MAX_NUM_ATTEMPTS}) of waiting for CRD ${EXPECT_CRD} to be available in the cluster"
+        echo "$(( ATTEMPT++ )). attempt (out of ${MAX_NUM_ATTEMPTS}) of waiting for CRD ${EXPECT_CRD} to be available in the cluster"
         sleep ${SLEEP_TIME}
     done
 }
