@@ -197,7 +197,7 @@ install_operator() {
         done
     fi
 
-    start_collecting_logs
+#    start_collecting_logs
 
     CATALOG_SOURCE_OBJECT="
 apiVersion: operators.coreos.com/v1alpha1
