@@ -260,7 +260,6 @@ EOF
 
 OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION:-codeready-toolchain/toolchain-cicd/master}
 
-start_collecting_logs
 wait_until_is_installed
 }
 

@@ -68,8 +68,6 @@ wait_until_is_installed() {
            echo "reached timeout of waiting for CRD ${EXPECT_CRD} to be available in the cluster - see following info for debugging:"
            echo "================================ CatalogSource =================================="
            oc get catalogsource ${CATALOGSOURCE_NAME} -n ${NAMESPACE} -o yaml
-           echo "================================ CatalogSource Pod Logs =================================="
-           oc logs `oc get pods -l "olm.catalogSource=${CATALOGSOURCE_NAME#*/}" -n ${NAMESPACE} -o name` -n ${NAMESPACE}
            echo "================================ Subscription =================================="
            oc get subscription ${SUBSCRIPTION_NAME} -n ${NAMESPACE} -o yaml
            echo "================================ InstallPlans =================================="
