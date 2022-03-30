@@ -7,6 +7,7 @@ else
 fi
 
 WAS_ALREADY_PAIRED_FILE=/tmp/toolchain_e2e_already_paired
+OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION:-codeready-toolchain/toolchain-cicd/master}
 
 get_repo() {
     PAIRED=false
@@ -257,8 +258,6 @@ spec:
     cat <<EOF | oc apply -f -
 ${INSTALL_OBJECTS}
 EOF
-
-OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION:-codeready-toolchain/toolchain-cicd/master}
 
 wait_until_is_installed
 }
