@@ -64,13 +64,13 @@ wait_until_is_installed() {
         SLEEP_TIME=3
     fi
 
-    while [[ -z `oc get crd | grep ${EXPECT_CRD} || true` ]]; do
+    while [[ -z `oc get crd | grep ${EXPECT_CRD} || true` ]] || [[ -z $(oc get installplans -o jsonpath='{.items[*].status.phase}' -n ${NAMESPACE} | grep "Complete" || true) ]]; do
         if [[ ${ATTEMPT} != 0 ]] && [[ $(( ${ATTEMPT} % 40 )) == 0 ]]; then
             echo "The installation takes suspiciously too long - deleting jobs. This may happen and is caused by flaky OLM installation."
             oc delete jobs --all -n ${NAMESPACE}
         fi
         if [[ ${ATTEMPT} -eq ${MAX_NUM_ATTEMPTS} ]]; then
-           echo "reached timeout of waiting for CRD ${EXPECT_CRD} to be available in the cluster - see following info for debugging:"
+           echo "reached timeout of waiting for CRD ${EXPECT_CRD} to be available in the cluster and the InstallPlan to be complete - see following info for debugging:"
            echo "================================ CatalogSource =================================="
            oc get catalogsource ${CATALOGSOURCE_NAME} -n ${NAMESPACE} -o yaml
            echo "================================ Subscription =================================="
@@ -84,7 +84,7 @@ wait_until_is_installed() {
            fi
            exit 1
         fi
-        echo "$(( ATTEMPT++ )). attempt (out of ${MAX_NUM_ATTEMPTS}) of waiting for CRD ${EXPECT_CRD} to be available in the cluster"
+        echo "$(( ATTEMPT++ )). attempt (out of ${MAX_NUM_ATTEMPTS}) of waiting for CRD ${EXPECT_CRD} to be available in the cluster and the InstallPlan to be complete"
         sleep ${SLEEP_TIME}
     done
 }
