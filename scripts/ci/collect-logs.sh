@@ -82,7 +82,9 @@ start_collecting_logs() {
             kill ${PROCESSES}
         fi
     else
-        echo "ARTIFACT_DIR env var is not set - no logs will be collected"
+        if [[ -n "${CI}" ]]; then
+            echo "ARTIFACT_DIR env var is not set - no logs will be collected"
+        fi
     fi
 }
 
