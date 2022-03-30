@@ -68,12 +68,15 @@ wait_until_is_installed() {
            echo "reached timeout of waiting for CRD ${EXPECT_CRD} to be available in the cluster - see following info for debugging:"
            echo "================================ CatalogSource =================================="
            oc get catalogsource ${CATALOGSOURCE_NAME} -n ${NAMESPACE} -o yaml
-           echo "================================ CatalogSource Pod Logs =================================="
-           oc logs `oc get pods -l "olm.catalogSource=${CATALOGSOURCE_NAME#*/}" -n ${NAMESPACE} -o name` -n ${NAMESPACE}
            echo "================================ Subscription =================================="
            oc get subscription ${SUBSCRIPTION_NAME} -n ${NAMESPACE} -o yaml
            echo "================================ InstallPlans =================================="
            oc get installplans -n ${NAMESPACE} -o yaml
+           if [[ -n ${ARTIFACT_DIR} ]]; then
+             oc adm must-gather --dest-dir=${ARTIFACT_DIR}
+             oc get jobs -o yaml -n ${NAMESPACE} > ${ARTIFACT_DIR}/jobs_${NAMESPACE}
+             oc get jobs -o yaml -A > ${ARTIFACT_DIR}/all_jobs_${NAMESPACE}
+           fi
            exit 1
         fi
         echo "$(( NEXT_WAIT_TIME++ )). attempt (out of ${MAX_NUM_ATTEMPTS}) of waiting for CRD ${EXPECT_CRD} to be available in the cluster"
