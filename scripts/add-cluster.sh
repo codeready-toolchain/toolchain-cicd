@@ -71,6 +71,7 @@ rules:
   - "toolchainevents"
   - "toolchainstatuses"
   - "usersignups"
+  - "usertiers"
   verbs:
   - "*"
 EOF
