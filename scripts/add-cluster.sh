@@ -63,7 +63,6 @@ rules:
   - "masteruserrecords"
   - "notifications"
   - "nstemplatetiers"
-  - "templateupdaterequests"
   - "spaces"
   - "spacebindings"
   - "tiertemplates"
