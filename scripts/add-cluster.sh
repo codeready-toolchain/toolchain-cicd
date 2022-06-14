@@ -59,7 +59,6 @@ rules:
   - toolchain.dev.openshift.com
   resources:
   - "bannedusers"
-  - "changetierrequests"
   - "masteruserrecords"
   - "notifications"
   - "nstemplatetiers"
