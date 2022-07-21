@@ -93,6 +93,31 @@ rules:
   - "useraccounts"
   verbs:
   - "*"
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ${SA_NAME}
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ${SA_NAME}
+subjects:
+- kind: ServiceAccount
+  name: ${SA_NAME}
+  namespace: ${OPERATOR_NS}
+roleRef:
+  kind: ClusterRole
+  name: ${SA_NAME}
+  apiGroup: rbac.authorization.k8s.io
 EOF
 fi
 
