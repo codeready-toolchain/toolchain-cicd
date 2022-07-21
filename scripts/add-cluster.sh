@@ -121,7 +121,7 @@ subjects:
   namespace: ${OPERATOR_NS}
 roleRef:
   kind: ClusterRole
-  name: ${SA_NAME}
+  name: ${CLUSTER_ROLE_NAME}
   apiGroup: rbac.authorization.k8s.io
 EOF
 fi
