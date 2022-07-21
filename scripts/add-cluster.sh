@@ -75,6 +75,11 @@ rules:
   - "*"
 EOF
 else
+    CLUSTER_ROLE_NAME=${SA_NAME}-${OPERATOR_NS}-toolchaincluster
+    # we need to delete the binding since we cannot change the roleRef of the existing binding
+    if [[ -n `oc get ClusterRoleBinding ${CLUSTER_ROLE_BINDING_NAME} 2>/dev/null` ]]; then
+      oc delete ClusterRoleBinding ${CLUSTER_ROLE_NAME} ${OC_ADDITIONAL_PARAMS}
+    fi
     cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
@@ -97,7 +102,7 @@ rules:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: ${SA_NAME}
+  name: ${CLUSTER_ROLE_NAME}
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -109,7 +114,7 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: ${SA_NAME}
+  name: ${CLUSTER_ROLE_NAME}
 subjects:
 - kind: ServiceAccount
   name: ${SA_NAME}
