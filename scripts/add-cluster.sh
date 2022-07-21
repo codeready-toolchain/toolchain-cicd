@@ -77,7 +77,7 @@ EOF
 else
     CLUSTER_ROLE_NAME=${SA_NAME}-${OPERATOR_NS}-toolchaincluster
     # we need to delete the binding since we cannot change the roleRef of the existing binding
-    if [[ -n `oc get ClusterRoleBinding ${CLUSTER_ROLE_BINDING_NAME} 2>/dev/null` ]]; then
+    if [[ -n `oc get ClusterRoleBinding ${CLUSTER_ROLE_NAME} 2>/dev/null` ]]; then
       oc delete ClusterRoleBinding ${CLUSTER_ROLE_NAME} ${OC_ADDITIONAL_PARAMS}
     fi
     cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
