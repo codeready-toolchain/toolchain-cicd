@@ -254,16 +254,29 @@ else
 fi
 
 echo "Getting ${JOINING_CLUSTER_TYPE} SA token"
-SA_SECRET=`oc get sa ${SA_NAME} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r .secrets[].name | grep token`
-echo "SA secret found: ${SA_SECRET}"
-SA_TOKEN=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS}  -o json ${OC_ADDITIONAL_PARAMS} | jq -r '.data["token"]' | base64 --decode`
+SERVER_VERSION=$(kubectl version -o json ${OC_ADDITIONAL_PARAMS} | jq -r .serverVersion.minor)
+if [[ ${SERVER_VERSION} -gt 23 ]]; then
+  echo "Running kube 1.24 or newer"
+  CLIENT_VERSION=$(kubectl version -o json ${OC_ADDITIONAL_PARAMS} | jq -r .clientVersion.minor)
+  if [[ ${CLIENT_VERSION} -lt 24 ]]; then
+    echo "ERROR: Since the cluster is running on Kubernetes 1.24 or newer, then you need to update your kubectl to match the same version."
+    echo "ERROR: Your kubectl version is $(kubectl version -o json ${OC_ADDITIONAL_PARAMS} | jq -r .clientVersion.gitVersion), but should be 1.24 or newer"
+    exit 1
+  fi
+  # create a token with duration of 100 years
+  SA_TOKEN=$(kubectl create token ${SA_NAME} --duration 876000h -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS})
+else
+  SA_SECRET=`oc get secrets -n ${OPERATOR_NS} -o name ${OC_ADDITIONAL_PARAMS} | grep -e "secret/^${SA_NAME}-dockercfg-[a-z0-9]+" | cut -d "/" -f2`
+  echo "SA secret found: ${SA_SECRET}"
+  SA_TOKEN=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS}  -o json ${OC_ADDITIONAL_PARAMS} | jq -r .'metadata.annotations."openshift.io/token-secret.value"'`
+fi
 echo "SA token retrieved"
 if [[ ${LETS_ENCRYPT} == "true" ]]; then
     echo "Using let's encrypt certificate"
     SA_CA_CRT=`curl https://letsencrypt.org/certs/lets-encrypt-r3.pem | base64 -w 0`
 else
     echo "Using standard OpenShift certificate"
-    SA_CA_CRT=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r '.data["ca.crt"]'`
+    SA_CA_CRT=$(oc config view --raw ${OC_ADDITIONAL_PARAMS} | yq ".clusters[] | select(.name==\"$(oc config view ${OC_ADDITIONAL_PARAMS} | yq ".contexts[] | select(.name==\"$(oc config current-context ${OC_ADDITIONAL_PARAMS} 2>/dev/null)\")" | jq -r .context.cluster)\")" | jq -r '.cluster."certificate-authority-data"')
 fi
 
 if [[ -n ${SANDBOX_CONFIG} ]]; then
