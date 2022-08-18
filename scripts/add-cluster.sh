@@ -288,7 +288,7 @@ SA_TOKEN=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS}  -o json ${OC_ADDITIONAL_
 echo "SA token retrieved"
 if [[ ${LETS_ENCRYPT} == "true" ]]; then
     echo "Using let's encrypt certificate"
-    SA_CA_CRT=`curl https://letsencrypt.org/certs/lets-encrypt-r3.pem | base64 -w 0`
+    SA_CA_CRT=`curl https://letsencrypt.org/certs/lets-encrypt-r3.pem | base64 | tr -d '\n'`
 else
     echo "Using standard OpenShift certificate"
     SA_CA_CRT=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r '.data["ca.crt"]'`
