@@ -20,10 +20,10 @@ user_help () {
 
 login_to_cluster() {
     if [[ ${SINGLE_CLUSTER} != "true" ]]; then
-      if [[ -z ${KUBECONFIG} ]] && [[ -z ${SANDBOX_CONFIG} ]]; then
+      if [[ -z ${KUBECONFIG_FILE} ]] && [[ -z ${SANDBOX_CONFIG} ]]; then
         echo "Please specify the path to kube config file using the parameter --kube-config"
         echo "or specify SA tokens to be used when reaching operators using the parameters --host-token and --member-token"
-      elif [[ -n ${KUBECONFIG} ]]; then
+      elif [[ -n ${KUBECONFIG_FILE} ]]; then
         oc config use-context "$1-admin"
       else
         REGISTER_SERVER_API=$(yq -r .\"$1\".serverAPI ${SANDBOX_CONFIG})
@@ -59,11 +59,9 @@ rules:
   - toolchain.dev.openshift.com
   resources:
   - "bannedusers"
-  - "changetierrequests"
   - "masteruserrecords"
   - "notifications"
   - "nstemplatetiers"
-  - "templateupdaterequests"
   - "spaces"
   - "spacebindings"
   - "tiertemplates"
@@ -77,6 +75,11 @@ rules:
   - "*"
 EOF
 else
+    CLUSTER_ROLE_NAME=${SA_NAME}-${OPERATOR_NS}-toolchaincluster
+    # we need to delete the binding since we cannot change the roleRef of the existing binding
+    if [[ -n `oc get ClusterRoleBinding ${CLUSTER_ROLE_NAME} ${OC_ADDITIONAL_PARAMS} 2>/dev/null` ]]; then
+      oc delete ClusterRoleBinding ${CLUSTER_ROLE_NAME} ${OC_ADDITIONAL_PARAMS}
+    fi
     cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
@@ -95,6 +98,31 @@ rules:
   - "useraccounts"
   verbs:
   - "*"
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ${CLUSTER_ROLE_NAME}
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ${CLUSTER_ROLE_NAME}
+subjects:
+- kind: ServiceAccount
+  name: ${SA_NAME}
+  namespace: ${OPERATOR_NS}
+roleRef:
+  kind: ClusterRole
+  name: ${CLUSTER_ROLE_NAME}
+  apiGroup: rbac.authorization.k8s.io
 EOF
 fi
 
@@ -184,7 +212,7 @@ while test $# -gt 0; do
                 ;;
             -kc|--kube-config)
                 shift
-                KUBECONFIG=$1
+                KUBECONFIG_FILE=$1
                 shift
                 ;;
             -sc|--sandbox-config)
@@ -273,7 +301,7 @@ fi
 echo "SA token retrieved"
 if [[ ${LETS_ENCRYPT} == "true" ]]; then
     echo "Using let's encrypt certificate"
-    SA_CA_CRT=`curl https://letsencrypt.org/certs/lets-encrypt-r3.pem | base64 -w 0`
+    SA_CA_CRT=`curl https://letsencrypt.org/certs/lets-encrypt-r3.pem | base64 | tr -d '\n'`
 else
     echo "Using standard OpenShift certificate"
     SA_CA_CRT=$(oc config view --raw ${OC_ADDITIONAL_PARAMS} | yq ".clusters[] | select(.name==\"$(oc config view ${OC_ADDITIONAL_PARAMS} | yq ".contexts[] | select(.name==\"$(oc config current-context ${OC_ADDITIONAL_PARAMS} 2>/dev/null)\")" | jq -r .context.cluster)\")" | jq -r '.cluster."certificate-authority-data"')
