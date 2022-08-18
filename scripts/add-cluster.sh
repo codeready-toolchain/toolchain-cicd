@@ -20,10 +20,10 @@ user_help () {
 
 login_to_cluster() {
     if [[ ${SINGLE_CLUSTER} != "true" ]]; then
-      if [[ -z ${KUBECONFIG} ]] && [[ -z ${SANDBOX_CONFIG} ]]; then
+      if [[ -z ${KUBECONFIG_FILE} ]] && [[ -z ${SANDBOX_CONFIG} ]]; then
         echo "Please specify the path to kube config file using the parameter --kube-config"
         echo "or specify SA tokens to be used when reaching operators using the parameters --host-token and --member-token"
-      elif [[ -n ${KUBECONFIG} ]]; then
+      elif [[ -n ${KUBECONFIG_FILE} ]]; then
         oc config use-context "$1-admin"
       else
         REGISTER_SERVER_API=$(yq -r .\"$1\".serverAPI ${SANDBOX_CONFIG})
@@ -212,7 +212,7 @@ while test $# -gt 0; do
                 ;;
             -kc|--kube-config)
                 shift
-                KUBECONFIG=$1
+                KUBECONFIG_FILE=$1
                 shift
                 ;;
             -sc|--sandbox-config)
