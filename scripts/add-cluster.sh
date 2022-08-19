@@ -294,9 +294,9 @@ if [[ ${SERVER_VERSION} -gt 10 ]]; then
   # create a token with duration of 100 years
   SA_TOKEN=$(oc create token ${SA_NAME} --duration 876000h -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS})
 else
-  SA_SECRET=`oc get secrets -n ${OPERATOR_NS} -o name ${OC_ADDITIONAL_PARAMS} | grep -e "secret/^${SA_NAME}-dockercfg-[a-z0-9]+" | cut -d "/" -f2`
+  SA_SECRET=`oc get sa ${SA_NAME} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r .secrets[].name | grep token`
   echo "SA secret found: ${SA_SECRET}"
-  SA_TOKEN=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS}  -o json ${OC_ADDITIONAL_PARAMS} | jq -r .'metadata.annotations."openshift.io/token-secret.value"'`
+  SA_TOKEN=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS}  -o json ${OC_ADDITIONAL_PARAMS} | jq -r '.data["token"]' | base64 --decode`
 fi
 echo "SA token retrieved"
 if [[ ${LETS_ENCRYPT} == "true" ]]; then
