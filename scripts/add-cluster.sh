@@ -282,17 +282,17 @@ else
 fi
 
 echo "Getting ${JOINING_CLUSTER_TYPE} SA token"
-SERVER_VERSION=$(kubectl version -o json ${OC_ADDITIONAL_PARAMS} | jq -r .serverVersion.minor)
-if [[ ${SERVER_VERSION} -gt 23 ]]; then
-  echo "Running kube 1.24 or newer"
-  CLIENT_VERSION=$(kubectl version -o json ${OC_ADDITIONAL_PARAMS} | jq -r .clientVersion.minor)
-  if [[ ${CLIENT_VERSION} -lt 24 ]]; then
-    echo "ERROR: Since the cluster is running on Kubernetes 1.24 or newer, then you need to update your kubectl to match the same version."
-    echo "ERROR: Your kubectl version is $(kubectl version -o json ${OC_ADDITIONAL_PARAMS} | jq -r .clientVersion.gitVersion), but should be 1.24 or newer"
+SERVER_VERSION=$(oc version ${OC_ADDITIONAL_PARAMS} | grep -i "Server Version" | cut -d '.' -f2)
+if [[ ${SERVER_VERSION} -gt 10 ]]; then
+  echo "Running OpenShift 4.11 or newer"
+  CLIENT_VERSION=$(oc version ${OC_ADDITIONAL_PARAMS} | grep -i "Client Version" | cut -d '.' -f2)
+  if [[ ${CLIENT_VERSION} -lt 11 ]]; then
+    echo "ERROR: Since the cluster is running on OpenShift 4.11.x or newer, then you need to update your oc to match the same version."
+    echo "ERROR: Your oc version is $(oc version ${OC_ADDITIONAL_PARAMS} | grep -i "Client Version" | cut -d ':' -f2), but should be 4.11.x or newer"
     exit 1
   fi
   # create a token with duration of 100 years
-  SA_TOKEN=$(kubectl create token ${SA_NAME} --duration 876000h -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS})
+  SA_TOKEN=$(oc create token ${SA_NAME} --duration 876000h -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS})
 else
   SA_SECRET=`oc get secrets -n ${OPERATOR_NS} -o name ${OC_ADDITIONAL_PARAMS} | grep -e "secret/^${SA_NAME}-dockercfg-[a-z0-9]+" | cut -d "/" -f2`
   echo "SA secret found: ${SA_SECRET}"
@@ -304,7 +304,7 @@ if [[ ${LETS_ENCRYPT} == "true" ]]; then
     SA_CA_CRT=`curl https://letsencrypt.org/certs/lets-encrypt-r3.pem | base64 | tr -d '\n'`
 else
     echo "Using standard OpenShift certificate"
-    SA_CA_CRT=$(oc config view --raw ${OC_ADDITIONAL_PARAMS} | yq ".clusters[] | select(.name==\"$(oc config view ${OC_ADDITIONAL_PARAMS} | yq ".contexts[] | select(.name==\"$(oc config current-context ${OC_ADDITIONAL_PARAMS} 2>/dev/null)\")" | jq -r .context.cluster)\")" | jq -r '.cluster."certificate-authority-data"')
+    SA_CA_CRT=$(oc config view --raw -o json ${OC_ADDITIONAL_PARAMS} | jq ".clusters[] | select(.name==\"$(oc config view -o json ${OC_ADDITIONAL_PARAMS} | jq ".contexts[] | select(.name==\"$(oc config current-context ${OC_ADDITIONAL_PARAMS} 2>/dev/null)\")" | jq -r .context.cluster)\")" | jq -r '.cluster."certificate-authority-data"')
 fi
 
 if [[ -n ${SANDBOX_CONFIG} ]]; then
