@@ -282,16 +282,29 @@ else
 fi
 
 echo "Getting ${JOINING_CLUSTER_TYPE} SA token"
-SA_SECRET=`oc get sa ${SA_NAME} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r .secrets[].name | grep token`
-echo "SA secret found: ${SA_SECRET}"
-SA_TOKEN=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS}  -o json ${OC_ADDITIONAL_PARAMS} | jq -r '.data["token"]' | base64 --decode`
+SERVER_VERSION=$(oc version ${OC_ADDITIONAL_PARAMS} | grep -i "Server Version" | cut -d '.' -f2)
+if [[ ${SERVER_VERSION} -gt 10 ]]; then
+  echo "Running OpenShift 4.11 or newer"
+  CLIENT_VERSION=$(oc version ${OC_ADDITIONAL_PARAMS} | grep -i "Client Version" | cut -d '.' -f2)
+  if [[ ${CLIENT_VERSION} -lt 11 ]]; then
+    echo "ERROR: Since the cluster is running on OpenShift 4.11.x or newer, then you need to update your oc to match the same version."
+    echo "ERROR: Your oc version is $(oc version ${OC_ADDITIONAL_PARAMS} | grep -i "Client Version" | cut -d ':' -f2), but should be 4.11.x or newer"
+    exit 1
+  fi
+  # create a token with duration of 100 years
+  SA_TOKEN=$(oc create token ${SA_NAME} --duration 876000h -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS})
+else
+  SA_SECRET=`oc get sa ${SA_NAME} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r .secrets[].name | grep token`
+  echo "SA secret found: ${SA_SECRET}"
+  SA_TOKEN=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS}  -o json ${OC_ADDITIONAL_PARAMS} | jq -r '.data["token"]' | base64 --decode`
+fi
 echo "SA token retrieved"
 if [[ ${LETS_ENCRYPT} == "true" ]]; then
     echo "Using let's encrypt certificate"
     SA_CA_CRT=`curl https://letsencrypt.org/certs/lets-encrypt-r3.pem | base64 | tr -d '\n'`
 else
     echo "Using standard OpenShift certificate"
-    SA_CA_CRT=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r '.data["ca.crt"]'`
+    SA_CA_CRT=$(oc config view --raw -o json ${OC_ADDITIONAL_PARAMS} | jq ".clusters[] | select(.name==\"$(oc config view -o json ${OC_ADDITIONAL_PARAMS} | jq ".contexts[] | select(.name==\"$(oc config current-context ${OC_ADDITIONAL_PARAMS} 2>/dev/null)\")" | jq -r .context.cluster)\")" | jq -r '.cluster."certificate-authority-data"')
 fi
 
 if [[ -n ${SANDBOX_CONFIG} ]]; then
