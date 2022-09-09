@@ -286,7 +286,7 @@ SERVER_VERSION=$(oc version ${OC_ADDITIONAL_PARAMS} | grep -i "Server Version" |
 if [[ ${SERVER_VERSION} -gt 10 ]]; then
   echo "Running OpenShift 4.11 or newer"
   CLIENT_VERSION=$(oc version ${OC_ADDITIONAL_PARAMS} | grep -i "Client Version" | cut -d '.' -f2)
-  if [[ ${CLIENT_VERSION} -lt 11 ]]; then
+  if [[ ${CLIENT_VERSION} -lt 11 ]] && [[ -z "${CI}${CLONEREFS_OPTIONS}" ]]; then
     echo "ERROR: Since the cluster is running on OpenShift 4.11.x or newer, then you need to update your oc to match the same version."
     echo "ERROR: Your oc version is $(oc version ${OC_ADDITIONAL_PARAMS} | grep -i "Client Version" | cut -d ':' -f2), but should be 4.11.x or newer"
     exit 1
