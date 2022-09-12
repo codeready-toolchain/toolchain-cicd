@@ -59,7 +59,7 @@ pair_repo_if_needed() {
     if [[ -n ${GITHUB_ACTIONS} ]]; then
         PR_REPO_NAME=${GITHUB_REPOSITORY##*/}
     else
-        PR_REPO_NAME=$(echo ${REPO_NAME} | sed 's/"//')
+        PR_REPO_NAME=$(echo ${REPO_NAME} | sed 's/"//g')
     fi
 
 
