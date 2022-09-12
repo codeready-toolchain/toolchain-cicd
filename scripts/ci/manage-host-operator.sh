@@ -100,7 +100,7 @@ else
     fi
 fi
 
-if [[ ${DEPLOY_LATEST} != "true" ]] && [[ -n "${CI}${REG_REPO_PATH}${HOST_REPO_PATH}" ]]; then
+if [[ ${DEPLOY_LATEST} != "true" ]] && [[ -n "${CI}${REG_REPO_PATH}${HOST_REPO_PATH}" ]] && [[ ${REPO_NAME} != "release" ]]; then
     REPOSITORY_NAME=registration-service
     PROVIDED_REPOSITORY_PATH=${REG_REPO_PATH}
     get_repo
