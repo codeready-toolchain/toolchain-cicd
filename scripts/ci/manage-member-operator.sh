@@ -99,7 +99,7 @@ else
     fi
 fi
 
-if [[ ${DEPLOY_LATEST} != "true" ]] && [[ -n "${CI}${MEMBER_REPO_PATH}" ]] && [[ ${REPO_NAME} != "release" ]]; then
+if [[ ${DEPLOY_LATEST} != "true" ]] && [[ -n "${CI}${MEMBER_REPO_PATH}" ]] && [[ $(echo ${REPO_NAME} | sed 's/"//g') != "release" ]]; then
     REPOSITORY_NAME=member-operator
     PROVIDED_REPOSITORY_PATH=${MEMBER_REPO_PATH}
     get_repo
