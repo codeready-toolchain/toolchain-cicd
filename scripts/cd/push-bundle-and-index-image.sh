@@ -76,13 +76,19 @@ handle_missing_version_in_combined_repo() {
     fi
 }
 
+# get abs path of the directory where this script is located
+# this way the source of the local file can work independently of where the script is executed from.
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # use the olm-setup as the source
 OLM_SETUP_FILE=scripts/cd/olm-setup.sh
+LOCAL_OLM_SETUP_FILE=${SCRIPT_DIR}/olm-setup.sh
 OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION:-codeready-toolchain/toolchain-cicd/master}
 
-if [[ -f ${OLM_SETUP_FILE} ]]; then
-    source ${OLM_SETUP_FILE}
+if [[ -f ${LOCAL_OLM_SETUP_FILE} ]]; then
+    echo "sourcing local olm setup file ${LOCAL_OLM_SETUP_FILE}"
+    source ${LOCAL_OLM_SETUP_FILE}
 else
+    echo "sourcing remote olm setup file"
     if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${OLM_SETUP_FILE} ]]; then
         source ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${OLM_SETUP_FILE}
     else
@@ -127,7 +133,8 @@ fi
 cd ${PRJ_ROOT_DIR}
 
 echo "building & pushing operator bundle image ${BUNDLE_IMAGE}..."
-${IMAGE_BUILDER} build -f bundle.Dockerfile -t ${BUNDLE_IMAGE} .
+
+${IMAGE_BUILDER} build --platform ${IMAGE_PLATFORM} -f bundle.Dockerfile -t ${BUNDLE_IMAGE} .
 ${IMAGE_BUILDER} push ${BUNDLE_IMAGE}
 
 if [[ ${IMAGE_BUILDER} == "podman" ]]; then
@@ -140,12 +147,14 @@ if [[ -z ${GITHUB_ACTIONS} ]]; then
 fi
 
 echo "modifying & pushing operator index image ${INDEX_IMAGE}..."
-if [[ -n ${FROM_INDEX_IMAGE} ]] && [[ `${IMAGE_BUILDER} pull ${FROM_INDEX_IMAGE}` ]]; then
-    opm index add --bundles ${BUNDLE_IMAGE} --build-tool ${IMAGE_BUILDER} --tag ${INDEX_IMAGE} --from-index ${FROM_INDEX_IMAGE} ${PULL_TOOL_PARAM}
+TEMP_INDEX_DOCKERFILE=`mktemp`
+if [[ -n ${FROM_INDEX_IMAGE} ]] && [[ `${IMAGE_BUILDER} pull "${FROM_INDEX_IMAGE}"` ]]; then
+    opm index add --generate --out-dockerfile "${TEMP_INDEX_DOCKERFILE}" --bundles "${BUNDLE_IMAGE}" --build-tool ${IMAGE_BUILDER} --tag ${INDEX_IMAGE} --from-index ${FROM_INDEX_IMAGE} ${PULL_TOOL_PARAM}
 else
-    opm index add --bundles ${BUNDLE_IMAGE} --build-tool ${IMAGE_BUILDER} --tag ${INDEX_IMAGE} ${PULL_TOOL_PARAM}
+    opm index add --generate --out-dockerfile "${TEMP_INDEX_DOCKERFILE}" --bundles "${BUNDLE_IMAGE}" --build-tool ${IMAGE_BUILDER} --tag ${INDEX_IMAGE} ${PULL_TOOL_PARAM}
 fi
 
-${IMAGE_BUILDER} push ${INDEX_IMAGE}
+${IMAGE_BUILDER} build -f "${TEMP_INDEX_DOCKERFILE}" --platform "${IMAGE_PLATFORM}" -t "${INDEX_IMAGE}" .
+${IMAGE_BUILDER} push "${INDEX_IMAGE}"
 
-cd ${CURRENT_DIR}
+cd "${CURRENT_DIR}"
