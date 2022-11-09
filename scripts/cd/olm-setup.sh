@@ -24,6 +24,7 @@ user_help () {
     echo "-bt, --bundle-tag        Tag of the bundle image."
     echo "-fr, --first-release     If set to true, then it will generate CSV without replaces clause."
     echo "-ci, --component-image   The name of the image to be used as a component of this operator."
+    echo "-ip, --image-platform    The platform for which the image should be built (default: linux/amd64)."
     echo "-h,  --help              To show this help text"
     echo ""
     additional_help 2>/dev/null || true
@@ -131,6 +132,11 @@ read_arguments() {
                     COMPONENT_IMAGE=$1
                     shift
                     ;;
+                -ip|--image-platform)
+                    shift
+                    IMAGE_PLATFORM=$1
+                    shift
+                    ;;
                 *)
                    echo "$1 is not a recognized flag!" >> /dev/stderr
                    user_help
@@ -181,6 +187,8 @@ setup_variables() {
 
     # Image builder
     IMAGE_BUILDER=${IMAGE_BUILDER:-"docker"}
+    # set default image platform when not provided
+    IMAGE_PLATFORM="${IMAGE_PLATFORM:-"linux/amd64"}"
 
     # Files and directories related vars
     PRJ_NAME=`basename ${PRJ_ROOT_DIR}`
