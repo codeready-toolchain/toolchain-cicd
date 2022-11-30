@@ -104,6 +104,12 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: ${CLUSTER_ROLE_NAME}
 rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
 - apiGroups: [""]
   resources: ["users", "groups"]
   verbs: ["impersonate"]
