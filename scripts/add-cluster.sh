@@ -80,6 +80,7 @@ else
     if [[ -n `oc get ClusterRoleBinding ${CLUSTER_ROLE_NAME} ${OC_ADDITIONAL_PARAMS} 2>/dev/null` ]]; then
       oc delete ClusterRoleBinding ${CLUSTER_ROLE_NAME} ${OC_ADDITIONAL_PARAMS}
     fi
+    # Additional permissions within user namespace are specified as part of namespace templates. eg. https://github.com/codeready-toolchain/host-operator/blob/0e292ef3fedea2a839e6800bfee635c4db41f088/deploy/templates/nstemplatetiers/appstudio/ns_appstudio.yaml#L19-L53
     cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
