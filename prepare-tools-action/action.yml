@@ -5,10 +5,10 @@ inputs:
     description: Version of operator-sdk binary
     required: false
     default: v1.23.0
-  opm-version:
-    description: Version of opm binary
+  operator-registry:
+    description: Version of operator registry
     required: false
-    # see https://github.com/operator-framework/operator-sdk/blob/v1.21.0/go.mod#L21
+    # see https://github.com/operator-framework/operator-sdk/blob/v1.23.0/go.mod#L21
     default: v1.23.0
 runs:
   using: "composite"
@@ -49,7 +49,7 @@ runs:
     run: |
       set -ex
 
-      curl -Lo opm https://github.com/operator-framework/operator-registry/releases/download/${{ inputs.opm-version }}/linux-amd64-opm
+      curl -Lo opm https://github.com/operator-framework/operator-registry/releases/download/${{ inputs.operator-registry }}/linux-amd64-opm
       chmod +x opm \
         && sudo cp opm /bin/opm \
         && rm opm \
