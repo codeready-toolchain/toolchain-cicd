@@ -97,6 +97,7 @@ rules:
   - "memberstatuses"
   - "toolchainclusters"
   - "useraccounts"
+  - "spacerequests"
   verbs:
   - "*"
 ---
