@@ -345,13 +345,15 @@ oc create secret generic ${SECRET_NAME} --from-literal=token="${SA_TOKEN}" --fro
 
 TOOLCHAINCLUSTER_NAME=$(echo "${JOINING_CLUSTER_TYPE_NAME}-${JOINING_CLUSTER_NAME}${MULTI_MEMBER}" | head -c 63)
 
-CLUSTER_LABEL=""
 CLUSTER_JOIN_TO_TYPE_NAME=CLUSTER_JOIN_TO
 if [[ ${CLUSTER_JOIN_TO_TYPE_NAME} != "host" ]]; then
     CLUSTER_JOIN_TO_TYPE_NAME="member"
-    # add cluster role label only for member clusters
-    CLUSTER_LABEL_PREFIX="cluster-role.toolchain.dev.openshift.com"
-    CLUSTER_LABEL="${CLUSTER_LABEL_PREFIX}/home: ''"
+fi
+
+# add cluster role label only for member clusters
+CLUSTER_LABEL=""
+if [[ ${JOINING_CLUSTER_TYPE_NAME} == "member" ]]; then
+    CLUSTER_LABEL="cluster-role.toolchain.dev.openshift.com/home: ''"
 fi
 OWNER_CLUSTER_NAME=$(echo "${CLUSTER_JOIN_TO_TYPE_NAME}-${CLUSTER_JOIN_TO_NAME}${MULTI_MEMBER}" | head -c 63)
 
