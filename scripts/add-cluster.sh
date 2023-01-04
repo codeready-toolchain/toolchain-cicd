@@ -345,15 +345,16 @@ oc create secret generic ${SECRET_NAME} --from-literal=token="${SA_TOKEN}" --fro
 
 TOOLCHAINCLUSTER_NAME=$(echo "${JOINING_CLUSTER_TYPE_NAME}-${JOINING_CLUSTER_NAME}${MULTI_MEMBER}" | head -c 63)
 
+CLUSTER_LABEL=""
 CLUSTER_JOIN_TO_TYPE_NAME=CLUSTER_JOIN_TO
 if [[ ${CLUSTER_JOIN_TO_TYPE_NAME} != "host" ]]; then
     CLUSTER_JOIN_TO_TYPE_NAME="member"
-    CLUSTER_LABEL+="member"
+    # add cluster role label only for member clusters
+    CLUSTER_LABEL_PREFIX="cluster-role.toolchain.dev.openshift.com"
+    CLUSTER_LABEL="${CLUSTER_LABEL_PREFIX}/home: ''"
 fi
 OWNER_CLUSTER_NAME=$(echo "${CLUSTER_JOIN_TO_TYPE_NAME}-${CLUSTER_JOIN_TO_NAME}${MULTI_MEMBER}" | head -c 63)
 
-CLUSTER_LABEL_PREFIX="toolchain.dev.openshift.com/cluster-label"
-CLUSTER_LABEL="${CLUSTER_LABEL_PREFIX}/${CLUSTER_JOIN_TO_TYPE_NAME}"
 TOOLCHAINCLUSTER_CRD="apiVersion: toolchain.dev.openshift.com/v1alpha1
 kind: ToolchainCluster
 metadata:
@@ -363,7 +364,7 @@ metadata:
     type: ${JOINING_CLUSTER_TYPE_NAME}
     namespace: ${OPERATOR_NS}
     ownerClusterName: ${OWNER_CLUSTER_NAME}
-    ${CLUSTER_LABEL}: ''
+    ${CLUSTER_LABEL}
 spec:
   apiEndpoint: ${API_ENDPOINT}
   caBundle: ${SA_CA_CRT}
