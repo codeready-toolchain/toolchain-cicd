@@ -353,7 +353,7 @@ fi
 # add cluster role label only for member clusters
 CLUSTER_LABEL=""
 if [[ ${JOINING_CLUSTER_TYPE_NAME} == "member" ]]; then
-    CLUSTER_LABEL="cluster-role.toolchain.dev.openshift.com/home: ''"
+    CLUSTER_LABEL="cluster-role.toolchain.dev.openshift.com/tenant: ''"
 fi
 OWNER_CLUSTER_NAME=$(echo "${CLUSTER_JOIN_TO_TYPE_NAME}-${CLUSTER_JOIN_TO_NAME}${MULTI_MEMBER}" | head -c 63)
 
