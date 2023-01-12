@@ -350,6 +350,12 @@ CLUSTER_JOIN_TO_TYPE_NAME=CLUSTER_JOIN_TO
 if [[ ${CLUSTER_JOIN_TO_TYPE_NAME} != "host" ]]; then
     CLUSTER_JOIN_TO_TYPE_NAME="member"
 fi
+
+# add cluster role label only for member clusters
+CLUSTER_LABEL=""
+if [[ ${JOINING_CLUSTER_TYPE_NAME} == "member" ]]; then
+    CLUSTER_LABEL="cluster-role.toolchain.dev.openshift.com/tenant: ''"
+fi
 OWNER_CLUSTER_NAME=$(echo "${CLUSTER_JOIN_TO_TYPE_NAME}-${CLUSTER_JOIN_TO_NAME}${MULTI_MEMBER}" | head -c 63)
 
 TOOLCHAINCLUSTER_CRD="apiVersion: toolchain.dev.openshift.com/v1alpha1
@@ -361,6 +367,7 @@ metadata:
     type: ${JOINING_CLUSTER_TYPE_NAME}
     namespace: ${OPERATOR_NS}
     ownerClusterName: ${OWNER_CLUSTER_NAME}
+    ${CLUSTER_LABEL}
 spec:
   apiEndpoint: ${API_ENDPOINT}
   caBundle: ${SA_CA_CRT}
