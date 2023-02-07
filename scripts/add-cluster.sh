@@ -79,6 +79,7 @@ else
     if [[ -n `oc get ClusterRoleBinding ${CLUSTER_ROLE_NAME} ${OC_ADDITIONAL_PARAMS} 2>/dev/null` ]]; then
       oc delete ClusterRoleBinding ${CLUSTER_ROLE_NAME} ${OC_ADDITIONAL_PARAMS}
     fi
+    # Additional permissions within user namespace are specified as part of namespace templates. eg. https://github.com/codeready-toolchain/host-operator/blob/0e292ef3fedea2a839e6800bfee635c4db41f088/deploy/templates/nstemplatetiers/appstudio/ns_appstudio.yaml#L19-L53
     cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
@@ -95,6 +96,7 @@ rules:
   - "memberstatuses"
   - "toolchainclusters"
   - "useraccounts"
+  - "spacerequests"
   verbs:
   - "*"
 ---
@@ -109,6 +111,9 @@ rules:
   - tokenreviews
   verbs:
   - create
+- apiGroups: [""]
+  resources: ["users", "groups"]
+  verbs: ["impersonate"]
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -344,6 +349,12 @@ CLUSTER_JOIN_TO_TYPE_NAME=CLUSTER_JOIN_TO
 if [[ ${CLUSTER_JOIN_TO_TYPE_NAME} != "host" ]]; then
     CLUSTER_JOIN_TO_TYPE_NAME="member"
 fi
+
+# add cluster role label only for member clusters
+CLUSTER_LABEL=""
+if [[ ${JOINING_CLUSTER_TYPE_NAME} == "member" ]]; then
+    CLUSTER_LABEL="cluster-role.toolchain.dev.openshift.com/tenant: ''"
+fi
 OWNER_CLUSTER_NAME=$(echo "${CLUSTER_JOIN_TO_TYPE_NAME}-${CLUSTER_JOIN_TO_NAME}${MULTI_MEMBER}" | head -c 63)
 
 TOOLCHAINCLUSTER_CRD="apiVersion: toolchain.dev.openshift.com/v1alpha1
@@ -355,6 +366,7 @@ metadata:
     type: ${JOINING_CLUSTER_TYPE_NAME}
     namespace: ${OPERATOR_NS}
     ownerClusterName: ${OWNER_CLUSTER_NAME}
+    ${CLUSTER_LABEL}
 spec:
   apiEndpoint: ${API_ENDPOINT}
   caBundle: ${SA_CA_CRT}
