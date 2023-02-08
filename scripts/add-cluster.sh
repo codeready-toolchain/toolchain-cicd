@@ -286,21 +286,21 @@ else
 fi
 
 echo "Getting ${JOINING_CLUSTER_TYPE} SA token"
-SERVER_VERSION=$(oc version ${OC_ADDITIONAL_PARAMS} | grep -i "Server Version" | cut -d '.' -f2)
-if [[ ${SERVER_VERSION} -gt 10 ]]; then
-  echo "Running OpenShift 4.11 or newer"
-  CLIENT_VERSION=$(oc version ${OC_ADDITIONAL_PARAMS} | grep -i "Client Version" | cut -d '.' -f2)
-  if [[ ${CLIENT_VERSION} -lt 11 ]] && [[ -z "${CI}${CLONEREFS_OPTIONS}" ]]; then
-    echo "ERROR: Since the cluster is running on OpenShift 4.11.x or newer, then you need to update your oc to match the same version."
-    echo "ERROR: Your oc version is $(oc version ${OC_ADDITIONAL_PARAMS} | grep -i "Client Version" | cut -d ':' -f2), but should be 4.11.x or newer"
-    exit 1
-  fi
-  # create a token with duration of 100 years
-  SA_TOKEN=$(oc create token ${SA_NAME} --duration 876000h -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS})
-else
-  SA_SECRET=`oc get sa ${SA_NAME} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r .secrets[].name | grep token`
-  echo "SA secret found: ${SA_SECRET}"
+SA_SECRET=`oc get sa ${SA_NAME} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r .secrets[].name | { grep token || true; }`
+if [[ -n ${SA_SECRET} ]]; then
+  echo "SA secret found (OpenShift 4.10 and older): ${SA_SECRET}"
   SA_TOKEN=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS}  -o json ${OC_ADDITIONAL_PARAMS} | jq -r '.data["token"]' | base64 --decode`
+else
+  SA_SECRET=`oc get sa ${SA_NAME} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r .secrets[].name | { grep dockercfg -m 1 || true; }`
+  echo "SA secret found (OpenShift 4.11 and newer): ${SA_SECRET}"
+  SA_TOKEN=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS}  -o json ${OC_ADDITIONAL_PARAMS} | jq -r '.metadata.annotations."openshift.io/token-secret.value"'`
+
+  if [[ -n ${SA_TOKEN} ]]; then
+    echo "Token found as annotation openshift.io/token-secret.value"
+  else
+    echo "Token not found - generating using 'create token' command"
+    SA_TOKEN=$(oc create token ${SA_NAME} --duration 876000h -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS})
+  fi
 fi
 echo "SA token retrieved"
 if [[ ${LETS_ENCRYPT} == "true" ]]; then
