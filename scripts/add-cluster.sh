@@ -70,6 +70,7 @@ rules:
   - "toolchainstatuses"
   - "usersignups"
   - "usertiers"
+  - "proxyplugins"
   verbs:
   - "*"
 EOF
