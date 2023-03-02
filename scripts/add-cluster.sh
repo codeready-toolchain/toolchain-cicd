@@ -251,12 +251,6 @@ while test $# -gt 0; do
 done
 
 CLUSTER_JOIN_TO="host"
-# Since MULTI_MEMBER variable is appended at the end of kubernetes object name for toolchaincluster resource,
-# let's always set a "member id" if not provided, so that we are sure that those object names will end with an alphanumerical char.
-if [ -z "$MULTI_MEMBER" ]
-then
-      MULTI_MEMBER=1
-fi
 
 if [[ -n ${SANDBOX_CONFIG} ]]; then
     OPERATOR_NS=$(yq -r .\"${JOINING_CLUSTER_TYPE}\".sandboxNamespace ${SANDBOX_CONFIG})
@@ -354,25 +348,7 @@ if [[ -n `oc get secret -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS
 fi
 oc create secret generic ${SECRET_NAME} --from-literal=token="${SA_TOKEN}" --from-literal=ca.crt="${SA_CA_CRT}" -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
 
-# We need to ensure toolchain cluster name length is <= 63 chars, it ends with an alphanumeric character and is unique
-# name between member1 and member2.
-#
-# 1) we concatenate the "fixed cluster name" part  with the unique id e.g:
-# member-1
-CLUSTERNAME_FIXED_PART="${JOINING_CLUSTER_TYPE_NAME}-${MULTI_MEMBER}"
-#
-# 2) we get the length of the "fixed cluster name" part
-# in this case member-1 (length 8 chars)
-CLUSTERNAME_LENGTH_TO_REMOVE="${#CLUSTERNAME_FIXED_PART}"
-# we calculate up to how many chars we can keep from the cluster name (that could exceed 63 chars length )
-# in this case 63-8=55 chars
-CLUSTERNAME_LENGTH_TO_KEEP=$((63-CLUSTERNAME_LENGTH_TO_REMOVE))
-#
-# 3) we remove the extra characters from the "middle" of the name (specifically from the name of the cluster), so that we can ensure the name ends with and alphanumerical character (the MULTI_MEMBER id , which is always set), e.g:
-# JOINING_CLUSTER_NAME=a67d9ea16fe1a48dfbfd0526b33ac00c-279e3fade0dc0068.elb.us-east-1.amazonaws.com
-# we keep from char index 0 up to char 55 in the cluster name string, removing the substring "-1.amazonaws.com" so that now the toolchain name goes from 79 chars to 63, is unique between member1 and member2 and ends with a alphanumerical character.
-# result is TOOLCHAINCLUSTER_NAME=a67d9ea16fe1a48dfbfd0526b33ac00c-279e3fade0dc0068.elb.us-east-1
-TOOLCHAINCLUSTER_NAME=$(echo "${JOINING_CLUSTER_TYPE_NAME}-${JOINING_CLUSTER_NAME:0:CLUSTERNAME_LENGTH_TO_KEEP}${MULTI_MEMBER}")
+TOOLCHAINCLUSTER_NAME=$(echo "${JOINING_CLUSTER_TYPE_NAME}-${JOINING_CLUSTER_NAME}${MULTI_MEMBER}" | head -c 63)
 
 CLUSTER_JOIN_TO_TYPE_NAME=CLUSTER_JOIN_TO
 if [[ ${CLUSTER_JOIN_TO_TYPE_NAME} != "host" ]]; then
@@ -384,12 +360,7 @@ CLUSTER_LABEL=""
 if [[ ${JOINING_CLUSTER_TYPE_NAME} == "member" ]]; then
     CLUSTER_LABEL="cluster-role.toolchain.dev.openshift.com/tenant: ''"
 fi
-
-# see comment for TOOLCHAINCLUSTER_NAME variable that explains owner cluster name composition.
-CLUSTERNAME_FIXED_PART="${CLUSTER_JOIN_TO_TYPE_NAME}-${MULTI_MEMBER}"
-CLUSTERNAME_LENGTH_TO_REMOVE="${#CLUSTERNAME_FIXED_PART}"
-CLUSTERNAME_LENGTH_TO_KEEP=$((63-CLUSTERNAME_LENGTH_TO_REMOVE))
-OWNER_CLUSTER_NAME=$(echo "${CLUSTER_JOIN_TO_TYPE_NAME}-${CLUSTER_JOIN_TO_NAME:0:CLUSTERNAME_LENGTH_TO_KEEP}${MULTI_MEMBER}")
+OWNER_CLUSTER_NAME=$(echo "${CLUSTER_JOIN_TO_TYPE_NAME}-${CLUSTER_JOIN_TO_NAME}${MULTI_MEMBER}" | head -c 63)
 
 TOOLCHAINCLUSTER_CRD="apiVersion: toolchain.dev.openshift.com/v1alpha1
 kind: ToolchainCluster
