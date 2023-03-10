@@ -70,6 +70,7 @@ rules:
   - "toolchainstatuses"
   - "usersignups"
   - "usertiers"
+  - "proxyplugins"
   verbs:
   - "*"
 EOF
@@ -96,7 +97,6 @@ rules:
   - "memberstatuses"
   - "toolchainclusters"
   - "useraccounts"
-  - "spacerequests"
   verbs:
   - "*"
 ---
@@ -114,6 +114,12 @@ rules:
 - apiGroups: [""]
   resources: ["users", "groups"]
   verbs: ["impersonate"]
+- apiGroups:
+  - toolchain.dev.openshift.com
+  resources:
+  - "spacerequests"
+  verbs:
+  - "*"
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
