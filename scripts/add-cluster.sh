@@ -260,13 +260,6 @@ while test $# -gt 0; do
 done
 
 CLUSTER_JOIN_TO="host"
-# Since MULTI_MEMBER variable is appended at the end of kubernetes object name for toolchaincluster resource,
-# let's always set a "member id" if not provided, so that we are sure that those object names will end with an alphanumerical char.
-if [ -z "$MULTI_MEMBER" ]
-then
-      MULTI_MEMBER=1
-fi
-
 if [[ -n ${SANDBOX_CONFIG} ]]; then
     OPERATOR_NS=$(yq -r .\"${JOINING_CLUSTER_TYPE}\".sandboxNamespace ${SANDBOX_CONFIG})
     CLUSTER_JOIN_TO_OPERATOR_NS=$(yq -r .\"${TARGET_CLUSTER_NAME}\".sandboxNamespace ${SANDBOX_CONFIG})
@@ -363,6 +356,12 @@ if [[ -n `oc get secret -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS
 fi
 oc create secret generic ${SECRET_NAME} --from-literal=token="${SA_TOKEN}" --from-literal=ca.crt="${SA_CA_CRT}" -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
 
+# Since MULTI_MEMBER variable is appended at the end of kubernetes object name for toolchaincluster resource,
+# let's set a "member id" if not provided and for names which il be truncated, so that we are sure that those object names will end with an alphanumerical char.
+if [ -z "$MULTI_MEMBER" ] && [ ${#JOINING_CLUSTER_NAME} -ge 63 ];
+then
+      MULTI_MEMBER=1
+fi
 # We need to ensure toolchain cluster name length is <= 63 chars, it ends with an alphanumeric character and is unique
 # name between member1 and member2.
 #
