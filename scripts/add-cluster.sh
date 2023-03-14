@@ -130,7 +130,7 @@ rules:
   - watch
 - apiGroups: [""]
   resources: ["namespaces"]
-  verbs: ["get"]
+  verbs: ["get", "list"]
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
