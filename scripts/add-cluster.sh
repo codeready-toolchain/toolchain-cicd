@@ -121,6 +121,20 @@ rules:
   verbs:
   - "*"
 - apiGroups:
+  - toolchain.dev.openshift.com
+  resources:
+  - spacerequests/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - toolchain.dev.openshift.com
+  resources:
+  - spacerequests/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - route.openshift.io
   resources:
   - routes
