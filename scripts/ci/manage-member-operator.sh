@@ -109,9 +109,7 @@ if [[ ${DEPLOY_LATEST} != "true" ]] && [[ -n "${CI}${MEMBER_REPO_PATH}" ]] && [[
         push_image
 
         OPERATOR_IMAGE_LOC=${IMAGE_LOC}
-        COMPONENT_IMAGE_LOC=$(echo ${IMAGE_LOC} | sed 's/\/member-operator/\/member-operator-webhook/')
-
-        make -C ${REPOSITORY_PATH} publish-current-bundle INDEX_IMAGE_TAG=${BUNDLE_AND_INDEX_TAG} BUNDLE_TAG=${BUNDLE_AND_INDEX_TAG} QUAY_NAMESPACE=${QUAY_NAMESPACE} COMPONENT_IMAGE=${COMPONENT_IMAGE_LOC} IMAGE=${OPERATOR_IMAGE_LOC}
+        make -C ${REPOSITORY_PATH} publish-current-bundle INDEX_IMAGE_TAG=${BUNDLE_AND_INDEX_TAG} BUNDLE_TAG=${BUNDLE_AND_INDEX_TAG} QUAY_NAMESPACE=${QUAY_NAMESPACE} IMAGE=${OPERATOR_IMAGE_LOC}
     fi
 else
     INDEX_IMAGE_LOC="quay.io/codeready-toolchain/member-operator-index:latest"

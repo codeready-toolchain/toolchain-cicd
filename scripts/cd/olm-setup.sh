@@ -23,7 +23,6 @@ user_help () {
     echo "-il, --image-location    Image location of the operator binary."
     echo "-bt, --bundle-tag        Tag of the bundle image."
     echo "-fr, --first-release     If set to true, then it will generate CSV without replaces clause."
-    echo "-ci, --component-image   The name of the image to be used as a component of this operator."
     echo "-ip, --image-platform    The platform for which the image should be built (default: linux/amd64)."
     echo "-h,  --help              To show this help text"
     echo ""
@@ -220,12 +219,17 @@ generate_bundle() {
         CSV_SED_REPLACE+=";s|${EMBEDDED_REPO_REPLACEMENT}|${EMBEDDED_REPO_IMAGE}|g;"
     fi
     if [[ ${PRJ_NAME} == "member-operator" ]]; then
-        WEBHOOK_COMPONENT_IMAGE_URL=${COMPONENT_IMAGE:-quay.io/${QUAY_NAMESPACE_TO_PUSH}/member-operator-webhook:${GIT_COMMIT_ID}}
-        CONSOLEPLUGIN_COMPONENT_IMAGE_URL=${COMPONENT_IMAGE:-quay.io/${QUAY_NAMESPACE_TO_PUSH}/member-operator-console-plugin:${GIT_COMMIT_ID}}
-        # digest format removed for now as it brought more pain than benefits
-        # COMPONENT_IMAGE_DIGEST_FORMAT=`get_digest_format ${WEBHOOK_COMPONENT_IMAGE_URL}`
-        CSV_SED_REPLACE+=";s|REPLACE_MEMBER_OPERATOR_WEBHOOK_IMAGE|WEBHOOK_COMPONENT_IMAGE_URL|g;"
-        CSV_SED_REPLACE+=";s|REPLACE_MEMBER_OPERATOR_WEBCONSOLEPLUGIN_IMAGE|CONSOLEPLUGIN_COMPONENT_IMAGE_URL|g;"
+
+        if [[ -n "${IMAGE_LOCATION}" ]]; then
+            WEBHOOK_COMPONENT_IMAGE_URL="$(echo ${IMAGE_LOCATION} | sed 's/\/member-operator/\/member-operator-webhook/')"
+            CONSOLEPLUGIN_COMPONENT_IMAGE_URL="$(echo ${IMAGE_LOCATION} | sed 's/\/member-operator/\/member-operator-console-plugin/')"
+        else
+            WEBHOOK_COMPONENT_IMAGE_URL="quay.io/${QUAY_NAMESPACE_TO_PUSH}/member-operator-webhook:${GIT_COMMIT_ID}"
+            CONSOLEPLUGIN_COMPONENT_IMAGE_URL="quay.io/${QUAY_NAMESPACE_TO_PUSH}/member-operator-console-plugin:${GIT_COMMIT_ID}"
+        fi
+
+        CSV_SED_REPLACE+=";s|REPLACE_MEMBER_OPERATOR_WEBHOOK_IMAGE|${WEBHOOK_COMPONENT_IMAGE_URL}|g;"
+        CSV_SED_REPLACE+=";s|REPLACE_MEMBER_OPERATOR_WEBCONSOLEPLUGIN_IMAGE|${CONSOLEPLUGIN_COMPONENT_IMAGE_URL}|g;"
     fi
     if [[ "${CHANNEL}" == "staging" ]]; then
         CSV_SED_REPLACE+=";s|  annotations:|  annotations:\n    olm.skipRange: '<${NEXT_CSV_VERSION}'|g;"
