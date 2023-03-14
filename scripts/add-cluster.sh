@@ -356,12 +356,6 @@ if [[ -n `oc get secret -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS
 fi
 oc create secret generic ${SECRET_NAME} --from-literal=token="${SA_TOKEN}" --from-literal=ca.crt="${SA_CA_CRT}" -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
 
-# Since MULTI_MEMBER variable is appended at the end of kubernetes object name for toolchaincluster resource,
-# let's set a "member id" if not provided and for names which il be truncated, so that we are sure that those object names will end with an alphanumerical char.
-if [ -z "$MULTI_MEMBER" ] && [ ${#JOINING_CLUSTER_NAME} -ge 63 ];
-then
-      MULTI_MEMBER=1
-fi
 # We need to ensure toolchain cluster name length is <= 63 chars, it ends with an alphanumeric character and is unique
 # name between member1 and member2.
 #
@@ -373,8 +367,14 @@ CLUSTERNAME_FIXED_PART="${JOINING_CLUSTER_TYPE_NAME}-${MULTI_MEMBER}"
 # in this case member-1 (length 8 chars)
 CLUSTERNAME_LENGTH_TO_REMOVE="${#CLUSTERNAME_FIXED_PART}"
 # we calculate up to how many chars we can keep from the cluster name (that could exceed 63 chars length )
-# in this case 63-8=55 chars
-CLUSTERNAME_LENGTH_TO_KEEP=$((63-CLUSTERNAME_LENGTH_TO_REMOVE))
+# in this case 62-8=54 chars ( we keep in account that we may have to append the id if MULTI_MEMBER is empty)
+CLUSTERNAME_LENGTH_TO_KEEP=$((62-CLUSTERNAME_LENGTH_TO_REMOVE))
+# Since MULTI_MEMBER variable is appended at the end of kubernetes object name for toolchaincluster resource,
+# let's set a "member id" if not provided and for names which il be truncated, so that we are sure that those object names will end with an alphanumerical char.
+if [ -z "$MULTI_MEMBER" ] && [ ${#JOINING_CLUSTER_NAME} -ge ${CLUSTERNAME_LENGTH_TO_KEEP} ];
+then
+      MULTI_MEMBER=1
+fi
 #
 # 3) we remove the extra characters from the "middle" of the name (specifically from the name of the cluster), so that we can ensure the name ends with and alphanumerical character (the MULTI_MEMBER id , which is always set), e.g:
 # JOINING_CLUSTER_NAME=a67d9ea16fe1a48dfbfd0526b33ac00c-279e3fade0dc0068.elb.us-east-1.amazonaws.com
@@ -396,7 +396,7 @@ fi
 # see comment for TOOLCHAINCLUSTER_NAME variable that explains owner cluster name composition.
 CLUSTERNAME_FIXED_PART="${CLUSTER_JOIN_TO_TYPE_NAME}-${MULTI_MEMBER}"
 CLUSTERNAME_LENGTH_TO_REMOVE="${#CLUSTERNAME_FIXED_PART}"
-CLUSTERNAME_LENGTH_TO_KEEP=$((63-CLUSTERNAME_LENGTH_TO_REMOVE))
+CLUSTERNAME_LENGTH_TO_KEEP=$((62-CLUSTERNAME_LENGTH_TO_REMOVE))
 OWNER_CLUSTER_NAME="${CLUSTER_JOIN_TO_TYPE_NAME}-${CLUSTER_JOIN_TO_NAME:0:CLUSTERNAME_LENGTH_TO_KEEP}${MULTI_MEMBER}"
 
 TOOLCHAINCLUSTER_CRD="apiVersion: toolchain.dev.openshift.com/v1alpha1
