@@ -220,10 +220,12 @@ generate_bundle() {
         CSV_SED_REPLACE+=";s|${EMBEDDED_REPO_REPLACEMENT}|${EMBEDDED_REPO_IMAGE}|g;"
     fi
     if [[ ${PRJ_NAME} == "member-operator" ]]; then
-        COMPONENT_IMAGE_URL=${COMPONENT_IMAGE:-quay.io/${QUAY_NAMESPACE_TO_PUSH}/member-operator-webhook:${GIT_COMMIT_ID}}
+        WEBHOOK_COMPONENT_IMAGE_URL=${COMPONENT_IMAGE:-quay.io/${QUAY_NAMESPACE_TO_PUSH}/member-operator-webhook:${GIT_COMMIT_ID}}
+        CONSOLEPLUGIN_COMPONENT_IMAGE_URL=${COMPONENT_IMAGE:-quay.io/${QUAY_NAMESPACE_TO_PUSH}/member-operator-console-plugin:${GIT_COMMIT_ID}}
         # digest format removed for now as it brought more pain than benefits
-        # COMPONENT_IMAGE_DIGEST_FORMAT=`get_digest_format ${COMPONENT_IMAGE_URL}`
-        CSV_SED_REPLACE+=";s|REPLACE_MEMBER_OPERATOR_WEBHOOK_IMAGE|${COMPONENT_IMAGE_URL}|g;"
+        # COMPONENT_IMAGE_DIGEST_FORMAT=`get_digest_format ${WEBHOOK_COMPONENT_IMAGE_URL}`
+        CSV_SED_REPLACE+=";s|REPLACE_MEMBER_OPERATOR_WEBHOOK_IMAGE|WEBHOOK_COMPONENT_IMAGE_URL|g;"
+        CSV_SED_REPLACE+=";s|REPLACE_MEMBER_OPERATOR_WEBCONSOLEPLUGIN_IMAGE|CONSOLEPLUGIN_COMPONENT_IMAGE_URL|g;"
     fi
     if [[ "${CHANNEL}" == "staging" ]]; then
         CSV_SED_REPLACE+=";s|  annotations:|  annotations:\n    olm.skipRange: '<${NEXT_CSV_VERSION}'|g;"
