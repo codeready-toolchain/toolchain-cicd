@@ -393,12 +393,6 @@ if [[ ${JOINING_CLUSTER_TYPE_NAME} == "member" ]]; then
     CLUSTER_LABEL="cluster-role.toolchain.dev.openshift.com/tenant: ''"
 fi
 
-# see comment for TOOLCHAINCLUSTER_NAME variable that explains owner cluster name composition.
-CLUSTERNAME_FIXED_PART="${CLUSTER_JOIN_TO_TYPE_NAME}-${MULTI_MEMBER}"
-CLUSTERNAME_LENGTH_TO_REMOVE="${#CLUSTERNAME_FIXED_PART}"
-CLUSTERNAME_LENGTH_TO_KEEP=$((62-CLUSTERNAME_LENGTH_TO_REMOVE))
-OWNER_CLUSTER_NAME="${CLUSTER_JOIN_TO_TYPE_NAME}-${CLUSTER_JOIN_TO_NAME:0:CLUSTERNAME_LENGTH_TO_KEEP}${MULTI_MEMBER}"
-
 TOOLCHAINCLUSTER_CRD="apiVersion: toolchain.dev.openshift.com/v1alpha1
 kind: ToolchainCluster
 metadata:
@@ -407,7 +401,7 @@ metadata:
   labels:
     type: ${JOINING_CLUSTER_TYPE_NAME}
     namespace: ${OPERATOR_NS}
-    ownerClusterName: ${OWNER_CLUSTER_NAME}
+    ownerClusterName: obsolete
     ${CLUSTER_LABEL}
 spec:
   apiEndpoint: ${API_ENDPOINT}
