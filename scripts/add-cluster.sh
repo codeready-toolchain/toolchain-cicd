@@ -121,6 +121,20 @@ rules:
   verbs:
   - "*"
 - apiGroups:
+  - toolchain.dev.openshift.com
+  resources:
+  - spacerequests/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - toolchain.dev.openshift.com
+  resources:
+  - spacerequests/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - route.openshift.io
   resources:
   - routes
@@ -128,6 +142,13 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - ""
+  resources:
+  - "namespaces"
+  verbs:
+  - "get"
+  - "list"
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1

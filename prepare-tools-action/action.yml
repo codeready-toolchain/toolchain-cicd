@@ -4,12 +4,12 @@ inputs:
   operator-sdk-version:
     description: Version of operator-sdk binary
     required: false
-    default: v1.23.0
+    default: v1.25.0
   operator-registry:
     description: Version of operator registry
     required: false
-    # see https://github.com/operator-framework/operator-sdk/blob/v1.23.0/go.mod#L21
-    default: v1.23.0
+    # see https://github.com/operator-framework/operator-sdk/blob/v1.25.0/go.mod#L21
+    default: v1.26.3-0.20220930210947-614d6a955dc0
 runs:
   using: "composite"
   steps:
