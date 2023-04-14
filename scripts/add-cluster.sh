@@ -149,6 +149,12 @@ rules:
   verbs:
   - "get"
   - "list"
+- apiGroups:
+  - ""
+  resources:
+  - "secrets"
+  verbs:
+  - "*"
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
