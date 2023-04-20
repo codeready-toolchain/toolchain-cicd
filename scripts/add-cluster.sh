@@ -153,6 +153,7 @@ rules:
   - ""
   resources:
   - "secrets"
+  - "serviceaccounts/token"
   verbs:
   - "*"
 ---
