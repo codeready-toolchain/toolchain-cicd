@@ -27,11 +27,8 @@ login_to_cluster() {
         oc config use-context "$1-admin"
       else
         REGISTER_SERVER_API=$(yq -r .\"$1\".serverAPI ${SANDBOX_CONFIG})
-        REGISTER_SA_TOKEN=$(yq -r .\"$1\".tokens.registerCluster ${SANDBOX_CONFIG})
-        if [[ ${REGISTER_SA_TOKEN} == null ]]; then
-          REGISTER_SA_TOKEN=$(yq -r .\"$1\".token ${SANDBOX_CONFIG})
-        fi
-        OC_ADDITIONAL_PARAMS="--token=${REGISTER_SA_TOKEN} --server=${REGISTER_SERVER_API}"
+        SANDBOX_SA_TOKEN=$(yq -r .\"$1\".token ${SANDBOX_CONFIG})
+        OC_ADDITIONAL_PARAMS="--token=${SANDBOX_SA_TOKEN} --server=${REGISTER_SERVER_API}"
       fi
     fi
 }
