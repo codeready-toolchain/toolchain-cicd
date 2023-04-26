@@ -27,8 +27,8 @@ login_to_cluster() {
         oc config use-context "$1-admin"
       else
         REGISTER_SERVER_API=$(yq -r .\"$1\".serverAPI ${SANDBOX_CONFIG})
-        REGISTER_SA_TOKEN=$(yq -r .\"$1\".tokens.registerCluster ${SANDBOX_CONFIG})
-        OC_ADDITIONAL_PARAMS="--token=${REGISTER_SA_TOKEN} --server=${REGISTER_SERVER_API}"
+        SANDBOX_SA_TOKEN=$(yq -r .\"$1\".token ${SANDBOX_CONFIG})
+        OC_ADDITIONAL_PARAMS="--token=${SANDBOX_SA_TOKEN} --server=${REGISTER_SERVER_API}"
       fi
     fi
 }
@@ -282,25 +282,24 @@ done
 
 CLUSTER_JOIN_TO="host"
 if [[ -n ${SANDBOX_CONFIG} ]]; then
-    OPERATOR_NS=$(yq -r .\"${JOINING_CLUSTER_TYPE}\".sandboxNamespace ${SANDBOX_CONFIG})
-    CLUSTER_JOIN_TO_OPERATOR_NS=$(yq -r .\"${TARGET_CLUSTER_NAME}\".sandboxNamespace ${SANDBOX_CONFIG})
     CLUSTER_JOIN_TO=${TARGET_CLUSTER_NAME}
 else
-    # We need this to configurable to work with dynamic namespaces from end to end tests
-    OPERATOR_NS=${MEMBER_OPERATOR_NS}
-    CLUSTER_JOIN_TO_OPERATOR_NS=${HOST_OPERATOR_NS}
-    if [[ ${JOINING_CLUSTER_TYPE} == "host" ]]; then
-      CLUSTER_JOIN_TO="member"
-      OPERATOR_NS=${HOST_OPERATOR_NS}
-      CLUSTER_JOIN_TO_OPERATOR_NS=${MEMBER_OPERATOR_NS}
-    fi
-
-    # This is using default values i.e. toolchain-member-operator or toolchain-host-operator for local setup
-    if [[ ${OPERATOR_NS} == "" &&  ${CLUSTER_JOIN_TO_OPERATOR_NS} == "" ]]; then
-      OPERATOR_NS=toolchain-${JOINING_CLUSTER_TYPE}-operator
-      CLUSTER_JOIN_TO_OPERATOR_NS=toolchain-${CLUSTER_JOIN_TO}-operator
-    fi
+  if [[ ${JOINING_CLUSTER_TYPE} == "host" ]]; then
+    CLUSTER_JOIN_TO="member"
+  fi
 fi
+
+# We need this to configurable to work with dynamic namespaces from end to end tests
+HOST_OPERATOR_NS=${HOST_OPERATOR_NS:-toolchain-host-operator}
+MEMBER_OPERATOR_NS=${MEMBER_OPERATOR_NS:-toolchain-member-operator}
+
+OPERATOR_NS=${MEMBER_OPERATOR_NS}
+CLUSTER_JOIN_TO_OPERATOR_NS=${HOST_OPERATOR_NS}
+if [[ ${JOINING_CLUSTER_TYPE} == "host" ]]; then
+  OPERATOR_NS=${HOST_OPERATOR_NS}
+  CLUSTER_JOIN_TO_OPERATOR_NS=${MEMBER_OPERATOR_NS}
+fi
+
 JOINING_CLUSTER_TYPE_NAME=${JOINING_CLUSTER_TYPE_NAME:-${JOINING_CLUSTER_TYPE}}
 
 echo ${OPERATOR_NS}
