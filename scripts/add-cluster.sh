@@ -150,6 +150,13 @@ rules:
   - "get"
   - "list"
   - "watch"
+- apiGroups:
+  - ""
+  resources:
+  - "secrets"
+  - "serviceaccounts/token"
+  verbs:
+  - "*"
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
