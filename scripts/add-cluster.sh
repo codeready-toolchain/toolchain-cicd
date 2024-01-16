@@ -71,6 +71,7 @@ rules:
   - "usersignups"
   - "usertiers"
   - "proxyplugins"
+  - "spaceprovisionerconfigs"
   verbs:
   - "*"
 EOF
