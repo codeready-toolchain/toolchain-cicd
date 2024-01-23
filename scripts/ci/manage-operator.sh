@@ -210,6 +210,8 @@ spec:
   image: ${INDEX_IMAGE}
   displayName: ${DISPLAYNAME}
   publisher: Red Hat
+  grpcPodConfig:
+    securityContextConfig: restricted
   updateStrategy:
     registryPoll:
       interval: 1m0s"
