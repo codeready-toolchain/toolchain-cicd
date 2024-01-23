@@ -71,6 +71,7 @@ rules:
   - "usersignups"
   - "usertiers"
   - "proxyplugins"
+  - "spaceprovisionerconfigs"
   verbs:
   - "*"
 EOF
@@ -157,6 +158,26 @@ rules:
   - "serviceaccounts/token"
   verbs:
   - "*"
+- apiGroups:
+  - toolchain.dev.openshift.com
+  resources:
+  - "spacebindingrequests"
+  verbs:
+  - "*"
+- apiGroups:
+  - toolchain.dev.openshift.com
+  resources:
+  - spacebindingrequests/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - toolchain.dev.openshift.com
+  resources:
+  - spacebindingrequests/status
+  verbs:
+  - get
+  - patch
+  - update
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
