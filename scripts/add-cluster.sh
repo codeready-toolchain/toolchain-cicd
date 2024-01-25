@@ -303,9 +303,9 @@ echo ${CLUSTER_JOIN_TO_OPERATOR_NS}
 
 login_to_cluster ${JOINING_CLUSTER_TYPE}
 
-if [[ ${JOINING_CLUSTER_TYPE_NAME} != "e2e" ]]; then
-    SA_NAME="toolchaincluster-${JOINING_CLUSTER_TYPE_NAME}${MULTI_MEMBER}"
-    create_service_account
+
+SA_NAME="toolchaincluster-${JOINING_CLUSTER_TYPE_NAME}${MULTI_MEMBER}"
+create_service_account
 
 echo "Getting ${JOINING_CLUSTER_TYPE} SA token"
 SA_SECRET=`oc get sa ${SA_NAME} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r .secrets[].name | { grep token || true; }`
