@@ -210,39 +210,6 @@ roleRef:
 EOF
 }
 
-create_service_account_e2e() {
-CLUSTER_ROLE_BINDING_NAME=${SA_NAME}-${OPERATOR_NS}
-# we need to delete the binding since we cannot change the roleRef of the existing binding
-if [[ -n `oc get ClusterRoleBinding ${CLUSTER_ROLE_BINDING_NAME} 2>/dev/null` ]]; then
-    oc delete ClusterRoleBinding ${CLUSTER_ROLE_BINDING_NAME} ${OC_ADDITIONAL_PARAMS}
-fi
-echo "Creating SA ${SA_NAME}"
-cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ${SA_NAME}
-  namespace: ${OPERATOR_NS}
-EOF
-
-echo "Creating ClusterRoleBinding ${CLUSTER_ROLE_BINDING_NAME}"
-cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: ${CLUSTER_ROLE_BINDING_NAME}
-subjects:
-- kind: ServiceAccount
-  name: ${SA_NAME}
-  namespace: ${OPERATOR_NS}
-roleRef:
-  kind: ClusterRole
-  name: cluster-admin
-  apiGroup: rbac.authorization.k8s.io
-EOF
-
-}
-
 if [[ $# -lt 2 ]]
 then
     user_help
@@ -339,13 +306,6 @@ login_to_cluster ${JOINING_CLUSTER_TYPE}
 if [[ ${JOINING_CLUSTER_TYPE_NAME} != "e2e" ]]; then
     SA_NAME="toolchaincluster-${JOINING_CLUSTER_TYPE_NAME}${MULTI_MEMBER}"
     create_service_account
-else
-    SA_NAME="e2e-service-account"
-    if [[ ! -z ${MULTI_MEMBER} ]]; then
-      SA_NAME="${OPERATOR_NS}"
-    fi
-    create_service_account_e2e
-fi
 
 echo "Getting ${JOINING_CLUSTER_TYPE} SA token"
 SA_SECRET=`oc get sa ${SA_NAME} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r .secrets[].name | { grep token || true; }`
