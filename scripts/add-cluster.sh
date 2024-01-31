@@ -348,22 +348,8 @@ else
 fi
 
 echo "Getting ${JOINING_CLUSTER_TYPE} SA token"
-SA_SECRET=`oc get sa ${SA_NAME} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r .secrets[].name | { grep token || true; }`
-if [[ -n ${SA_SECRET} ]]; then
-  echo "SA secret found (OpenShift 4.10 and older): ${SA_SECRET}"
-  SA_TOKEN=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS}  -o json ${OC_ADDITIONAL_PARAMS} | jq -r '.data["token"]' | base64 --decode`
-else
-  SA_SECRET=`oc get sa ${SA_NAME} -n ${OPERATOR_NS} -o json ${OC_ADDITIONAL_PARAMS} | jq -r .secrets[].name | { grep dockercfg -m 1 || true; }`
-  echo "SA secret found (OpenShift 4.11 and newer): ${SA_SECRET}"
-  SA_TOKEN=`oc get secret ${SA_SECRET} -n ${OPERATOR_NS}  -o json ${OC_ADDITIONAL_PARAMS} | jq -r '.metadata.annotations."openshift.io/token-secret.value"'`
+SA_TOKEN=$(oc create token ${SA_NAME} --duration 87600h -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS})
 
-  if [[ -n ${SA_TOKEN} ]]; then
-    echo "Token found as annotation openshift.io/token-secret.value"
-  else
-    echo "Token not found - generating using 'create token' command"
-    SA_TOKEN=$(oc create token ${SA_NAME} --duration 876000h -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS})
-  fi
-fi
 echo "SA token retrieved"
 if [[ ${LETS_ENCRYPT} == "true" ]]; then
     echo "Using let's encrypt certificate"
