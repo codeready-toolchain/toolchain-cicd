@@ -6,7 +6,6 @@ user_help () {
     echo "Creates ToolchainCluster"
     echo "options:"
     echo "-t, --type            joining cluster type (host or member)"
-    echo "-tn, --type-name      the type name of the joining cluster (host, member or e2e)"
     echo "-tc, --target-cluster the name of the cluster it should join to - applicable only together with '--sandbox-config' param (host, member1, member2,...)"
     echo "-mn, --member-ns      namespace where member-operator is running"
     echo "-hn, --host-ns        namespace where host-operator is running"
@@ -225,11 +224,6 @@ while test $# -gt 0; do
                 JOINING_CLUSTER_TYPE=$1
                 shift
                 ;;
-            -tn|--type-name)
-                shift
-                JOINING_CLUSTER_TYPE_NAME=$1
-                shift
-                ;;
             -tc|--target-cluster)
                 shift
                 TARGET_CLUSTER_NAME=$1
@@ -296,7 +290,7 @@ if [[ ${JOINING_CLUSTER_TYPE} == "host" ]]; then
   CLUSTER_JOIN_TO_OPERATOR_NS=${MEMBER_OPERATOR_NS}
 fi
 
-JOINING_CLUSTER_TYPE_NAME=${JOINING_CLUSTER_TYPE_NAME:-${JOINING_CLUSTER_TYPE}}
+JOINING_CLUSTER_TYPE=${JOINING_CLUSTER_TYPE:-${JOINING_CLUSTER_TYPE}}
 
 echo ${OPERATOR_NS}
 echo ${CLUSTER_JOIN_TO_OPERATOR_NS}
@@ -304,7 +298,7 @@ echo ${CLUSTER_JOIN_TO_OPERATOR_NS}
 login_to_cluster ${JOINING_CLUSTER_TYPE}
 
 
-SA_NAME="toolchaincluster-${JOINING_CLUSTER_TYPE_NAME}${MULTI_MEMBER}"
+SA_NAME="toolchaincluster-${JOINING_CLUSTER_TYPE}${MULTI_MEMBER}"
 create_service_account
 
 echo "Getting ${JOINING_CLUSTER_TYPE} SA token"
@@ -356,7 +350,7 @@ oc create secret generic ${SECRET_NAME} --from-literal=token="${SA_TOKEN}" --fro
 #
 # 1) we concatenate the "fixed cluster name" part  with the unique id e.g:
 # member-1
-CLUSTERNAME_FIXED_PART="${JOINING_CLUSTER_TYPE_NAME}-${MULTI_MEMBER}"
+CLUSTERNAME_FIXED_PART="${JOINING_CLUSTER_TYPE}-${MULTI_MEMBER}"
 #
 # 2) we get the length of the "fixed cluster name" part
 # in this case member-1 (length 8 chars)
@@ -375,7 +369,7 @@ fi
 # JOINING_CLUSTER_NAME=a67d9ea16fe1a48dfbfd0526b33ac00c-279e3fade0dc0068.elb.us-east-1.amazonaws.com
 # we keep from char index 0 up to char 55 in the cluster name string, removing the substring "-1.amazonaws.com" so that now the toolchain name goes from 79 chars to 63, is unique between member1 and member2 and ends with a alphanumerical character.
 # result is TOOLCHAINCLUSTER_NAME=a67d9ea16fe1a48dfbfd0526b33ac00c-279e3fade0dc0068.elb.us-east-1
-TOOLCHAINCLUSTER_NAME="${JOINING_CLUSTER_TYPE_NAME}-${JOINING_CLUSTER_NAME:0:CLUSTERNAME_LENGTH_TO_KEEP}${MULTI_MEMBER}"
+TOOLCHAINCLUSTER_NAME="${JOINING_CLUSTER_TYPE}-${JOINING_CLUSTER_NAME:0:CLUSTERNAME_LENGTH_TO_KEEP}${MULTI_MEMBER}"
 
 CLUSTER_JOIN_TO_TYPE_NAME=CLUSTER_JOIN_TO
 if [[ ${CLUSTER_JOIN_TO_TYPE_NAME} != "host" ]]; then
@@ -384,7 +378,7 @@ fi
 
 # add cluster role label only for member clusters
 CLUSTER_LABEL=""
-if [[ ${JOINING_CLUSTER_TYPE_NAME} == "member" ]]; then
+if [[ ${JOINING_CLUSTER_TYPE} == "member" ]]; then
     CLUSTER_LABEL="cluster-role.toolchain.dev.openshift.com/tenant: ''"
 fi
 
@@ -394,7 +388,7 @@ metadata:
   name: ${TOOLCHAINCLUSTER_NAME}
   namespace: ${CLUSTER_JOIN_TO_OPERATOR_NS}
   labels:
-    type: ${JOINING_CLUSTER_TYPE_NAME}
+    type: ${JOINING_CLUSTER_TYPE}
     namespace: ${OPERATOR_NS}
     ownerClusterName: obsolete
     ${CLUSTER_LABEL}
