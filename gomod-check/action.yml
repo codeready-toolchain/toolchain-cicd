@@ -1,0 +1,28 @@
+name: "go.mod check"
+description: "Checks that the go.mod doesn't contain replacements for 'protected' modules. Assumes go, jq and grep are available."
+inputs:
+  protected-modules:
+    description: "Comma-separated list of module name prefixes that should not have any replacements in go.mod"
+    required: false
+    default: "github.com/codeready-toolchain/,github.com/kubesaw/"
+runs:
+  using: "composite"
+  steps:
+  - name: Checkout code from PR event
+    shell: bash
+    if: ${{ hashFiles('go.mod') != '' }}
+    env:
+      PROTECTED_MODULES: ${{ inputs.protected-modules }}
+    run: |
+      set -e
+      REGEX="("
+      for m in $(IFS=,; echo $PROTECTED_MODULES); do
+        REGEX="${REGEX}${m}|"
+      done
+      REGEX="${REGEX%?})"
+
+      if go list -m all | grep --color=never -E "${REGEX}.*\s*=>"; then
+        echo "the above replacement(s) are not allowed in go.mod"
+        exit 1
+      fi
+
