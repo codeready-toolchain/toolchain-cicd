@@ -355,7 +355,6 @@ metadata:
   name: ${TOOLCHAINCLUSTER_NAME}
   namespace: ${CLUSTER_JOIN_TO_OPERATOR_NS}
   labels:
-    type: ${JOINING_CLUSTER_TYPE}
     namespace: ${OPERATOR_NS}
     ownerClusterName: obsolete
     ${CLUSTER_LABEL}
