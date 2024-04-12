@@ -30,16 +30,14 @@ if [[ -n `oc get rolebinding ${SA_NAME} 2>/dev/null` ]]; then
     oc delete rolebinding ${SA_NAME} -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
 fi
 
-cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
+if [[ ${JOINING_CLUSTER_TYPE} == "host" ]]; then
+    cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ${SA_NAME}
   namespace: ${OPERATOR_NS}
-EOF
-
-if [[ ${JOINING_CLUSTER_TYPE} == "host" ]]; then
-    cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
+---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -65,127 +63,7 @@ rules:
   - "spaceprovisionerconfigs"
   verbs:
   - "*"
-EOF
-else
-    CLUSTER_ROLE_NAME=${SA_NAME}-${OPERATOR_NS}-toolchaincluster
-    # we need to delete the binding since we cannot change the roleRef of the existing binding
-    if [[ -n `oc get ClusterRoleBinding ${CLUSTER_ROLE_NAME} ${OC_ADDITIONAL_PARAMS} 2>/dev/null` ]]; then
-      oc delete ClusterRoleBinding ${CLUSTER_ROLE_NAME} ${OC_ADDITIONAL_PARAMS}
-    fi
-    # Additional permissions within user namespace are specified as part of namespace templates. eg. https://github.com/codeready-toolchain/host-operator/blob/0e292ef3fedea2a839e6800bfee635c4db41f088/deploy/templates/nstemplatetiers/appstudio/ns_appstudio.yaml#L19-L53
-    cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: ${SA_NAME}
-  namespace: ${OPERATOR_NS}
-rules:
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - "idlers"
-  - "nstemplatesets"
-  - "memberoperatorconfigs"
-  - "memberstatuses"
-  - "toolchainclusters"
-  - "useraccounts"
-  verbs:
-  - "*"
 ---
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: ${CLUSTER_ROLE_NAME}
-rules:
-- apiGroups:
-  - authentication.k8s.io
-  resources:
-  - tokenreviews
-  verbs:
-  - create
-- apiGroups: [""]
-  resources: ["users", "groups"]
-  verbs: ["impersonate"]
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - "spacerequests"
-  verbs:
-  - "*"
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - spacerequests/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - spacerequests/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - route.openshift.io
-  resources:
-  - routes
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - "namespaces"
-  verbs:
-  - "get"
-  - "list"
-  - "watch"
-- apiGroups:
-  - ""
-  resources:
-  - "secrets"
-  - "serviceaccounts/token"
-  verbs:
-  - "*"
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - "spacebindingrequests"
-  verbs:
-  - "*"
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - spacebindingrequests/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - spacebindingrequests/status
-  verbs:
-  - get
-  - patch
-  - update
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: ${CLUSTER_ROLE_NAME}
-subjects:
-- kind: ServiceAccount
-  name: ${SA_NAME}
-  namespace: ${OPERATOR_NS}
-roleRef:
-  kind: ClusterRole
-  name: ${CLUSTER_ROLE_NAME}
-  apiGroup: rbac.authorization.k8s.io
-EOF
-fi
-
-cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -199,6 +77,7 @@ roleRef:
   name: ${SA_NAME}
   apiGroup: rbac.authorization.k8s.io
 EOF
+fi
 }
 
 if [[ $# -lt 2 ]]
