@@ -30,14 +30,16 @@ if [[ -n `oc get rolebinding ${SA_NAME} 2>/dev/null` ]]; then
     oc delete rolebinding ${SA_NAME} -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
 fi
 
-if [[ ${JOINING_CLUSTER_TYPE} == "host" ]]; then
-    cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
+cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ${SA_NAME}
   namespace: ${OPERATOR_NS}
----
+EOF
+
+if [[ ${JOINING_CLUSTER_TYPE} == "host" ]]; then
+    cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
