@@ -5,32 +5,23 @@ set -e
 user_help () {
     echo "Creates ToolchainCluster"
     echo "options:"
-    echo "-t, --type            joining cluster type (host or member)"
-    echo "-tn, --type-name      the type name of the joining cluster (host, member or e2e)"
-    echo "-tc, --target-cluster the name of the cluster it should join to - applicable only together with '--sandbox-config' param (host, member1, member2,...)"
-    echo "-mn, --member-ns      namespace where member-operator is running"
-    echo "-hn, --host-ns        namespace where host-operator is running"
-    echo "-s,  --single-cluster running both operators on single cluster"
-    echo "-mm, --multi-member   enables deploying multiple members in a single cluster, provide a unique id that will be used as a suffix for additional member cluster names"
-    echo "-kc, --kube-config    kubeconfig for managing multiple clusters"
-    echo "-sc, --sandbox-config sandbox config file for managing Dev Sandbox instance - applicable only together with '--target-cluster' param"
-    echo "-le, --lets-encrypt   use let's encrypt certificate"
+    echo "-t, --type                  joining cluster type (host or member)"
+    echo "-mn, --member-ns            namespace where member-operator is running"
+    echo "-hn, --host-ns              namespace where host-operator is running"
+    echo "-mm, --multi-member         enables deploying multiple members in a single cluster, provide a unique id that will be used as a suffix for additional member cluster names"
+    echo "-hk, --host-kubeconfig      kubeconfig of the host cluster"
+    echo "-mk, --member-kubeconfig    kubeconfig of the member cluster"
+    echo "-le, --lets-encrypt         use let's encrypt certificate"
     exit 0
 }
 
 login_to_cluster() {
-    if [[ ${SINGLE_CLUSTER} != "true" ]]; then
-      if [[ -z ${KUBECONFIG_FILE} ]] && [[ -z ${SANDBOX_CONFIG} ]]; then
-        echo "Please specify the path to kube config file using the parameter --kube-config"
-        echo "or specify SA tokens to be used when reaching operators using the parameters --host-token and --member-token"
-      elif [[ -n ${KUBECONFIG_FILE} ]]; then
-        oc config use-context "$1-admin"
-      else
-        REGISTER_SERVER_API=$(yq -r .\"$1\".serverAPI ${SANDBOX_CONFIG})
-        SANDBOX_SA_TOKEN=$(yq -r .\"$1\".token ${SANDBOX_CONFIG})
-        OC_ADDITIONAL_PARAMS="--token=${SANDBOX_SA_TOKEN} --server=${REGISTER_SERVER_API}"
-      fi
-    fi
+  if [[ -n "${MEMBER_KUBECONFIG_FILE}" ]]; then
+    OC_ADDITIONAL_PARAMS="--kubeconfig=${MEMBER_KUBECONFIG_FILE}"
+  fi
+  if [[ "${1}" == "host" ]] && [[ -n "${HOST_KUBECONFIG_FILE}" ]]; then
+    OC_ADDITIONAL_PARAMS="--kubeconfig=${HOST_KUBECONFIG_FILE}"
+  fi
 }
 
 create_service_account() {
@@ -225,16 +216,6 @@ while test $# -gt 0; do
                 JOINING_CLUSTER_TYPE=$1
                 shift
                 ;;
-            -tn|--type-name)
-                shift
-                JOINING_CLUSTER_TYPE_NAME=$1
-                shift
-                ;;
-            -tc|--target-cluster)
-                shift
-                TARGET_CLUSTER_NAME=$1
-                shift
-                ;;
             -mn|--member-ns)
                 shift
                 MEMBER_OPERATOR_NS=$1
@@ -245,18 +226,14 @@ while test $# -gt 0; do
                 HOST_OPERATOR_NS=$1
                 shift
                 ;;
-            -kc|--kube-config)
+            -hk|--host-kubeconfig)
                 shift
-                KUBECONFIG_FILE=$1
-                shift
-                ;;
-            -sc|--sandbox-config)
-                shift
-                SANDBOX_CONFIG=$1
+                HOST_KUBECONFIG_FILE=$1
                 shift
                 ;;
-            -s|--single-cluster)
-                SINGLE_CLUSTER=true
+            -mk|--member-kubeconfig)
+                shift
+                MEMBER_KUBECONFIG_FILE=$1
                 shift
                 ;;
             -mm|--multi-member)
@@ -277,12 +254,8 @@ while test $# -gt 0; do
 done
 
 CLUSTER_JOIN_TO="host"
-if [[ -n ${SANDBOX_CONFIG} ]]; then
-    CLUSTER_JOIN_TO=${TARGET_CLUSTER_NAME}
-else
-  if [[ ${JOINING_CLUSTER_TYPE} == "host" ]]; then
-    CLUSTER_JOIN_TO="member"
-  fi
+if [[ ${JOINING_CLUSTER_TYPE} == "host" ]]; then
+  CLUSTER_JOIN_TO="member"
 fi
 
 # We need this to configurable to work with dynamic namespaces from end to end tests
@@ -296,15 +269,13 @@ if [[ ${JOINING_CLUSTER_TYPE} == "host" ]]; then
   CLUSTER_JOIN_TO_OPERATOR_NS=${MEMBER_OPERATOR_NS}
 fi
 
-JOINING_CLUSTER_TYPE_NAME=${JOINING_CLUSTER_TYPE_NAME:-${JOINING_CLUSTER_TYPE}}
-
 echo ${OPERATOR_NS}
 echo ${CLUSTER_JOIN_TO_OPERATOR_NS}
 
 login_to_cluster ${JOINING_CLUSTER_TYPE}
 
 
-SA_NAME="toolchaincluster-${JOINING_CLUSTER_TYPE_NAME}${MULTI_MEMBER}"
+SA_NAME="toolchaincluster-${JOINING_CLUSTER_TYPE}${MULTI_MEMBER}"
 create_service_account
 
 echo "Getting ${JOINING_CLUSTER_TYPE} SA token"
@@ -319,30 +290,20 @@ else
     SA_CA_CRT=$(oc config view --raw -o json ${OC_ADDITIONAL_PARAMS} | jq ".clusters[] | select(.name==\"$(oc config view -o json ${OC_ADDITIONAL_PARAMS} | jq ".contexts[] | select(.name==\"$(oc config current-context ${OC_ADDITIONAL_PARAMS} 2>/dev/null)\")" | jq -r .context.cluster)\")" | jq -r '.cluster."certificate-authority-data"')
 fi
 
-if [[ -n ${SANDBOX_CONFIG} ]]; then
-    echo "Using sandbox.yaml file as a config"
-    API_ENDPOINT=$(yq -r .\"${JOINING_CLUSTER_TYPE}\".serverAPI ${SANDBOX_CONFIG})
-    JOINING_CLUSTER_NAME=$(yq -r .\"${JOINING_CLUSTER_TYPE}\".serverName ${SANDBOX_CONFIG})
+echo "Fetching information about the clusters"
+API_ENDPOINT=`oc get infrastructure cluster -o jsonpath='{.status.apiServerURL}' ${OC_ADDITIONAL_PARAMS}`
+echo "API endpoint retrieved: ${API_ENDPOINT}"
+# The regexp below extracts the domain name from the API server URL, taking everything after "//" until a ":" or "/" (or end of line) is reached.
+# The "api." prefix is removed from the domain if present. E.g. "https://api.server.domain.net:6443" -> "server.domain.net".
+JOINING_CLUSTER_NAME=`echo "${API_ENDPOINT}" | sed 's/^[^/]*\/\/\([^:/]*\)\(:.*\)\{0,1\}\(\/.*\)\{0,1\}$/\1/' | sed 's/^api\.//'`
+echo "Joining cluster name: ${JOINING_CLUSTER_NAME}"
 
-    login_to_cluster ${CLUSTER_JOIN_TO}
+login_to_cluster ${CLUSTER_JOIN_TO}
 
-    CLUSTER_JOIN_TO_NAME=$(yq -r .\"${CLUSTER_JOIN_TO}\".serverName ${SANDBOX_CONFIG})
-else
-    echo "Fetching information about the clusters"
-    API_ENDPOINT=`oc get infrastructure cluster -o jsonpath='{.status.apiServerURL}' ${OC_ADDITIONAL_PARAMS}`
-    echo "API endpoint retrieved: ${API_ENDPOINT}"
-    # The regexp below extracts the domain name from the API server URL, taking everything after "//" until a ":" or "/" (or end of line) is reached.
-    # The "api." prefix is removed from the domain if present. E.g. "https://api.server.domain.net:6443" -> "server.domain.net".
-    JOINING_CLUSTER_NAME=`echo "${API_ENDPOINT}" | sed 's/^[^/]*\/\/\([^:/]*\)\(:.*\)\{0,1\}\(\/.*\)\{0,1\}$/\1/' | sed 's/^api\.//'`
-    echo "Joining cluster name: ${JOINING_CLUSTER_NAME}"
-
-    login_to_cluster ${CLUSTER_JOIN_TO}
-
-    CLUSTER_JOIN_TO_API_ENDPOINT=`oc get infrastructure cluster -o jsonpath='{.status.apiServerURL}' ${OC_ADDITIONAL_PARAMS}`
-    echo "API endpoint of the cluster it is joining to: ${CLUSTER_JOIN_TO_API_ENDPOINT}"
-    CLUSTER_JOIN_TO_NAME=`echo "${CLUSTER_JOIN_TO_API_ENDPOINT}" | sed 's/^[^/]*\/\/\([^:/]*\)\(:.*\)\{0,1\}\(\/.*\)\{0,1\}$/\1/' | sed 's/^api\.//'`
-    echo "The cluster name it is joining to: ${CLUSTER_JOIN_TO_NAME}"
-fi
+CLUSTER_JOIN_TO_API_ENDPOINT=`oc get infrastructure cluster -o jsonpath='{.status.apiServerURL}' ${OC_ADDITIONAL_PARAMS}`
+echo "API endpoint of the cluster it is joining to: ${CLUSTER_JOIN_TO_API_ENDPOINT}"
+CLUSTER_JOIN_TO_NAME=`echo "${CLUSTER_JOIN_TO_API_ENDPOINT}" | sed 's/^[^/]*\/\/\([^:/]*\)\(:.*\)\{0,1\}\(\/.*\)\{0,1\}$/\1/' | sed 's/^api\.//'`
+echo "The cluster name it is joining to: ${CLUSTER_JOIN_TO_NAME}"
 
 echo "Creating ${JOINING_CLUSTER_TYPE} secret"
 SECRET_NAME=${SA_NAME}-${JOINING_CLUSTER_NAME}
@@ -356,7 +317,7 @@ oc create secret generic ${SECRET_NAME} --from-literal=token="${SA_TOKEN}" --fro
 #
 # 1) we concatenate the "fixed cluster name" part  with the unique id e.g:
 # member-1
-CLUSTERNAME_FIXED_PART="${JOINING_CLUSTER_TYPE_NAME}-${MULTI_MEMBER}"
+CLUSTERNAME_FIXED_PART="${JOINING_CLUSTER_TYPE}-${MULTI_MEMBER}"
 #
 # 2) we get the length of the "fixed cluster name" part
 # in this case member-1 (length 8 chars)
@@ -375,7 +336,7 @@ fi
 # JOINING_CLUSTER_NAME=a67d9ea16fe1a48dfbfd0526b33ac00c-279e3fade0dc0068.elb.us-east-1.amazonaws.com
 # we keep from char index 0 up to char 55 in the cluster name string, removing the substring "-1.amazonaws.com" so that now the toolchain name goes from 79 chars to 63, is unique between member1 and member2 and ends with a alphanumerical character.
 # result is TOOLCHAINCLUSTER_NAME=a67d9ea16fe1a48dfbfd0526b33ac00c-279e3fade0dc0068.elb.us-east-1
-TOOLCHAINCLUSTER_NAME="${JOINING_CLUSTER_TYPE_NAME}-${JOINING_CLUSTER_NAME:0:CLUSTERNAME_LENGTH_TO_KEEP}${MULTI_MEMBER}"
+TOOLCHAINCLUSTER_NAME="${JOINING_CLUSTER_TYPE}-${JOINING_CLUSTER_NAME:0:CLUSTERNAME_LENGTH_TO_KEEP}${MULTI_MEMBER}"
 
 CLUSTER_JOIN_TO_TYPE_NAME=CLUSTER_JOIN_TO
 if [[ ${CLUSTER_JOIN_TO_TYPE_NAME} != "host" ]]; then
@@ -384,7 +345,7 @@ fi
 
 # add cluster role label only for member clusters
 CLUSTER_LABEL=""
-if [[ ${JOINING_CLUSTER_TYPE_NAME} == "member" ]]; then
+if [[ ${JOINING_CLUSTER_TYPE} == "member" ]]; then
     CLUSTER_LABEL="cluster-role.toolchain.dev.openshift.com/tenant: ''"
 fi
 
@@ -394,7 +355,6 @@ metadata:
   name: ${TOOLCHAINCLUSTER_NAME}
   namespace: ${CLUSTER_JOIN_TO_OPERATOR_NS}
   labels:
-    type: ${JOINING_CLUSTER_TYPE_NAME}
     namespace: ${OPERATOR_NS}
     ownerClusterName: obsolete
     ${CLUSTER_LABEL}
