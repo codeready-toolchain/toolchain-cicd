@@ -28,15 +28,19 @@ set_tags() {
     TAGS=${DATE_SUFFIX}
     COMMIT_ID_SUFFIX=${PULL_PULL_SHA:0:7}
 
-    if [[ -n "${CI}${CLONEREFS_OPTIONS}" ]]; then
-        if [[ -n ${GITHUB_ACTIONS} ]]; then
-            OPERATOR_REPO_NAME=${GITHUB_REPOSITORY##*/}
-            TAGS=from.${OPERATOR_REPO_NAME}.PR${PULL_NUMBER}.${COMMIT_ID_SUFFIX}
-        else
-            AUTHOR=$(jq -r '.refs[0].pulls[0].author' <<< ${CLONEREFS_OPTIONS} | tr -d '[:space:]')
-            PULL_PULL_SHA=${PULL_PULL_SHA:-$(jq -r '.refs[0].pulls[0].sha' <<< ${CLONEREFS_OPTIONS} | tr -d '[:space:]')}
-            TAGS="from.$(echo ${REPO_NAME} | sed 's/"//g').PR${PULL_NUMBER}.${COMMIT_ID_SUFFIX}"
+    if [[ -z "${FORCED_TAG}" ]]; then
+        if [[ -n "${CI}${CLONEREFS_OPTIONS}" ]]; then
+            if [[ -n ${GITHUB_ACTIONS} ]]; then
+                OPERATOR_REPO_NAME=${GITHUB_REPOSITORY##*/}
+                TAGS=from.${OPERATOR_REPO_NAME}.PR${PULL_NUMBER}.${COMMIT_ID_SUFFIX}
+            else
+                AUTHOR=$(jq -r '.refs[0].pulls[0].author' <<< ${CLONEREFS_OPTIONS} | tr -d '[:space:]')
+                PULL_PULL_SHA=${PULL_PULL_SHA:-$(jq -r '.refs[0].pulls[0].sha' <<< ${CLONEREFS_OPTIONS} | tr -d '[:space:]')}
+                TAGS="from.$(echo ${REPO_NAME} | sed 's/"//g').PR${PULL_NUMBER}.${COMMIT_ID_SUFFIX}"
+            fi
         fi
+    else
+        TAGS=${FORCED_TAG}
     fi
     BUNDLE_AND_INDEX_TAG=${TAGS}
 }
