@@ -114,7 +114,7 @@ echo ${CLUSTER_JOIN_TO_OPERATOR_NS}
 login_to_cluster ${JOINING_CLUSTER_TYPE}
 
 
-SA_NAME="toolchaincluster-${JOINING_CLUSTER_TYPE}${MULTI_MEMBER}"
+SA_NAME="toolchaincluster-${JOINING_CLUSTER_TYPE}"
 create_service_account
 
 echo "Getting ${JOINING_CLUSTER_TYPE} SA token"
@@ -145,7 +145,7 @@ CLUSTER_JOIN_TO_NAME=`echo "${CLUSTER_JOIN_TO_API_ENDPOINT}" | sed 's/^[^/]*\/\/
 echo "The cluster name it is joining to: ${CLUSTER_JOIN_TO_NAME}"
 
 echo "Creating ${JOINING_CLUSTER_TYPE} secret"
-SECRET_NAME=${SA_NAME}-${JOINING_CLUSTER_NAME}
+SECRET_NAME=${SA_NAME}-${OPERATOR_NS}-${JOINING_CLUSTER_NAME}
 if [[ -n `oc get secret -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS} | grep ${SECRET_NAME}` ]]; then
     oc delete secret ${SECRET_NAME} -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
 fi
