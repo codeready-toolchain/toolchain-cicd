@@ -24,20 +24,16 @@ login_to_cluster() {
   fi
 }
 
-create_service_account() {
-# we need to delete the bindings since we cannot change the roleRef of the existing bindings
-if [[ -n `oc get rolebinding ${SA_NAME} 2>/dev/null` ]]; then
-    oc delete rolebinding ${SA_NAME} -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
-fi
-
-cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ${SA_NAME}
-  namespace: ${OPERATOR_NS}
-EOF
-
+wait_for_service_account() {
+NEXT_WAIT_TIME=0
+while [[ -z `oc get sa ${SA_NAME} -n ${OPERATOR_NS} 2>/dev/null || true` ]]; do
+    if [[ ${NEXT_WAIT_TIME} -eq 300 ]]; then
+       echo "reached timeout of waiting for the ServiceAccount ${SA_NAME} in namespace ${OPERATOR_NS} ... The SA should be deployed by the toolchaincluster_resource controller."
+       exit 1
+    fi
+    echo "$(( NEXT_WAIT_TIME++ )). attempt (out of 300) of waiting for ServiceAccount ${SA_NAME} in namespace ${OPERATOR_NS}."
+    sleep 1
+done
 }
 
 if [[ $# -lt 2 ]]
@@ -115,7 +111,7 @@ login_to_cluster ${JOINING_CLUSTER_TYPE}
 
 
 SA_NAME="toolchaincluster-${JOINING_CLUSTER_TYPE}"
-create_service_account
+wait_for_service_account
 
 echo "Getting ${JOINING_CLUSTER_TYPE} SA token"
 SA_TOKEN=$(oc create token ${SA_NAME} --duration 87600h -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS})
