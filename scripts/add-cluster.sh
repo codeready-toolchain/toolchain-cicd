@@ -24,181 +24,16 @@ login_to_cluster() {
   fi
 }
 
-create_service_account() {
-# we need to delete the bindings since we cannot change the roleRef of the existing bindings
-if [[ -n `oc get rolebinding ${SA_NAME} 2>/dev/null` ]]; then
-    oc delete rolebinding ${SA_NAME} -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
-fi
-
-cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ${SA_NAME}
-  namespace: ${OPERATOR_NS}
-EOF
-
-if [[ ${JOINING_CLUSTER_TYPE} == "host" ]]; then
-    cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: ${SA_NAME}
-  namespace: ${OPERATOR_NS}
-rules:
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - "bannedusers"
-  - "masteruserrecords"
-  - "notifications"
-  - "nstemplatetiers"
-  - "spaces"
-  - "spacebindings"
-  - "tiertemplates"
-  - "toolchainconfigs"
-  - "toolchainclusters"
-  - "toolchainstatuses"
-  - "usersignups"
-  - "usertiers"
-  - "proxyplugins"
-  - "spaceprovisionerconfigs"
-  verbs:
-  - "*"
-EOF
-else
-    CLUSTER_ROLE_NAME=${SA_NAME}-${OPERATOR_NS}-toolchaincluster
-    # we need to delete the binding since we cannot change the roleRef of the existing binding
-    if [[ -n `oc get ClusterRoleBinding ${CLUSTER_ROLE_NAME} ${OC_ADDITIONAL_PARAMS} 2>/dev/null` ]]; then
-      oc delete ClusterRoleBinding ${CLUSTER_ROLE_NAME} ${OC_ADDITIONAL_PARAMS}
+wait_for_service_account() {
+NEXT_WAIT_TIME=0
+while [[ -z `oc get sa ${SA_NAME} -n ${OPERATOR_NS} 2>/dev/null || true` ]]; do
+    if [[ ${NEXT_WAIT_TIME} -eq 300 ]]; then
+       echo "reached timeout of waiting for the ServiceAccount ${SA_NAME} in namespace ${OPERATOR_NS} ... The SA should be deployed by the toolchaincluster_resource controller."
+       exit 1
     fi
-    # Additional permissions within user namespace are specified as part of namespace templates. eg. https://github.com/codeready-toolchain/host-operator/blob/0e292ef3fedea2a839e6800bfee635c4db41f088/deploy/templates/nstemplatetiers/appstudio/ns_appstudio.yaml#L19-L53
-    cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: ${SA_NAME}
-  namespace: ${OPERATOR_NS}
-rules:
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - "idlers"
-  - "nstemplatesets"
-  - "memberoperatorconfigs"
-  - "memberstatuses"
-  - "toolchainclusters"
-  - "useraccounts"
-  verbs:
-  - "*"
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: ${CLUSTER_ROLE_NAME}
-rules:
-- apiGroups:
-  - authentication.k8s.io
-  resources:
-  - tokenreviews
-  verbs:
-  - create
-- apiGroups: [""]
-  resources: ["users", "groups"]
-  verbs: ["impersonate"]
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - "spacerequests"
-  verbs:
-  - "*"
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - spacerequests/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - spacerequests/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - route.openshift.io
-  resources:
-  - routes
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - "namespaces"
-  verbs:
-  - "get"
-  - "list"
-  - "watch"
-- apiGroups:
-  - ""
-  resources:
-  - "secrets"
-  - "serviceaccounts/token"
-  verbs:
-  - "*"
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - "spacebindingrequests"
-  verbs:
-  - "*"
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - spacebindingrequests/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - toolchain.dev.openshift.com
-  resources:
-  - spacebindingrequests/status
-  verbs:
-  - get
-  - patch
-  - update
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: ${CLUSTER_ROLE_NAME}
-subjects:
-- kind: ServiceAccount
-  name: ${SA_NAME}
-  namespace: ${OPERATOR_NS}
-roleRef:
-  kind: ClusterRole
-  name: ${CLUSTER_ROLE_NAME}
-  apiGroup: rbac.authorization.k8s.io
-EOF
-fi
-
-cat <<EOF | oc apply ${OC_ADDITIONAL_PARAMS} -f -
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: ${SA_NAME}
-  namespace: ${OPERATOR_NS}
-subjects:
-- kind: ServiceAccount
-  name: ${SA_NAME}
-roleRef:
-  kind: Role
-  name: ${SA_NAME}
-  apiGroup: rbac.authorization.k8s.io
-EOF
+    echo "$(( NEXT_WAIT_TIME++ )). attempt (out of 300) of waiting for ServiceAccount ${SA_NAME} in namespace ${OPERATOR_NS}."
+    sleep 1
+done
 }
 
 if [[ $# -lt 2 ]]
@@ -275,8 +110,8 @@ echo ${CLUSTER_JOIN_TO_OPERATOR_NS}
 login_to_cluster ${JOINING_CLUSTER_TYPE}
 
 
-SA_NAME="toolchaincluster-${JOINING_CLUSTER_TYPE}${MULTI_MEMBER}"
-create_service_account
+SA_NAME="toolchaincluster-${JOINING_CLUSTER_TYPE}"
+wait_for_service_account
 
 echo "Getting ${JOINING_CLUSTER_TYPE} SA token"
 SA_TOKEN=$(oc create token ${SA_NAME} --duration 87600h -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS})
@@ -306,7 +141,7 @@ CLUSTER_JOIN_TO_NAME=`echo "${CLUSTER_JOIN_TO_API_ENDPOINT}" | sed 's/^[^/]*\/\/
 echo "The cluster name it is joining to: ${CLUSTER_JOIN_TO_NAME}"
 
 echo "Creating ${JOINING_CLUSTER_TYPE} secret"
-SECRET_NAME=${SA_NAME}-${JOINING_CLUSTER_NAME}
+SECRET_NAME=${SA_NAME}-${OPERATOR_NS}-${JOINING_CLUSTER_NAME}
 if [[ -n `oc get secret -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS} | grep ${SECRET_NAME}` ]]; then
     oc delete secret ${SECRET_NAME} -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
 fi
