@@ -173,6 +173,10 @@ fi
 # result is TOOLCHAINCLUSTER_NAME=a67d9ea16fe1a48dfbfd0526b33ac00c-279e3fade0dc0068.elb.us-east-1
 TOOLCHAINCLUSTER_NAME="${JOINING_CLUSTER_TYPE}-${JOINING_CLUSTER_NAME:0:CLUSTERNAME_LENGTH_TO_KEEP}${MULTI_MEMBER}"
 
+# We need to label the secret with the SA token with the toolchain cluster name so that in the future we can flip the dependency and create
+# the toolchain cluster based on the existence of the label.
+oc label secret ${SECRET_NAME} -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS} "toolchain.dev.openshift.com/toolchain-cluster=${TOOLCHAINCLUSTER_NAME}"
+
 CLUSTER_JOIN_TO_TYPE_NAME=CLUSTER_JOIN_TO
 if [[ ${CLUSTER_JOIN_TO_TYPE_NAME} != "host" ]]; then
     CLUSTER_JOIN_TO_TYPE_NAME="member"
