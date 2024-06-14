@@ -62,7 +62,7 @@ fi
 check_commands yq oc base64 openssl
 
 # Install rhsso operator
-SUBSCRIPTION_NAME=DEV_SSO_NS
+SUBSCRIPTION_NAME=${DEV_SSO_NS}
 printf "installing RH SSO operator\n"
     INSTALL_RHSSO="apiVersion: v1
 kind: Namespace
