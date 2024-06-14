@@ -3,7 +3,7 @@
 user_help () {
     echo "Deploy in cluster keycloak and configure registration service to use it."
     echo "options:"
-    echo "-sn, --ss-ns  Builds and pushes the operator to quay"
+    echo "-sn, --sso-ns  Builds and pushes the operator to quay"
     echo "-h,  --help              To show this help text"
     echo ""
     exit 0
@@ -94,7 +94,7 @@ spec:
 ${INSTALL_RHSSO}
 EOF
 
-source wait-until-is-installed.sh "-crd keycloak.org -cs '' -n ${DEV_SSO_NS} -s ${SUBSCRIPTION_NAME}"
+source /tmp/wait-until-is-installed.sh "-crd keycloak.org -cs '' -n ${DEV_SSO_NS} -s ${SUBSCRIPTION_NAME}"
 
 printf "installing dev Keycloak in namespace ${DEV_SSO_NS}\n"
 export KEYCLOAK_SECRET=$(openssl rand -base64 32)
