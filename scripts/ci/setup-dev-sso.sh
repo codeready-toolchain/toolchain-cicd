@@ -34,6 +34,7 @@ read_arguments() {
           esac
     done
 }
+
 check_commands()
 {
     for cmd in "$@"
