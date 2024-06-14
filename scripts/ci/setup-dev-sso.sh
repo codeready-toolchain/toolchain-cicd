@@ -129,13 +129,11 @@ spec:
      sslRequired: none
      registrationAllowed: false
      registrationEmailAsUsername: false
-     rememberMe: false
      verifyEmail: false
      loginWithEmailAllowed: true
      duplicateEmailsAllowed: false
      resetPasswordAllowed: false
      editUsernameAllowed: false
-     bruteForceProtected: false
      permanentLockout: false
      maxFailureWaitSeconds: 900
      minimumQuickLoginWaitSeconds: 60
@@ -163,29 +161,12 @@ spec:
          publicClient: true
          frontchannelLogout: false
          protocol: openid-connect
-         protocolMappers: []
-         attributes: {}
-         authenticationFlowBindingOverrides: {}
          fullScopeAllowed: true
          nodeReRegistrationTimeout: -1
-         defaultClientScopes: []
-         optionalClientScopes: []
-     clientScopes: []
-     defaultDefaultClientScopes: []
-     smtpServer: {}
      loginTheme: rh-sso
      eventsEnabled: false
      eventsListeners:
        - jboss-logging
-     enabledEventTypes: []
-     adminEventsEnabled: false
-     adminEventsDetailsEnabled: false
-     identityProviders: []
-     identityProviderMappers: []
-     internationalizationEnabled: false
-     supportedLocales: []
-     authenticationFlows: []
-     authenticatorConfig: []
      userManagedAccessAllowed: false
      users:
        - credentials:
@@ -285,5 +266,7 @@ EOF
 oc delete pods -n toolchain-host-operator --selector=name=registration-service
 
 KEYCLOAK_ADMIN_PASSWORD=$(oc get secrets -n ${DEV_SSO_NS} credential-sandbox-dev -o jsonpath='{.data.ADMIN_PASSWORD}' | base64 -d)
+printf "================================================= DEV SSO ACCESS =========================================================================="
 printf "to login into keycloak use user 'admin' and password '%s' at '%s/auth'\n" "$KEYCLOAK_ADMIN_PASSWORD" "$RHSSO_URL"
 printf "use user 'user1@user.us' with password 'user1' to login at 'https://registration-service-toolchain-host-operator.$BASE_URL'\n"
+printf "==========================================================================================================================================="
