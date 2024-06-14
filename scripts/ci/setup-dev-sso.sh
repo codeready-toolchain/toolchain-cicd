@@ -205,7 +205,7 @@ ${INSTALL_KEYCLOAK}
 EOF
 
 while ! oc get statefulset -n ${DEV_SSO_NS} keycloak &> /dev/null ; do
-    printf "waiting for keycloak statefulset in ${DEV_SSO_NS} to be ready...\n"
+    printf "waiting for keycloak statefulset in ${DEV_SSO_NS} to exist...\n"
     sleep 10
 done
 
