@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-user_help () {
+user_help() {
     echo "Deploy in cluster keycloak and configure registration service to use it."
     echo "options:"
     echo "-sn, --sso-ns  Builds and pushes the operator to quay"
