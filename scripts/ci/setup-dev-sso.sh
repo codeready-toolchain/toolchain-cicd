@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-user_help () {
+user_help() {
     echo "Deploy in cluster keycloak and configure registration service to use it."
     echo "options:"
     echo "-sn, --sso-ns  Builds and pushes the operator to quay"
@@ -34,6 +34,7 @@ read_arguments() {
           esac
     done
 }
+
 check_commands()
 {
     for cmd in "$@"
@@ -185,7 +186,7 @@ ${INSTALL_KEYCLOAK}
 EOF
 
 while ! oc get statefulset -n ${DEV_SSO_NS} keycloak &> /dev/null ; do
-    printf "waiting for keycloak statefulset in ${DEV_SSO_NS} to be ready...\n"
+    printf "waiting for keycloak statefulset in ${DEV_SSO_NS} to exist...\n"
     sleep 10
 done
 
