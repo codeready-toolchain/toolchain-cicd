@@ -62,128 +62,28 @@ fi
 
 check_commands yq oc base64 openssl
 
+parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+cd "$parent_path"
+
+printf "creating ${DEV_SSO_NS} namespace\n"
+cat dev-sso/namespace.yaml | \
+DEV_SSO_NS=${DEV_SSO_NS} envsubst | \
+oc apply -f -
+
 # Install rhsso operator
 SUBSCRIPTION_NAME=${DEV_SSO_NS}
 printf "installing RH SSO operator\n"
-    INSTALL_RHSSO="apiVersion: v1
-kind: Namespace
-metadata:
-  name: ${DEV_SSO_NS}
----
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: og-rhsso
-  namespace: ${DEV_SSO_NS}
-spec:
-  targetNamespaces:
-  - ${DEV_SSO_NS}
----
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: ${SUBSCRIPTION_NAME}
-  namespace: ${DEV_SSO_NS}
-spec:
-  channel: stable
-  name: rhsso-operator
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace
-  installPlanApproval: Automatic"
-    echo "objects to be created in order to install operator"
-    cat <<EOF | oc apply -f -
-${INSTALL_RHSSO}
-EOF
+cat dev-sso/rhsso-operator.yaml | \
+DEV_SSO_NS=${DEV_SSO_NS} SUBSCRIPTION_NAME=${SUBSCRIPTION_NAME} envsubst | \
+oc apply -f -
 
-source /tmp/wait-until-is-installed.sh "-crd keycloak.org -cs '' -n ${DEV_SSO_NS} -s ${SUBSCRIPTION_NAME}"
+source ./wait-until-is-installed.sh "-crd keycloak.org -cs '' -n ${DEV_SSO_NS} -s ${SUBSCRIPTION_NAME}"
 
 printf "installing dev Keycloak in namespace ${DEV_SSO_NS}\n"
 export KEYCLOAK_SECRET=$(openssl rand -base64 32)
-    INSTALL_KEYCLOAK="apiVersion: keycloak.org/v1alpha1
-kind: Keycloak
-metadata:
-  name: sandbox-dev
-  namespace: ${DEV_SSO_NS}
-  labels:
-    sso-toolchain: sandbox-dev
-spec:
-  externalAccess:
-    enabled: true
-  instances: 1
----
- apiVersion: keycloak.org/v1alpha1
- kind: KeycloakRealm
- metadata:
-   name: sandbox-dev
-   namespace: ${DEV_SSO_NS}
- spec:
-   instanceSelector:
-     matchLabels:
-       sso-toolchain: sandbox-dev
-   realm:
-     id: sandbox-dev
-     realm: sandbox-dev
-     displayName: Sandbox Dev In-cluster Keycloak
-     accessTokenLifespan: 7200
-     accessTokenLifespanForImplicitFlow: 900
-     enabled: true
-     sslRequired: none
-     registrationAllowed: false
-     registrationEmailAsUsername: false
-     verifyEmail: false
-     loginWithEmailAllowed: true
-     duplicateEmailsAllowed: false
-     resetPasswordAllowed: false
-     editUsernameAllowed: false
-     permanentLockout: false
-     maxFailureWaitSeconds: 900
-     minimumQuickLoginWaitSeconds: 60
-     waitIncrementSeconds: 60
-     quickLoginCheckMilliSeconds: 1000
-     maxDeltaTimeSeconds: 43200
-     failureFactor: 30
-     clients:
-       - id: 9a5018a7-5f92-40c9-b8f1-63f53bc32a68
-         clientId: sandbox-public
-         surrogateAuthRequired: false
-         enabled: true
-         clientAuthenticatorType: client-secret
-         redirectUris:
-           - '*'
-         webOrigins:
-           - '*'
-         notBefore: 0
-         bearerOnly: false
-         consentRequired: false
-         standardFlowEnabled: true
-         implicitFlowEnabled: false
-         directAccessGrantsEnabled: true
-         serviceAccountsEnabled: false
-         publicClient: true
-         frontchannelLogout: false
-         protocol: openid-connect
-         fullScopeAllowed: true
-         nodeReRegistrationTimeout: -1
-     loginTheme: rh-sso
-     eventsEnabled: false
-     eventsListeners:
-       - jboss-logging
-     userManagedAccessAllowed: false
-     users:
-       - credentials:
-           - type: password
-             value: user1
-         email: user1@user.us
-         emailVerified: true
-         enabled: true
-         firstName: user1
-         id: user1
-         username: user1
-         clientRoles: {}"
-    echo "objects to be created in order to install operator"
-    cat <<EOF | oc apply -f -
-${INSTALL_KEYCLOAK}
-EOF
+cat dev-sso/keycloak.yaml | \
+DEV_SSO_NS=${DEV_SSO_NS} KEYCLOAK_SECRET=${KEYCLOAK_SECRET} envsubst | \
+oc apply -f -
 
 while ! oc get statefulset -n ${DEV_SSO_NS} keycloak &> /dev/null ; do
     printf "waiting for keycloak statefulset in ${DEV_SSO_NS} to exist...\n"
@@ -191,17 +91,11 @@ while ! oc get statefulset -n ${DEV_SSO_NS} keycloak &> /dev/null ; do
 done
 
 printf "waiting for keycloak in ${DEV_SSO_NS} to be ready...\n"
-ATTEMPT=0
-MAX_NUM_ATTEMPTS=100
-SLEEP_TIME=1
-while [[ -z $(oc get keycloak sandbox-dev -o jsonpath='{.status.ready}' -n ${DEV_SSO_NS} | grep "true" || true) ]]; do
-    echo "$(( ATTEMPT++ )). attempt (out of ${MAX_NUM_ATTEMPTS}) of waiting for keycloak sandbox-dev/${DEV_SSO_NS} to be ready"
-    sleep ${SLEEP_TIME}
-    if [[ ${ATTEMPT} -eq ${MAX_NUM_ATTEMPTS} ]]; then
-      echo "reached timeout of waiting for keycloak to be available in the cluster - see following info for debugging:"
-      oc get keycloak sandbox-dev -n ${DEV_SSO_NS} -o yaml
-    fi
-done
+TIMEOUT=100s
+oc wait --for=jsonpath='{.status.ready}'=true keycloak/sandbox-dev -n "${DEV_SSO_NS}" --timeout "${TIMEOUT}"  || \
+{
+  oc get keycloak sandbox-dev -n ${DEV_SSO_NS} -o yaml && exit 1
+}
 
 BASE_URL=$(oc get ingresses.config.openshift.io/cluster -o jsonpath='{.spec.domain}')
 RHSSO_URL="https://keycloak-${DEV_SSO_NS}.$BASE_URL"
@@ -209,23 +103,17 @@ RHSSO_URL="https://keycloak-${DEV_SSO_NS}.$BASE_URL"
 
 oc rollout status statefulset -n ${DEV_SSO_NS} keycloak --timeout 20m
 
-# Configure cluster OAuth authentication for keycloak
-oc apply -f - << EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: openid-client-secret-sandbox
-  namespace: openshift-config
-stringData:
-  clientSecret: ${KEYCLOAK_SECRET}
-type: Opaque
-EOF
+printf "configuring OAuth authentication for keycloak"
+cat dev-sso/openid-secret.yaml | \
+KEYCLOAK_SECRET=${KEYCLOAK_SECRET} envsubst | \
+oc apply -f -
 
 # Certificate used by keycloak is self-signed, we need to import and grant for it
+printf "creating configmap with keycloak certificates"
 oc get secrets -n openshift-ingress-operator router-ca -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/ca.crt
 oc create configmap ca-config-map --from-file="ca.crt=/tmp/ca.crt" -n openshift-config || true
 
-# Patch
+printf "applying patch for oauths configuration"
 oc patch oauths.config.openshift.io/cluster --type=merge --patch-file=/dev/stdin << EOF
 spec:
   identityProviders:
@@ -245,6 +133,7 @@ spec:
 EOF
 
 ## Configure toolchain to use the internal keycloak
+printf "patching toolchainconfig"
 oc patch ToolchainConfig/config -n toolchain-host-operator --type=merge --patch-file=/dev/stdin << EOF
 spec:
   host:
