@@ -120,7 +120,6 @@ echo "SA token retrieved"
 if [[ ${LETS_ENCRYPT} == "true" ]]; then
     echo "Using let's encrypt certificate"
 else
-    SA_CA_CRT=$(oc config view --raw -o json ${OC_ADDITIONAL_PARAMS} | jq ".clusters[] | select(.name==\"$(oc config view -o json ${OC_ADDITIONAL_PARAMS} | jq ".contexts[] | select(.name==\"$(oc config current-context ${OC_ADDITIONAL_PARAMS} 2>/dev/null)\")" | jq -r .context.cluster)\")" | jq -r '.cluster."certificate-authority-data"')
     INSECURE_PARAM="  disabledTLSValidations:
     - '*'"
 fi
@@ -199,7 +198,6 @@ metadata:
     ${CLUSTER_LABEL}
 spec:
   apiEndpoint: ${API_ENDPOINT}
-  caBundle: ${SA_CA_CRT}
   secretRef:
     name: ${SECRET_NAME}
 ${INSECURE_PARAM}
