@@ -91,7 +91,7 @@ while ! oc get statefulset -n ${DEV_SSO_NS} keycloak &> /dev/null ; do
 done
 
 printf "waiting for keycloak in ${DEV_SSO_NS} to be ready...\n"
-TIMEOUT=100s
+TIMEOUT=200s
 oc wait --for=jsonpath='{.status.ready}'=true keycloak/sandbox-dev -n "${DEV_SSO_NS}" --timeout "${TIMEOUT}"  || \
 {
   oc get keycloak sandbox-dev -n ${DEV_SSO_NS} -o yaml && exit 1
@@ -156,7 +156,7 @@ EOF
 oc delete pods -n toolchain-host-operator --selector=name=registration-service
 
 KEYCLOAK_ADMIN_PASSWORD=$(oc get secrets -n ${DEV_SSO_NS} credential-sandbox-dev -o jsonpath='{.data.ADMIN_PASSWORD}' | base64 -d)
-printf "================================================= DEV SSO ACCESS =========================================================================="
+printf "================================================= DEV SSO ACCESS ==============================================================================================\n"
 printf "to login into keycloak use user 'admin' and password '%s' at '%s/auth'\n" "$KEYCLOAK_ADMIN_PASSWORD" "$RHSSO_URL"
 printf "use user 'user1@user.us' with password 'user1' to login at 'https://registration-service-toolchain-host-operator.$BASE_URL'\n"
-printf "==========================================================================================================================================="
+printf "================================================================================================================================================================\n"
