@@ -66,24 +66,18 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 
 printf "creating ${DEV_SSO_NS} namespace\n"
-cat dev-sso/namespace.yaml | \
-DEV_SSO_NS=${DEV_SSO_NS} envsubst | \
-oc apply -f -
+DEV_SSO_NS=${DEV_SSO_NS} envsubst < "dev-sso/namespace.yaml" | oc apply -f -
 
 # Install rhsso operator
 SUBSCRIPTION_NAME=${DEV_SSO_NS}
 printf "installing RH SSO operator\n"
-cat dev-sso/rhsso-operator.yaml | \
-DEV_SSO_NS=${DEV_SSO_NS} SUBSCRIPTION_NAME=${SUBSCRIPTION_NAME} envsubst | \
-oc apply -f -
+DEV_SSO_NS=${DEV_SSO_NS} SUBSCRIPTION_NAME=${SUBSCRIPTION_NAME} envsubst < "dev-sso/rhsso-operator.yaml" | oc apply -f -
 
 source ./wait-until-is-installed.sh "-crd keycloak.org -cs '' -n ${DEV_SSO_NS} -s ${SUBSCRIPTION_NAME}"
 
 printf "installing dev Keycloak in namespace ${DEV_SSO_NS}\n"
 export KEYCLOAK_SECRET=$(openssl rand -base64 32)
-cat dev-sso/keycloak.yaml | \
-DEV_SSO_NS=${DEV_SSO_NS} KEYCLOAK_SECRET=${KEYCLOAK_SECRET} envsubst | \
-oc apply -f -
+DEV_SSO_NS=${DEV_SSO_NS} KEYCLOAK_SECRET=${KEYCLOAK_SECRET} envsubst < "dev-sso/keycloak.yaml" | oc apply -f -
 
 while ! oc get statefulset -n ${DEV_SSO_NS} keycloak &> /dev/null ; do
     printf "waiting for keycloak statefulset in ${DEV_SSO_NS} to exist...\n"
@@ -104,9 +98,7 @@ RHSSO_URL="https://keycloak-${DEV_SSO_NS}.$BASE_URL"
 oc rollout status statefulset -n ${DEV_SSO_NS} keycloak --timeout 20m
 
 printf "configuring OAuth authentication for keycloak"
-cat dev-sso/openid-secret.yaml | \
-KEYCLOAK_SECRET=${KEYCLOAK_SECRET} envsubst | \
-oc apply -f -
+KEYCLOAK_SECRET=${KEYCLOAK_SECRET} envsubst < "dev-sso/openid-secret.yaml" | oc apply -f -
 
 # Certificate used by keycloak is self-signed, we need to import and grant for it
 printf "creating configmap with keycloak certificates"
