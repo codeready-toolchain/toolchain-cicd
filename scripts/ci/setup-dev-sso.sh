@@ -65,7 +65,7 @@ check_commands yq oc base64 openssl
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 
-printf "creating ${DEV_SSO_NS} namespace\n"
+printf "creating %s namespace\n" "${DEV_SSO_NS}"
 DEV_SSO_NS=${DEV_SSO_NS} envsubst < "dev-sso/namespace.yaml" | oc apply -f -
 
 # Install rhsso operator
@@ -75,16 +75,16 @@ DEV_SSO_NS=${DEV_SSO_NS} SUBSCRIPTION_NAME=${SUBSCRIPTION_NAME} envsubst < "dev-
 
 source ./wait-until-is-installed.sh "-crd keycloak.org -cs '' -n ${DEV_SSO_NS} -s ${SUBSCRIPTION_NAME}"
 
-printf "installing dev Keycloak in namespace ${DEV_SSO_NS}\n"
+printf "installing dev Keycloak in namespace %s\n" "${DEV_SSO_NS}"
 export KEYCLOAK_SECRET=$(openssl rand -base64 32)
 DEV_SSO_NS=${DEV_SSO_NS} KEYCLOAK_SECRET=${KEYCLOAK_SECRET} envsubst < "dev-sso/keycloak.yaml" | oc apply -f -
 
 while ! oc get statefulset -n ${DEV_SSO_NS} keycloak &> /dev/null ; do
-    printf "waiting for keycloak statefulset in ${DEV_SSO_NS} to exist...\n"
+    printf "waiting for keycloak statefulset in %s to exist...\n" "${DEV_SSO_NS}"
     sleep 10
 done
 
-printf "waiting for keycloak in ${DEV_SSO_NS} to be ready...\n"
+printf "waiting for keycloak in %s to be ready...\n" "${DEV_SSO_NS}"
 TIMEOUT=200s
 oc wait --for=jsonpath='{.status.ready}'=true keycloak/sandbox-dev -n "${DEV_SSO_NS}" --timeout "${TIMEOUT}"  || \
 {
@@ -149,6 +149,6 @@ oc delete pods -n toolchain-host-operator --selector=name=registration-service
 
 KEYCLOAK_ADMIN_PASSWORD=$(oc get secrets -n ${DEV_SSO_NS} credential-sandbox-dev -o jsonpath='{.data.ADMIN_PASSWORD}' | base64 -d)
 printf "================================================= DEV SSO ACCESS ==============================================================================================\n"
-printf "to login into keycloak use user 'admin' and password '%s' at '%s/auth'\n" "$KEYCLOAK_ADMIN_PASSWORD" "$RHSSO_URL"
-printf "use user 'user1@user.us' with password 'user1' to login at 'https://registration-service-toolchain-host-operator.$BASE_URL'\n"
+printf "to login into keycloak use user 'admin' and password '%s' at '%s/auth'\n" "${KEYCLOAK_ADMIN_PASSWORD}" "${RHSSO_URL}"
+printf "use user 'user1@user.us' with password 'user1' to login at 'https://registration-service-toolchain-host-operator.%s'\n" "${BASE_URL}"
 printf "================================================================================================================================================================\n"
