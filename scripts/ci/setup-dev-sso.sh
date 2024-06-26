@@ -3,7 +3,7 @@
 user_help() {
     echo "Deploy in cluster keycloak and configure registration service to use it."
     echo "options:"
-    echo "-sn, --sso-ns  Builds and pushes the operator to quay"
+    echo "-sn, --sso-ns  namespace where the SSO provider will be installed"
     echo "-h,  --help              To show this help text"
     echo ""
     exit 0
@@ -29,7 +29,7 @@ read_arguments() {
                 *)
                    echo "$1 is not a recognized flag!" >> /dev/stderr
                    user_help
-                   exit -1
+                   exit 1
                    ;;
           esac
     done
@@ -51,7 +51,7 @@ check_command()
     exit 1
 }
 
-read_arguments $@
+read_arguments "$@"
 
 if [[ -n "${CI}" ]]; then
     set -ex
@@ -76,10 +76,11 @@ DEV_SSO_NS=${DEV_SSO_NS} SUBSCRIPTION_NAME=${SUBSCRIPTION_NAME} envsubst < "dev-
 source ./wait-until-is-installed.sh "-crd keycloak.org -cs '' -n ${DEV_SSO_NS} -s ${SUBSCRIPTION_NAME}"
 
 printf "installing dev Keycloak in namespace %s\n" "${DEV_SSO_NS}"
-export KEYCLOAK_SECRET=$(openssl rand -base64 32)
+KEYCLOAK_SECRET=$(openssl rand -base64 32)
+export KEYCLOAK_SECRET
 DEV_SSO_NS=${DEV_SSO_NS} KEYCLOAK_SECRET=${KEYCLOAK_SECRET} envsubst < "dev-sso/keycloak.yaml" | oc apply -f -
 
-while ! oc get statefulset -n ${DEV_SSO_NS} keycloak &> /dev/null ; do
+while ! oc get statefulset -n "${DEV_SSO_NS}" keycloak &> /dev/null ; do
     printf "waiting for keycloak statefulset in %s to exist...\n" "${DEV_SSO_NS}"
     sleep 10
 done
