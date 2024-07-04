@@ -6,7 +6,6 @@ user_help() {
     echo "-sn, --sso-ns  namespace where the SSO provider will be installed"
     echo "-h,  --help              To show this help text"
     echo ""
-    exit 0
 }
 
 read_arguments() {
@@ -20,6 +19,7 @@ read_arguments() {
            case "$1" in
                 -h|--help)
                     user_help
+                    exit 0
                     ;;
                 -sn|--sso-ns)
                     shift
