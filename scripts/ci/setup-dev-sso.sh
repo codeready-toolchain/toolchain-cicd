@@ -83,9 +83,9 @@ done
 
 printf "waiting for keycloak in %s to be ready...\n" "${DEV_SSO_NS}"
 TIMEOUT=200s
-oc wait --for=jsonpath='{.status.ready}'=true keycloak/sandbox-dev -n "${DEV_SSO_NS}" --timeout "${TIMEOUT}"  || \
+oc wait --for=jsonpath='{.status.ready}'=true keycloak/kubesaw-dev -n "${DEV_SSO_NS}" --timeout "${TIMEOUT}"  || \
 {
-  oc get keycloak sandbox-dev -n ${DEV_SSO_NS} -o yaml && exit 1
+  oc get keycloak kubesaw-dev -n ${DEV_SSO_NS} -o yaml && exit 1
 }
 
 BASE_URL=$(oc get ingresses.config.openshift.io/cluster -o jsonpath='{.spec.domain}')
@@ -114,10 +114,10 @@ spec:
       claims:
         preferredUsername:
         - preferred_username
-      clientID: sandbox
+      clientID: kubesaw
       clientSecret:
-        name: openid-client-secret-sandbox
-      issuer: ${RHSSO_URL}/auth/realms/sandbox-dev
+        name: openid-client-secret-kubesaw
+      issuer: ${RHSSO_URL}/auth/realms/kubesaw-dev
     type: OpenID
 EOF
 
@@ -129,22 +129,22 @@ spec:
     registrationService:
       auth:
         authClientConfigRaw: '{
-                  "realm": "sandbox-dev",
+                  "realm": "kubesaw-dev",
                   "auth-server-url": "$RHSSO_URL/auth",
                   "ssl-required": "none",
-                  "resource": "sandbox-public",
-                  "clientId": "sandbox-public",
+                  "resource": "kubesaw-public",
+                  "clientId": "kubesaw-public",
                   "public-client": true,
                   "confidential-port": 0
                 }'
         authClientLibraryURL: $RHSSO_URL/auth/js/keycloak.js
-        authClientPublicKeysURL: $RHSSO_URL/auth/realms/sandbox-dev/protocol/openid-connect/certs
+        authClientPublicKeysURL: $RHSSO_URL/auth/realms/kubesaw-dev/protocol/openid-connect/certs
 EOF
 
 # Restart the registration-service to ensure the new configuration is used
 oc delete pods -n toolchain-host-operator --selector=name=registration-service
 
-KEYCLOAK_ADMIN_PASSWORD=$(oc get secrets -n ${DEV_SSO_NS} credential-sandbox-dev -o jsonpath='{.data.ADMIN_PASSWORD}' | base64 -d)
+KEYCLOAK_ADMIN_PASSWORD=$(oc get secrets -n ${DEV_SSO_NS} credential-kubesaw-dev -o jsonpath='{.data.ADMIN_PASSWORD}' | base64 -d)
 printf "================================================= DEV SSO ACCESS ==============================================================================================\n"
 printf "to login into keycloak use user 'admin' and password '%s' at '%s/auth'\n" "${KEYCLOAK_ADMIN_PASSWORD}" "${RHSSO_URL}"
 printf "use user 'user1@user.us' with password 'user1' to login at 'https://registration-service-toolchain-host-operator.%s'\n" "${BASE_URL}"

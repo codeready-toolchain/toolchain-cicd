@@ -1,10 +1,10 @@
 apiVersion: keycloak.org/v1alpha1
 kind: Keycloak
 metadata:
-  name: sandbox-dev
+  name: kubesaw-dev
   namespace: ${DEV_SSO_NS}
   labels:
-    sso-toolchain: sandbox-dev
+    sso-toolchain: kubesaw-dev
 spec:
   externalAccess:
     enabled: true
@@ -13,16 +13,16 @@ spec:
 apiVersion: keycloak.org/v1alpha1
 kind: KeycloakRealm
 metadata:
-  name: sandbox-dev
+  name: kubesaw-dev
   namespace: ${DEV_SSO_NS}
 spec:
   instanceSelector:
     matchLabels:
-      sso-toolchain: sandbox-dev
+      sso-toolchain: kubesaw-dev
   realm:
-    id: sandbox-dev
-    realm: sandbox-dev
-    displayName: Sandbox Dev In-cluster Keycloak
+    id: kubesaw-dev
+    realm: kubesaw-dev
+    displayName: kubesaw Dev In-cluster Keycloak
     accessTokenLifespan: 7200
     accessTokenLifespanForImplicitFlow: 900
     enabled: true
@@ -45,7 +45,7 @@ spec:
     failureFactor: 30
     clients:
       - id: 86427c2e-8736-4ce4-8da5-11f0fbf4d2f2
-        clientId: sandbox
+        clientId: kubesaw
         surrogateAuthRequired: false
         enabled: true
         clientAuthenticatorType: client-secret
@@ -70,7 +70,7 @@ spec:
         defaultClientScopes: []
         optionalClientScopes: []
       - id: 9a5018a7-5f92-40c9-b8f1-63f53bc32a68
-        clientId: sandbox-public
+        clientId: kubesaw-public
         surrogateAuthRequired: false
         enabled: true
         clientAuthenticatorType: client-secret
