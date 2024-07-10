@@ -53,11 +53,7 @@ check_command()
 
 read_arguments "$@"
 
-if [[ -n "${CI}" ]]; then
-    set -ex
-else
-    set -e
-fi
+set -e
 
 
 check_commands yq oc base64 openssl
