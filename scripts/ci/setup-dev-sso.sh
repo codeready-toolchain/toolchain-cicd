@@ -56,7 +56,7 @@ read_arguments "$@"
 set -e
 
 
-check_commands yq oc base64 openssl
+check_commands oc base64 openssl
 
 parent_path=$(readlink -f "$(dirname "${BASH_SOURCE[0]}")")
 cd "$parent_path"
