@@ -62,7 +62,7 @@ fi
 
 check_commands yq oc base64 openssl
 
-parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+parent_path=$(readlink -f "$(dirname "${BASH_SOURCE[0]}")")
 cd "$parent_path"
 
 printf "creating %s namespace\n" "${DEV_SSO_NS}"
