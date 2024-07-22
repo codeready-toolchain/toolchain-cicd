@@ -51,6 +51,22 @@ check_command()
     exit 1
 }
 
+run_wait_until_is_installed() {
+    WAIT_UNTIL_IS_INSTALLED=scripts/ci/wait-until-is-installed.sh
+    PARAMS="-crd keycloak.org -cs '' -n ${DEV_SSO_NS} -s ${SUBSCRIPTION_NAME}"
+
+    if [[ -f ${WAIT_UNTIL_IS_INSTALLED} ]]; then
+        source ${WAIT_UNTIL_IS_INSTALLED}
+    else
+        if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${WAIT_UNTIL_IS_INSTALLED} ]]; then
+            ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${WAIT_UNTIL_IS_INSTALLED} ${PARAMS}
+        else
+            SCRIPT_NAME=$(basename ${WAIT_UNTIL_IS_INSTALLED})
+	        curl -sSL https://raw.githubusercontent.com/${OWNER_AND_BRANCH_LOCATION}/${WAIT_UNTIL_IS_INSTALLED} > /tmp/${SCRIPT_NAME} && chmod +x /tmp/${SCRIPT_NAME} && OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION} /tmp/${SCRIPT_NAME} ${PARAMS}
+        fi
+    fi
+}
+
 read_arguments "$@"
 
 set -e
@@ -69,7 +85,7 @@ SUBSCRIPTION_NAME=${DEV_SSO_NS}
 printf "installing RH SSO operator\n"
 DEV_SSO_NS=${DEV_SSO_NS} SUBSCRIPTION_NAME=${SUBSCRIPTION_NAME} envsubst < "dev-sso/rhsso-operator.yaml" | oc apply -f -
 
-source ./wait-until-is-installed.sh "-crd keycloak.org -cs '' -n ${DEV_SSO_NS} -s ${SUBSCRIPTION_NAME}"
+run_wait_until_is_installed
 
 printf "installing dev Keycloak in namespace %s\n" "${DEV_SSO_NS}"
 KEYCLOAK_SECRET=$(openssl rand -base64 32)
