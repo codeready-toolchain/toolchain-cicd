@@ -71,11 +71,15 @@ wait_until_is_installed() {
         fi
         if [[ ${ATTEMPT} -eq ${MAX_NUM_ATTEMPTS} ]]; then
            echo "reached timeout of waiting for CRD ${EXPECT_CRD} to be available in the cluster and the InstallPlan to be complete - see following info for debugging:"
-           echo "================================ CatalogSource =================================="
-           oc get catalogsource ${CATALOGSOURCE_NAME} -n ${NAMESPACE} -o yaml
-           echo "================================ Subscription =================================="
-           oc get subscription ${SUBSCRIPTION_NAME} -n ${NAMESPACE} -o yaml
-           echo "================================ InstallPlans =================================="
+           if [[ -n "${CATALOGSOURCE_NAME}" ]]; then
+              echo "================================ CatalogSource =================================="
+              oc get catalogsource ${CATALOGSOURCE_NAME} -n ${NAMESPACE} -o yaml
+           fi
+           if [[ -n "${SUBSCRIPTION_NAME}" ]]; then
+              echo "================================ Subscription =================================="
+              oc get subscription ${SUBSCRIPTION_NAME} -n ${NAMESPACE} -o yaml
+              echo "================================ InstallPlans =================================="
+           fi
            oc get installplans -n ${NAMESPACE} -o yaml
            if [[ -n ${ARTIFACT_DIR} ]]; then
              oc adm must-gather --dest-dir=${ARTIFACT_DIR}

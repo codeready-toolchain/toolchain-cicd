@@ -119,10 +119,9 @@ SA_TOKEN=$(oc create token ${SA_NAME} --duration 87600h -n ${OPERATOR_NS} ${OC_A
 echo "SA token retrieved"
 if [[ ${LETS_ENCRYPT} == "true" ]]; then
     echo "Using let's encrypt certificate"
-    SA_CA_CRT=`curl https://letsencrypt.org/certs/lets-encrypt-r3.pem | base64 | tr -d '\n'`
 else
-    echo "Using standard OpenShift certificate"
-    SA_CA_CRT=$(oc config view --raw -o json ${OC_ADDITIONAL_PARAMS} | jq ".clusters[] | select(.name==\"$(oc config view -o json ${OC_ADDITIONAL_PARAMS} | jq ".contexts[] | select(.name==\"$(oc config current-context ${OC_ADDITIONAL_PARAMS} 2>/dev/null)\")" | jq -r .context.cluster)\")" | jq -r '.cluster."certificate-authority-data"')
+    INSECURE_PARAM="  disabledTLSValidations:
+    - '*'"
 fi
 
 echo "Fetching information about the clusters"
@@ -145,7 +144,7 @@ SECRET_NAME=${SA_NAME}-${OPERATOR_NS}-${JOINING_CLUSTER_NAME}
 if [[ -n `oc get secret -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS} | grep ${SECRET_NAME}` ]]; then
     oc delete secret ${SECRET_NAME} -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
 fi
-oc create secret generic ${SECRET_NAME} --from-literal=token="${SA_TOKEN}" --from-literal=ca.crt="${SA_CA_CRT}" -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
+oc create secret generic ${SECRET_NAME} --from-literal=token="${SA_TOKEN}" -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
 
 # We need to ensure toolchain cluster name length is <= 63 chars, it ends with an alphanumeric character and is unique
 # name between member1 and member2.
@@ -199,9 +198,9 @@ metadata:
     ${CLUSTER_LABEL}
 spec:
   apiEndpoint: ${API_ENDPOINT}
-  caBundle: ${SA_CA_CRT}
   secretRef:
     name: ${SECRET_NAME}
+${INSECURE_PARAM}
 "
 
 echo "Creating ToolchainCluster representation of ${JOINING_CLUSTER_TYPE} in ${CLUSTER_JOIN_TO}:"
