@@ -26,7 +26,7 @@ login_to_cluster() {
 
 wait_for_service_account() {
 NEXT_WAIT_TIME=0
-while [[ -z `oc get sa ${SA_NAME} -n ${OPERATOR_NS} 2>/dev/null || true` ]]; do
+while [[ -z `oc get sa ${SA_NAME} -n ${OPERATOR_NS} ${OC_ADDITIONAL_PARAMS} 2>/dev/null || true` ]]; do
     if [[ ${NEXT_WAIT_TIME} -eq 300 ]]; then
        echo "reached timeout of waiting for the ServiceAccount ${SA_NAME} in namespace ${OPERATOR_NS} ... The SA should be deployed by the toolchaincluster_resource controller."
        exit 1
