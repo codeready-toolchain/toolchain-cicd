@@ -75,7 +75,7 @@ run_wait_until_is_installed() {
     fi
 }
 
-setup_oauth_internal()
+setup_oauth_generic()
 {
   set -e -o pipefail
 
@@ -102,6 +102,10 @@ spec:
       claims:
         preferredUsername:
         - preferred_username
+        email:
+        - email
+        name:
+        - username
       clientID: kubesaw
       clientSecret:
         name: openid-client-secret-kubesaw
@@ -138,7 +142,7 @@ setup_oauth()
   if [[ -n "$3" ]]; then
     setup_oauth_rosa "$1" "$2" "$3"
   else
-    setup_oauth_internal "$1" "$2"
+    setup_oauth_generic "$1" "$2"
   fi
 }
 
@@ -205,6 +209,8 @@ spec:
                 }'
         authClientLibraryURL: $RHSSO_URL/auth/js/keycloak.js
         authClientPublicKeysURL: $RHSSO_URL/auth/realms/kubesaw-dev/protocol/openid-connect/certs
+        ssoBaseURL: $RHSSO_URL
+        ssoRealm: kubesaw-dev
 EOF
 
 # Restart the registration-service to ensure the new configuration is used
