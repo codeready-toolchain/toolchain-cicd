@@ -112,7 +112,7 @@ EOF
 
 setup_oauth_rosa()
 {
-  ISSUER_URL="$1/auth/realms/sandbox-dev"
+  ISSUER_URL="$1/auth/realms/kubesaw-dev"
   KEYCLOAK_SECRET="$2"
   CLUSTER_NAME="$3"
 
@@ -120,7 +120,7 @@ setup_oauth_rosa()
   rosa create idp \
     --cluster="${CLUSTER_NAME}" \
     --type='openid' \
-    --client-id='sandbox' \
+    --client-id='kubesaw' \
     --client-secret="${KEYCLOAK_SECRET}" \
     --mapping-method='lookup' \
     --issuer-url="${ISSUER_URL}" \
