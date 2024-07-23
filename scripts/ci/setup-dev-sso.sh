@@ -56,7 +56,7 @@ run_wait_until_is_installed() {
     PARAMS="-crd keycloak.org -cs '' -n ${DEV_SSO_NS} -s ${SUBSCRIPTION_NAME}"
 
     if [[ -f ${WAIT_UNTIL_IS_INSTALLED} ]]; then
-        source ${WAIT_UNTIL_IS_INSTALLED}
+        ${WAIT_UNTIL_IS_INSTALLED} ${PARAMS}
     else
         if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${WAIT_UNTIL_IS_INSTALLED} ]]; then
             ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${WAIT_UNTIL_IS_INSTALLED} ${PARAMS}
