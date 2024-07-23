@@ -4,6 +4,7 @@ user_help() {
     echo "Deploy in cluster keycloak and configure registration service to use it."
     echo "options:"
     echo "-sn, --sso-ns  namespace where the SSO provider will be installed"
+    echo "-r,  --rosa-cluster      The name of the target ROSA cluster (optional). Use this flag to properly configure OAuth on ROSA Classic clusters."
     echo "-h,  --help              To show this help text"
     echo ""
 }
@@ -26,6 +27,11 @@ read_arguments() {
                     DEV_SSO_NS=$1
                     shift
                     ;;
+                -r|--rosa-cluster)
+                    shift
+                    CLUSTER_NAME="$1"
+                    shift
+                    ;;
                 *)
                    echo "$1 is not a recognized flag!" >> /dev/stderr
                    user_help
@@ -33,6 +39,8 @@ read_arguments() {
                    ;;
           esac
     done
+
+    [[ -n "${DEV_SSO_NS}" ]] || { printf "SSO namespace is required\n"; user_help; exit 1; }
 }
 
 check_commands()
@@ -56,7 +64,7 @@ run_wait_until_is_installed() {
     PARAMS="-crd keycloak.org -cs '' -n ${DEV_SSO_NS} -s ${SUBSCRIPTION_NAME}"
 
     if [[ -f ${WAIT_UNTIL_IS_INSTALLED} ]]; then
-        source ${WAIT_UNTIL_IS_INSTALLED}
+        ${WAIT_UNTIL_IS_INSTALLED} ${PARAMS}
     else
         if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${WAIT_UNTIL_IS_INSTALLED} ]]; then
             ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${WAIT_UNTIL_IS_INSTALLED} ${PARAMS}
@@ -65,6 +73,73 @@ run_wait_until_is_installed() {
 	        curl -sSL https://raw.githubusercontent.com/${OWNER_AND_BRANCH_LOCATION}/${WAIT_UNTIL_IS_INSTALLED} > /tmp/${SCRIPT_NAME} && chmod +x /tmp/${SCRIPT_NAME} && OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION} /tmp/${SCRIPT_NAME} ${PARAMS}
         fi
     fi
+}
+
+setup_oauth_internal()
+{
+  set -e -o pipefail
+
+  RHSSO_URL="$1"
+
+  printf "configuring OAuth authentication for keycloak '%s'\n" "${RHSSO_URL}"
+  KEYCLOAK_SECRET="$2" envsubst < "dev-sso/openid-secret.yaml" | oc apply -f -
+
+  # Certificate used by keycloak is self-signed, we need to import and grant for it
+  printf "creating configmap with keycloak certificates"
+  oc get secrets -n openshift-ingress-operator router-ca -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/ca.crt
+  oc create configmap ca-config-map --from-file="ca.crt=/tmp/ca.crt" -n openshift-config || true
+
+  printf "applying patch for oauths configuration\n"
+
+  oc patch oauths.config.openshift.io/cluster --type=merge --patch-file=/dev/stdin << EOF
+spec:
+  identityProviders:
+  - mappingMethod: lookup
+    name: rhd
+    openID:
+      ca:
+        name: ca-config-map
+      claims:
+        preferredUsername:
+        - preferred_username
+      clientID: kubesaw
+      clientSecret:
+        name: openid-client-secret-kubesaw
+      issuer: ${RHSSO_URL}/auth/realms/kubesaw-dev
+    type: OpenID
+EOF
+}
+
+setup_oauth_rosa()
+{
+  ISSUER_URL="$1/auth/realms/sandbox-dev"
+  KEYCLOAK_SECRET="$2"
+  CLUSTER_NAME="$3"
+
+  printf "Setting up OAuth in ROSA cluster '%s' for issuer '%s'\n" "${CLUSTER_NAME}" "${ISSUER_URL}"
+  rosa create idp \
+    --cluster="${CLUSTER_NAME}" \
+    --type='openid' \
+    --client-id='sandbox' \
+    --client-secret="${KEYCLOAK_SECRET}" \
+    --mapping-method='lookup' \
+    --issuer-url="${ISSUER_URL}" \
+    --email-claims='email' \
+    --name-claims='username' \
+    --username-claims='username' \
+    --name='rhd' \
+    --yes
+}
+
+setup_oauth()
+{
+  set -e
+
+  if [[ -n "$3" ]]; then
+    setup_oauth_rosa "$1" "$2" "$3"
+  else
+    setup_oauth_internal "$1" "$2"
+  fi
 }
 
 read_arguments "$@"
@@ -107,35 +182,10 @@ oc wait --for=jsonpath='{.status.ready}'=true keycloak/kubesaw-dev -n "${DEV_SSO
 BASE_URL=$(oc get ingresses.config.openshift.io/cluster -o jsonpath='{.spec.domain}')
 RHSSO_URL="https://keycloak-${DEV_SSO_NS}.$BASE_URL"
 
-
 oc rollout status statefulset -n ${DEV_SSO_NS} keycloak --timeout 20m
 
-printf "configuring OAuth authentication for keycloak"
-KEYCLOAK_SECRET=${KEYCLOAK_SECRET} envsubst < "dev-sso/openid-secret.yaml" | oc apply -f -
-
-# Certificate used by keycloak is self-signed, we need to import and grant for it
-printf "creating configmap with keycloak certificates"
-oc get secrets -n openshift-ingress-operator router-ca -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/ca.crt
-oc create configmap ca-config-map --from-file="ca.crt=/tmp/ca.crt" -n openshift-config || true
-
-printf "applying patch for oauths configuration"
-oc patch oauths.config.openshift.io/cluster --type=merge --patch-file=/dev/stdin << EOF
-spec:
-  identityProviders:
-  - mappingMethod: lookup
-    name: rhd
-    openID:
-      ca:
-        name: ca-config-map
-      claims:
-        preferredUsername:
-        - preferred_username
-      clientID: kubesaw
-      clientSecret:
-        name: openid-client-secret-kubesaw
-      issuer: ${RHSSO_URL}/auth/realms/kubesaw-dev
-    type: OpenID
-EOF
+printf "Setup OAuth\n"
+setup_oauth "${RHSSO_URL}" "${KEYCLOAK_SECRET}" "${CLUSTER_NAME}"
 
 ## Configure toolchain to use the internal keycloak
 printf "patching toolchainconfig"
