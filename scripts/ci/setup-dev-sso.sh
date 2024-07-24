@@ -151,7 +151,8 @@ read_arguments "$@"
 set -e
 
 
-check_commands oc base64 openssl rosa
+check_commands oc base64 openssl
+[ -n "${CLUSTER_NAME}" ] && check_commands rosa
 
 parent_path=$(readlink -f "$(dirname "${BASH_SOURCE[0]}")")
 cd "$parent_path"
