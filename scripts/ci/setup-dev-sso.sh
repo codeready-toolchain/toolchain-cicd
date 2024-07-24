@@ -4,7 +4,7 @@ user_help() {
     echo "Deploy in cluster keycloak and configure registration service to use it."
     echo "options:"
     echo "-sn, --sso-ns  namespace where the SSO provider will be installed"
-    echo "-r,  --rosa-cluster      The name of the target ROSA cluster (optional). Use this flag to properly configure OAuth on ROSA Classic clusters."
+    echo "-r,  --rosa-cluster      The name of the target ROSA cluster (optional). Use this flag to properly configure OAuth on ROSA Classic clusters. Requires Rosa CLI to be installed."
     echo "-h,  --help              To show this help text"
     echo ""
 }
