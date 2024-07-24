@@ -29,7 +29,7 @@ read_arguments() {
                     ;;
                 -r|--rosa-cluster)
                     shift
-                    CLUSTER_NAME="$1"
+                    ROSA_CLUSTER_NAME="$1"
                     shift
                     ;;
                 *)
@@ -118,11 +118,11 @@ setup_oauth_rosa()
 {
   ISSUER_URL="$1/auth/realms/kubesaw-dev"
   KEYCLOAK_SECRET="$2"
-  CLUSTER_NAME="$3"
+  ROSA_CLUSTER_NAME="$3"
 
-  printf "Setting up OAuth in ROSA cluster '%s' for issuer '%s'\n" "${CLUSTER_NAME}" "${ISSUER_URL}"
+  printf "Setting up OAuth in ROSA cluster '%s' for issuer '%s'\n" "${ROSA_CLUSTER_NAME}" "${ISSUER_URL}"
   rosa create idp \
-    --cluster="${CLUSTER_NAME}" \
+    --cluster="${ROSA_CLUSTER_NAME}" \
     --type='openid' \
     --client-id='kubesaw' \
     --client-secret="${KEYCLOAK_SECRET}" \
@@ -152,7 +152,7 @@ set -e
 
 
 check_commands oc base64 openssl
-[ -n "${CLUSTER_NAME}" ] && check_commands rosa
+[ -n "${ROSA_CLUSTER_NAME}" ] && check_commands rosa
 
 parent_path=$(readlink -f "$(dirname "${BASH_SOURCE[0]}")")
 cd "$parent_path"
@@ -190,7 +190,7 @@ RHSSO_URL="https://keycloak-${DEV_SSO_NS}.$BASE_URL"
 oc rollout status statefulset -n ${DEV_SSO_NS} keycloak --timeout 20m
 
 printf "Setup OAuth\n"
-setup_oauth "${RHSSO_URL}" "${KEYCLOAK_SECRET}" "${CLUSTER_NAME}"
+setup_oauth "${RHSSO_URL}" "${KEYCLOAK_SECRET}" "${ROSA_CLUSTER_NAME}"
 
 ## Configure toolchain to use the internal keycloak
 printf "patching toolchainconfig"
