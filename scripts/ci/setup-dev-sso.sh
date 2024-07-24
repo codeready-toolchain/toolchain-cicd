@@ -85,7 +85,7 @@ setup_oauth_generic()
   KEYCLOAK_SECRET="$2" envsubst < "dev-sso/openid-secret.yaml" | oc apply -f -
 
   # Certificate used by keycloak is self-signed, we need to import and grant for it
-  printf "creating configmap with keycloak certificates"
+  printf "creating configmap with keycloak certificates\n"
   oc get secrets -n openshift-ingress-operator router-ca -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/ca.crt
   oc create configmap ca-config-map --from-file="ca.crt=/tmp/ca.crt" -n openshift-config || true
 
