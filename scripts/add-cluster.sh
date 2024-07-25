@@ -122,6 +122,8 @@ if [[ ${LETS_ENCRYPT} == "true" ]]; then
 else
     INSECURE_PARAM="  disabledTLSValidations:
     - '*'"
+    INSECURE_FIELD="
+    insecure-skip-tls-verify: true"
 fi
 
 echo "Fetching information about the clusters"
@@ -147,7 +149,7 @@ fi
 
 oc create secret generic ${SECRET_NAME} --from-literal=token="${SA_TOKEN}" --from-literal=kubeconfig="apiVersion: v1
 clusters:
-- cluster:
+- cluster:${INSECURE_FIELD}
     server: ${API_ENDPOINT}
   name: cluster
 contexts:
