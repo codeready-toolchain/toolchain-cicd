@@ -122,6 +122,8 @@ if [[ ${LETS_ENCRYPT} == "true" ]]; then
 else
     INSECURE_PARAM="  disabledTLSValidations:
     - '*'"
+    INSECURE_FIELD="
+    insecure-skip-tls-verify: true"
 fi
 
 echo "Fetching information about the clusters"
@@ -144,7 +146,25 @@ SECRET_NAME=${SA_NAME}-${OPERATOR_NS}-${JOINING_CLUSTER_NAME}
 if [[ -n `oc get secret -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS} | grep ${SECRET_NAME}` ]]; then
     oc delete secret ${SECRET_NAME} -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
 fi
-oc create secret generic ${SECRET_NAME} --from-literal=token="${SA_TOKEN}" -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
+
+oc create secret generic ${SECRET_NAME} --from-literal=token="${SA_TOKEN}" --from-literal=kubeconfig="apiVersion: v1
+clusters:
+- cluster:${INSECURE_FIELD}
+    server: ${API_ENDPOINT}
+  name: cluster
+contexts:
+- context:
+    cluster: cluster
+    namespace: ${OPERATOR_NS}
+    user: auth
+  name: ctx
+current-context: ctx
+kind: Config
+preferences: {}
+users:
+- name: auth
+  user:
+    token: ${SA_TOKEN}" -n ${CLUSTER_JOIN_TO_OPERATOR_NS} ${OC_ADDITIONAL_PARAMS}
 
 # We need to ensure toolchain cluster name length is <= 63 chars, it ends with an alphanumeric character and is unique
 # name between member1 and member2.
