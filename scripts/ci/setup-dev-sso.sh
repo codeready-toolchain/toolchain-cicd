@@ -4,6 +4,7 @@ user_help() {
     echo "Deploy in cluster keycloak and configure registration service to use it."
     echo "options:"
     echo "-sn, --sso-ns  namespace where the SSO provider will be installed"
+    echo "-r,  --rosa-cluster      The name of the target ROSA cluster (optional). Use this flag to properly configure OAuth on ROSA Classic clusters. Requires Rosa CLI to be installed."
     echo "-h,  --help              To show this help text"
     echo ""
 }
@@ -26,6 +27,11 @@ read_arguments() {
                     DEV_SSO_NS=$1
                     shift
                     ;;
+                -r|--rosa-cluster)
+                    shift
+                    ROSA_CLUSTER_NAME="$1"
+                    shift
+                    ;;
                 *)
                    echo "$1 is not a recognized flag!" >> /dev/stderr
                    user_help
@@ -33,6 +39,8 @@ read_arguments() {
                    ;;
           esac
     done
+
+    [[ -n "${DEV_SSO_NS}" ]] || { printf "SSO namespace is required\n"; user_help; exit 1; }
 }
 
 check_commands()
@@ -67,12 +75,84 @@ run_wait_until_is_installed() {
     fi
 }
 
+setup_oauth_generic()
+{
+  set -e -o pipefail
+
+  RHSSO_URL="$1"
+
+  printf "configuring OAuth authentication for keycloak '%s'\n" "${RHSSO_URL}"
+  KEYCLOAK_SECRET="$2" envsubst < "dev-sso/openid-secret.yaml" | oc apply -f -
+
+  # Certificate used by keycloak is self-signed, we need to import and grant for it
+  printf "creating configmap with keycloak certificates\n"
+  oc get secrets -n openshift-ingress-operator router-ca -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/ca.crt
+  oc create configmap ca-config-map --from-file="ca.crt=/tmp/ca.crt" -n openshift-config || true
+
+  printf "applying patch for oauths configuration\n"
+
+  oc patch oauths.config.openshift.io/cluster --type=merge --patch-file=/dev/stdin << EOF
+spec:
+  identityProviders:
+  - mappingMethod: lookup
+    name: rhd
+    openID:
+      ca:
+        name: ca-config-map
+      claims:
+        preferredUsername:
+        - preferred_username
+        email:
+        - email
+        name:
+        - username
+      clientID: kubesaw
+      clientSecret:
+        name: openid-client-secret-kubesaw
+      issuer: ${RHSSO_URL}/auth/realms/kubesaw-dev
+    type: OpenID
+EOF
+}
+
+setup_oauth_rosa()
+{
+  ISSUER_URL="$1/auth/realms/kubesaw-dev"
+  KEYCLOAK_SECRET="$2"
+  ROSA_CLUSTER_NAME="$3"
+
+  printf "Setting up OAuth in ROSA cluster '%s' for issuer '%s'\n" "${ROSA_CLUSTER_NAME}" "${ISSUER_URL}"
+  rosa create idp \
+    --cluster="${ROSA_CLUSTER_NAME}" \
+    --type='openid' \
+    --client-id='kubesaw' \
+    --client-secret="${KEYCLOAK_SECRET}" \
+    --mapping-method='lookup' \
+    --issuer-url="${ISSUER_URL}" \
+    --email-claims='email' \
+    --name-claims='username' \
+    --username-claims='username' \
+    --name='rhd' \
+    --yes
+}
+
+setup_oauth()
+{
+  set -e
+
+  if [[ -n "$3" ]]; then
+    setup_oauth_rosa "$1" "$2" "$3"
+  else
+    setup_oauth_generic "$1" "$2"
+  fi
+}
+
 read_arguments "$@"
 
 set -e
 
 
 check_commands oc base64 openssl
+[ -n "${ROSA_CLUSTER_NAME}" ] && check_commands rosa
 
 parent_path=$(readlink -f "$(dirname "${BASH_SOURCE[0]}")")
 cd "$parent_path"
@@ -107,35 +187,10 @@ oc wait --for=jsonpath='{.status.ready}'=true keycloak/kubesaw-dev -n "${DEV_SSO
 BASE_URL=$(oc get ingresses.config.openshift.io/cluster -o jsonpath='{.spec.domain}')
 RHSSO_URL="https://keycloak-${DEV_SSO_NS}.$BASE_URL"
 
-
 oc rollout status statefulset -n ${DEV_SSO_NS} keycloak --timeout 20m
 
-printf "configuring OAuth authentication for keycloak"
-KEYCLOAK_SECRET=${KEYCLOAK_SECRET} envsubst < "dev-sso/openid-secret.yaml" | oc apply -f -
-
-# Certificate used by keycloak is self-signed, we need to import and grant for it
-printf "creating configmap with keycloak certificates"
-oc get secrets -n openshift-ingress-operator router-ca -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/ca.crt
-oc create configmap ca-config-map --from-file="ca.crt=/tmp/ca.crt" -n openshift-config || true
-
-printf "applying patch for oauths configuration"
-oc patch oauths.config.openshift.io/cluster --type=merge --patch-file=/dev/stdin << EOF
-spec:
-  identityProviders:
-  - mappingMethod: lookup
-    name: rhd
-    openID:
-      ca:
-        name: ca-config-map
-      claims:
-        preferredUsername:
-        - preferred_username
-      clientID: kubesaw
-      clientSecret:
-        name: openid-client-secret-kubesaw
-      issuer: ${RHSSO_URL}/auth/realms/kubesaw-dev
-    type: OpenID
-EOF
+printf "Setup OAuth\n"
+setup_oauth "${RHSSO_URL}" "${KEYCLOAK_SECRET}" "${ROSA_CLUSTER_NAME}"
 
 ## Configure toolchain to use the internal keycloak
 printf "patching toolchainconfig"
@@ -155,6 +210,8 @@ spec:
                 }'
         authClientLibraryURL: $RHSSO_URL/auth/js/keycloak.js
         authClientPublicKeysURL: $RHSSO_URL/auth/realms/kubesaw-dev/protocol/openid-connect/certs
+        ssoBaseURL: $RHSSO_URL
+        ssoRealm: kubesaw-dev
 EOF
 
 # Restart the registration-service to ensure the new configuration is used
