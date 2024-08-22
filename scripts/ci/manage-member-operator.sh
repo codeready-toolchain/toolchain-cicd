@@ -123,7 +123,8 @@ fi
 
 
 if [[ ${INSTALL_OPERATOR} == "true" ]]; then
-    OPERATOR_NAME=member-operator
+    OPERATOR_RESOURCE_NAME=member-operator
+    OPERATOR_NAME=toolchain-member-operator
     INDEX_IMAGE_NAME=member-operator-index
     NAMESPACE=${MEMBER_NS}
     EXPECT_CRD=memberoperatorconfigs.toolchain.dev.openshift.com
