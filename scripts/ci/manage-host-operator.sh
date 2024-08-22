@@ -134,7 +134,7 @@ else
 fi
 
 if [[ ${INSTALL_OPERATOR} == "true" ]]; then
-    OPERATOR_NAME=toolchain-host-operator
+    OPERATOR_NAME=host-operator
     INDEX_IMAGE_NAME=host-operator-index
     NAMESPACE=${HOST_NS}
     EXPECT_CRD=toolchainconfigs.toolchain.dev.openshift.com
