@@ -172,7 +172,7 @@ install_operator() {
         CHANNEL=staging
     fi
     CATALOGSOURCE_NAME=${OPERATOR_RESOURCE_NAME}-${GIT_COMMIT_ID}
-    SUBSCRIPTION_NAME=${OOPERATOR_RESOURCE_NAME}-${GIT_COMMIT_ID}
+    SUBSCRIPTION_NAME=${OPERATOR_RESOURCE_NAME}-${GIT_COMMIT_ID}
 
     # if the operator was already installed in the cluster, then delete all OLM related resources
     for OG in $(oc get OperatorGroup -n ${NAMESPACE} -o name | grep  "${OPERATOR_RESOURCE_NAME}"); do
