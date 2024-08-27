@@ -171,19 +171,23 @@ install_operator() {
         INDEX_IMAGE=${INDEX_IMAGE_LOC}
         CHANNEL=staging
     fi
-    CATALOGSOURCE_NAME=source-${OPERATOR_NAME}-${GIT_COMMIT_ID}
-    SUBSCRIPTION_NAME=subscription-${OPERATOR_NAME}-${GIT_COMMIT_ID}
+    CATALOGSOURCE_NAME=${OPERATOR_RESOURCE_NAME}-${GIT_COMMIT_ID}
+    SUBSCRIPTION_NAME=${OPERATOR_RESOURCE_NAME}-${GIT_COMMIT_ID}
 
     # if the operator was already installed in the cluster, then delete all OLM related resources
-    for SUB in $(oc get Subscription -n ${NAMESPACE} -o name | grep  "subscription-${OPERATOR_NAME}"); do
+    for OG in $(oc get OperatorGroup -n ${NAMESPACE} -o name | grep  "${OPERATOR_RESOURCE_NAME}"); do
+        oc delete ${OG} -n ${NAMESPACE}
+        UNINSTALLED=true
+    done
+    for SUB in $(oc get Subscription -n ${NAMESPACE} -o name | grep  "${OPERATOR_RESOURCE_NAME}"); do
         oc delete ${SUB} -n ${NAMESPACE}
         UNINSTALLED=true
     done
-    for CAT in $(oc get CatalogSource -n ${NAMESPACE} -o name | grep  "source-${OPERATOR_NAME}"); do
+    for CAT in $(oc get CatalogSource -n ${NAMESPACE} -o name | grep  "${OPERATOR_RESOURCE_NAME}"); do
         oc delete ${CAT} -n ${NAMESPACE}
         UNINSTALLED=true
     done
-    for CSV in $(oc get csv -n ${NAMESPACE} -o name | grep  "${OPERATOR_NAME}"); do
+    for CSV in $(oc get csv -n ${NAMESPACE} -o name | grep  "${OPERATOR_RESOURCE_NAME}"); do
         oc delete ${CSV} -n ${NAMESPACE}
         UNINSTALLED=true
     done
@@ -243,7 +247,7 @@ EOF
     INSTALL_OBJECTS="apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: og-${OPERATOR_NAME}
+  name: ${OPERATOR_RESOURCE_NAME}
   namespace: ${NAMESPACE}
 spec:
   targetNamespaces:
