@@ -123,6 +123,7 @@ fi
 
 
 if [[ ${INSTALL_OPERATOR} == "true" ]]; then
+    OPERATOR_RESOURCE_NAME=member-operator
     OPERATOR_NAME=toolchain-member-operator
     INDEX_IMAGE_NAME=member-operator-index
     NAMESPACE=${MEMBER_NS}
