@@ -85,7 +85,7 @@ read_arguments() {
 
 set -e
 
-#read_arguments $@
+read_arguments $@
 
 if [[ -n "${CI}" ]]; then
     set -ex
