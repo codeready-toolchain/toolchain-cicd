@@ -12,11 +12,7 @@ if [[ -f ${LOCAL_OLM_SETUP_FILE} ]]; then
     echo "sourcing local olm setup file ${LOCAL_OLM_SETUP_FILE}"
     source ${LOCAL_OLM_SETUP_FILE}
 else
-    if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${OLM_SETUP_FILE} ]]; then
-        source ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${OLM_SETUP_FILE}
-    else
-        source /dev/stdin <<< "$(curl -sSL https://raw.githubusercontent.com/${OWNER_AND_BRANCH_LOCATION}/${OLM_SETUP_FILE})"
-    fi
+    source /dev/stdin <<< "$(curl -sSL https://raw.githubusercontent.com/${OWNER_AND_BRANCH_LOCATION}/${OLM_SETUP_FILE})"
 fi
 
 # read argument to get project root dir

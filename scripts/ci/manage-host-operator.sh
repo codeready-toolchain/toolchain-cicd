@@ -95,15 +95,13 @@ fi
 
 MANAGE_OPERATOR_FILE=scripts/ci/manage-operator.sh
 OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION:-codeready-toolchain/toolchain-cicd/master}
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+SCRIPT_NAME=$(basename ${MANAGE_OPERATOR_FILE})
 
-if [[ -f ${MANAGE_OPERATOR_FILE} ]]; then
-    source ${MANAGE_OPERATOR_FILE}
+if [[ -f ${SCRIPT_DIR}/${SCRIPT_NAME} ]]; then
+    source ${SCRIPT_DIR}/${SCRIPT_NAME}
 else
-    if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${MANAGE_OPERATOR_FILE} ]]; then
-        source ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${MANAGE_OPERATOR_FILE}
-    else
-        source /dev/stdin <<< "$(curl -sSL https://raw.githubusercontent.com/${OWNER_AND_BRANCH_LOCATION}/${MANAGE_OPERATOR_FILE})"
-    fi
+    source /dev/stdin <<< "$(curl -sSL https://raw.githubusercontent.com/${OWNER_AND_BRANCH_LOCATION}/${MANAGE_OPERATOR_FILE})"
 fi
 
 if [[ ${DEPLOY_LATEST} != "true" ]] && [[ -n "${CI}${REG_REPO_PATH}${HOST_REPO_PATH}" ]] && [[ $(echo ${REPO_NAME} | sed 's/"//g') != "release" ]]; then
