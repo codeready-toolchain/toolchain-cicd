@@ -274,10 +274,20 @@ replace_with_sed() {
     rm -rf ${TMP_CSV}
 }
 
+check_sha_length() {
+  if [[ "${QUAY_NAMESPACE_TO_PUSH}" == "codeready-toolchain" ]] && [[ ! ${#1} -eq 7 ]]; then
+        echo "ERROR: The number of characters in the short version of SHA is different than 7 characters for the ${2} repository.
+       Images pushed to codeready-toolchain quay org can use only SHA with 7 characters to maintain the dependency tree of the operator updates.
+       Try to use a new fresh clone of the repository instead."
+        exit 1
+  fi
+}
+
 # it takes one boolean parameter - if the other repo (either embedded or main one) should be cloned or not
 setup_version_variables_based_on_commits() {
     # setup version and commit variables for the current repo
     GIT_COMMIT_ID=`git --git-dir=${PRJ_ROOT_DIR}/.git --work-tree=${PRJ_ROOT_DIR} rev-parse --short HEAD`
+    check_sha_length ${GIT_COMMIT_ID} ${PRJ_ROOT_DIR}
     PREVIOUS_GIT_COMMIT_ID=`git --git-dir=${PRJ_ROOT_DIR}/.git --work-tree=${PRJ_ROOT_DIR} rev-parse --short HEAD^`
     NUMBER_OF_COMMITS=`git --git-dir=${PRJ_ROOT_DIR}/.git --work-tree=${PRJ_ROOT_DIR} rev-list --count HEAD`
 
@@ -297,6 +307,7 @@ setup_version_variables_based_on_commits() {
 
         # and set version and comit variables also for this repo
         OTHER_REPO_GIT_COMMIT_ID=`git --git-dir=${OTHER_REPO_PATH}/.git --work-tree=${OTHER_REPO_PATH} rev-parse --short HEAD`
+        check_sha_length ${OTHER_REPO_GIT_COMMIT_ID} ${OTHER_REPO_PATH}
         OTHER_REPO_NUMBER_OF_COMMITS=`git --git-dir=${OTHER_REPO_PATH}/.git --work-tree=${OTHER_REPO_PATH} rev-list --count HEAD`
 
         if [[ -n "${MAIN_REPO_URL}"  ]]; then
