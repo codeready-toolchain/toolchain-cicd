@@ -10,7 +10,6 @@ user_help () {
     echo "-mn2,--member-namespace-2 Namespace name of the second installation of member operator, if needed"
     echo "-mr, --member-repo-path   Path to the member operator repo"
     echo "-ds, --date-suffix        Date suffix to be added to some resources that are created"
-    echo "-dl, --deploy-latest      Deploy the latest version of operator"
     echo "-ft, --forced-tag         Forces a tag to be set to all built images. In the case deployment the tag is used for index image in the created CatalogSource"
     echo "-h,  --help               To show this help text"
     echo ""
@@ -63,11 +62,6 @@ read_arguments() {
                     DATE_SUFFIX=$1
                     shift
                     ;;
-                -dl|--deploy-latest)
-                    shift
-                    DEPLOY_LATEST=$1
-                    shift
-                    ;;
                 -ft|--forced-tag)
                     shift
                     FORCED_TAG=$1
@@ -103,7 +97,7 @@ else
     source /dev/stdin <<< "$(curl -sSL https://raw.githubusercontent.com/${OWNER_AND_BRANCH_LOCATION}/${MANAGE_OPERATOR_FILE})"
 fi
 
-if [[ ${DEPLOY_LATEST} != "true" ]] && [[ -n "${CI}${MEMBER_REPO_PATH}" ]] && [[ $(echo ${REPO_NAME} | sed 's/"//g') != "release" ]]; then
+if [[ -n "${CI}${MEMBER_REPO_PATH}" ]] && [[ $(echo ${REPO_NAME} | sed 's/"//g') != "release" ]]; then
     REPOSITORY_NAME=member-operator
     PROVIDED_REPOSITORY_PATH=${MEMBER_REPO_PATH}
     get_repo
@@ -115,8 +109,6 @@ if [[ ${DEPLOY_LATEST} != "true" ]] && [[ -n "${CI}${MEMBER_REPO_PATH}" ]] && [[
         OPERATOR_IMAGE_LOC=${IMAGE_LOC}
         make -C ${REPOSITORY_PATH} publish-current-bundle INDEX_IMAGE_TAG=${BUNDLE_AND_INDEX_TAG} BUNDLE_TAG=${BUNDLE_AND_INDEX_TAG} QUAY_NAMESPACE=${QUAY_NAMESPACE} IMAGE=${OPERATOR_IMAGE_LOC}
     fi
-else
-    INDEX_IMAGE_LOC="quay.io/codeready-toolchain/member-operator-index:latest"
 fi
 
 
