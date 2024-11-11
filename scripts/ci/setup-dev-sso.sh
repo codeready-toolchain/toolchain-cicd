@@ -62,16 +62,13 @@ check_command()
 run_wait_until_is_installed() {
     WAIT_UNTIL_IS_INSTALLED=scripts/ci/wait-until-is-installed.sh
     PARAMS="-crd keycloak.org -cs '' -n ${DEV_SSO_NS} -s ${SUBSCRIPTION_NAME}"
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+    SCRIPT_NAME=$(basename ${WAIT_UNTIL_IS_INSTALLED})
 
-    if [[ -f ${WAIT_UNTIL_IS_INSTALLED} ]]; then
-        ${WAIT_UNTIL_IS_INSTALLED} ${PARAMS}
+    if [[ -f ${SCRIPT_DIR}/${SCRIPT_NAME} ]]; then
+        ${SCRIPT_DIR}/${SCRIPT_NAME} ${PARAMS}
     else
-        if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${WAIT_UNTIL_IS_INSTALLED} ]]; then
-            ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${WAIT_UNTIL_IS_INSTALLED} ${PARAMS}
-        else
-            SCRIPT_NAME=$(basename ${WAIT_UNTIL_IS_INSTALLED})
-	        curl -sSL https://raw.githubusercontent.com/${OWNER_AND_BRANCH_LOCATION}/${WAIT_UNTIL_IS_INSTALLED} > /tmp/${SCRIPT_NAME} && chmod +x /tmp/${SCRIPT_NAME} && OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION} /tmp/${SCRIPT_NAME} ${PARAMS}
-        fi
+        curl -sSL https://raw.githubusercontent.com/${OWNER_AND_BRANCH_LOCATION}/${WAIT_UNTIL_IS_INSTALLED} > /tmp/${SCRIPT_NAME} && chmod +x /tmp/${SCRIPT_NAME} && OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION} /tmp/${SCRIPT_NAME} ${PARAMS}
     fi
 }
 

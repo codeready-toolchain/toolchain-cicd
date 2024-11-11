@@ -10,7 +10,6 @@ user_help () {
     echo "-hr, --host-repo-path    Path to the host operator repo"
     echo "-rr, --reg-repo-path     Path to the registation service repo"
     echo "-ds, --date-suffix       Date suffix to be added to some resources that are created"
-    echo "-dl, --deploy-latest     Deploy the latest version of operator"
     echo "-ft, --forced-tag        Forces a tag to be set to all built images. In the case deployment the tag is used for index image in the created CatalogSource"
     echo "-h,  --help              To show this help text"
     echo ""
@@ -64,11 +63,6 @@ read_arguments() {
                     DATE_SUFFIX=$1
                     shift
                     ;;
-                -dl|--deploy-latest)
-                    shift
-                    DEPLOY_LATEST=$1
-                    shift
-                    ;;
                 -ft|--forced-tag)
                     shift
                     FORCED_TAG=$1
@@ -95,18 +89,16 @@ fi
 
 MANAGE_OPERATOR_FILE=scripts/ci/manage-operator.sh
 OWNER_AND_BRANCH_LOCATION=${OWNER_AND_BRANCH_LOCATION:-codeready-toolchain/toolchain-cicd/master}
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+SCRIPT_NAME=$(basename ${MANAGE_OPERATOR_FILE})
 
-if [[ -f ${MANAGE_OPERATOR_FILE} ]]; then
-    source ${MANAGE_OPERATOR_FILE}
+if [[ -f ${SCRIPT_DIR}/${SCRIPT_NAME} ]]; then
+    source ${SCRIPT_DIR}/${SCRIPT_NAME}
 else
-    if [[ -f ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${MANAGE_OPERATOR_FILE} ]]; then
-        source ${GOPATH}/src/github.com/codeready-toolchain/toolchain-cicd/${MANAGE_OPERATOR_FILE}
-    else
-        source /dev/stdin <<< "$(curl -sSL https://raw.githubusercontent.com/${OWNER_AND_BRANCH_LOCATION}/${MANAGE_OPERATOR_FILE})"
-    fi
+    source /dev/stdin <<< "$(curl -sSL https://raw.githubusercontent.com/${OWNER_AND_BRANCH_LOCATION}/${MANAGE_OPERATOR_FILE})"
 fi
 
-if [[ ${DEPLOY_LATEST} != "true" ]] && [[ -n "${CI}${REG_REPO_PATH}${HOST_REPO_PATH}" ]] && [[ $(echo ${REPO_NAME} | sed 's/"//g') != "release" ]]; then
+if [[ -n "${CI}${REG_REPO_PATH}${HOST_REPO_PATH}" ]] && [[ $(echo ${REPO_NAME} | sed 's/"//g') != "release" ]]; then
     REPOSITORY_NAME=registration-service
     PROVIDED_REPOSITORY_PATH=${REG_REPO_PATH}
     get_repo
@@ -129,8 +121,6 @@ if [[ ${DEPLOY_LATEST} != "true" ]] && [[ -n "${CI}${REG_REPO_PATH}${HOST_REPO_P
         OPERATOR_IMAGE_LOC=${IMAGE_LOC}
         make -C ${REPOSITORY_PATH} publish-current-bundle INDEX_IMAGE_TAG=${BUNDLE_AND_INDEX_TAG} BUNDLE_TAG=${BUNDLE_AND_INDEX_TAG} QUAY_NAMESPACE=${QUAY_NAMESPACE} OTHER_REPO_PATH=${REG_REPO_PATH} OTHER_REPO_IMAGE_LOC=${REG_SERV_IMAGE_LOC} IMAGE=${OPERATOR_IMAGE_LOC}
     fi
-else
-    INDEX_IMAGE_LOC="quay.io/codeready-toolchain/host-operator-index:latest"
 fi
 
 if [[ ${INSTALL_OPERATOR} == "true" ]]; then
