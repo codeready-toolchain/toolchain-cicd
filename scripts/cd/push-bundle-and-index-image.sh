@@ -145,9 +145,9 @@ fi
 echo "modifying & pushing operator index image ${INDEX_IMAGE}..."
 TEMP_INDEX_DOCKERFILE=`mktemp`
 if [[ -n ${FROM_INDEX_IMAGE} ]] && [[ `${IMAGE_BUILDER} pull "${FROM_INDEX_IMAGE}"` ]]; then
-    opm index add --generate --out-dockerfile "${TEMP_INDEX_DOCKERFILE}" --bundles "${BUNDLE_IMAGE}" --build-tool ${IMAGE_BUILDER} --tag ${INDEX_IMAGE} --from-index ${FROM_INDEX_IMAGE} ${PULL_TOOL_PARAM}
+    opm index add --generate --out-dockerfile "${TEMP_INDEX_DOCKERFILE}" --bundles "${BUNDLE_IMAGE}" --build-tool ${IMAGE_BUILDER} --tag ${INDEX_IMAGE} --from-index ${FROM_INDEX_IMAGE} ${PULL_TOOL_PARAM} --mode=semver
 else
-    opm index add --generate --out-dockerfile "${TEMP_INDEX_DOCKERFILE}" --bundles "${BUNDLE_IMAGE}" --build-tool ${IMAGE_BUILDER} --tag ${INDEX_IMAGE} ${PULL_TOOL_PARAM}
+    opm index add --generate --out-dockerfile "${TEMP_INDEX_DOCKERFILE}" --bundles "${BUNDLE_IMAGE}" --build-tool ${IMAGE_BUILDER} --tag ${INDEX_IMAGE} ${PULL_TOOL_PARAM} --mode=semver
 fi
 
 ${IMAGE_BUILDER} build -f "${TEMP_INDEX_DOCKERFILE}" --platform "${IMAGE_PLATFORM}" -t "${INDEX_IMAGE}" .
