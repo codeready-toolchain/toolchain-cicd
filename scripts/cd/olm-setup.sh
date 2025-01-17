@@ -17,7 +17,7 @@ user_help () {
     echo "-qn, --quay-namespace    Specify the quay namespace the CSV should be pushed to - if not used then it uses the one stored in \"\${QUAY_NAMESPACE}\" variable"
     echo "-n,  --namespace         Namespace operator should be installed in"
     echo "-td, --temp-dir          Directory that should be used for storing temporal files - by default '/tmp' is used"
-    echo "-ib, --image-builder     Tool to build container images - will be used by opm. One of: [docker, podman] (default "docker")"
+    echo "-ib, --image-builder     Tool to build container images - will be used by opm. One of: [docker, podman] (default "podman")"
     echo "-iin, --index-image-name Name of the index image the bundle image should be added to."
     echo "-iit, --index-image-tag  Tag of the index image the bundle image should be added to."
     echo "-il, --image-location    Image location of the operator binary."
@@ -185,7 +185,7 @@ setup_variables() {
     OTHER_REPO_ROOT_DIR=${TEMP_DIR}/cd/other-repo
 
     # Image builder
-    IMAGE_BUILDER=${IMAGE_BUILDER:-"docker"}
+    IMAGE_BUILDER=${IMAGE_BUILDER:-"podman"}
     # set default image platform when not provided
     IMAGE_PLATFORM="${IMAGE_PLATFORM:-"linux/amd64"}"
 
