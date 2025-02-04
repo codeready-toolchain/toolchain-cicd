@@ -8,7 +8,7 @@ user_help () {
     echo "options:"
     echo "-pr, --project-root      Path to the root of the project the CSV should be generated for/in"
     echo "-nv, --next-version      Semantic version of the new CSV to be created"
-    echo "-rv, --replace-version   Semantic version of the CSV to be replaced (without the operator name prefix - eg: 0.0.1035-460-commit-e2d2b30-280e4ec)"
+    echo "-rv, --replace-version   The CSV version to be replaced (without the operator name prefix - eg: 0.0.1035-460-commit-e2d2b30-280e4ec)"
     echo "-ch, --channel           Channel to be used for the CSV in the package manifest"
     echo "-on, --operator-name     Name of the operator - by default it uses toolchain-{repository_name}"
     echo "-mr, --main-repo         URL of the GH repo that should be used as the main repo (for CD). The current repo should be embedded in the main one. The operator bundle should be taken from the main repository (example of the main repo: https://github.com/codeready-toolchain/host-operator)"
