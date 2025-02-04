@@ -1,81 +1,5 @@
 #!/usr/bin/env bash
 
-handle_missing_version_in_combined_repo() {
-    # split the version to get the number of commits and commit hashes as separated params (ie. from 0.0.217-105-commit-6c9926d-64af1be to 0.0.217 105 commit 6c9926d 64af1be)
-    SPLIT_REPLACE_VERSION=(${REPLACE_VERSION_SUFFIX//-/ })
-    # check if the number of split parts in the array is 5 to handle the missing version only for cases with embedded or main repos (host-operator + registration-service)
-    if [[ ${#SPLIT_REPLACE_VERSION[@]} -eq 5 ]]; then
-        # now we need to get the latest version that was added to the index - to do that we use "opm index export" command that pulls the index and all bundles that are added to the index
-        # however, we don't want to pull all bundle images (it could take long time and consume a lot of resources) so we redirect the output of the command to a file
-        # and then we will wait until opm unpacks the index image and prints out the list of bundle images that it is going to pull.
-        # We expect that the last added bundle is the first in in the list
-        echo "going to check the latest bundle image in the index image ..."
-        EXPORT_OUTPUT_FILE=${TEMP_DIR}/export-output
-        cd ${TEMP_DIR}
-            opm index export --index=${FROM_INDEX_IMAGE} -c=${IMAGE_BUILDER} -o=${OPERATOR_NAME} >${EXPORT_OUTPUT_FILE} 2>&1 &
-        cd ${CURRENT_DIR}
-        # read the file containing the output and check if it contains "Preparing to pull bundles" clause. The timeout is 1 minute
-        LAST_VERSION_IN_INDEX=""
-        while [[ -z ${LAST_VERSION_IN_INDEX} ]] && [[ ${NEXT_WAIT_TIME} -lt 60 ]]; do
-            # if the output contains "Preparing to pull bundles" clause then pick the first bundle image and take only the version suffix
-            # ie. from:
-            #     ... Preparing to pull bundles [\"quay.io/matousjobanek/host-operator-bundle:0.0.217-105-commit-25cbcfd-64af1be\" \"quay.io ...
-            # take only 0.0.217-105-commit-25cbcfd-64af1be
-            LAST_VERSION_IN_INDEX=$(grep "Preparing to pull bundles" ${EXPORT_OUTPUT_FILE} | sed 's/.*\\"\(.*\)\\"}].*/\1/')
-            echo "$(( NEXT_WAIT_TIME++ )). attempt of waiting for the latest bundle image in the index"
-            sleep 1
-        done
-        # kill the opm index export process
-        echo "the wait finished - killing the opm process"
-        kill %1 || true
-
-        # check if the latest bundle image version was found or not
-        if [[ -n ${LAST_VERSION_IN_INDEX} ]]; then
-            echo "latest bundle image version in index was found: ${LAST_VERSION_IN_INDEX}"
-
-            # if it was found then compare if the expected replace version is the same as the latest one
-            if [[ ${REPLACE_VERSION_SUFFIX} != ${LAST_VERSION_IN_INDEX} ]]; then
-                echo "the replaces version \"${REPLACE_VERSION_SUFFIX}\" is NOT the same as the latest version in index \"${LAST_VERSION_IN_INDEX}\""
-
-                # if the expected replace version is not the same as the latest one then let's check if new version that is going to be added is same as the latest one
-                # if it is, then it means that the bundle image with that version was already added
-                if [[ ${CURRENT_VERSION} != ${LAST_VERSION_IN_INDEX} ]]; then
-                    echo "the next new version \"${CURRENT_VERSION}\" is NOT the same as the latest version in index \"${LAST_VERSION_IN_INDEX}\""
-
-                    # if it's not the same, then it means that there is some version missing
-                    # in this "if" statement we check if the latest image version has something in common with the one in "replaces" clause
-                    if [[ -n $(echo ${LAST_VERSION_IN_INDEX} | grep "${SPLIT_REPLACE_VERSION[0]}-[0-9]*-commit-${SPLIT_REPLACE_VERSION[3]}.*") ]] || \
-                    [[ -n $(echo ${LAST_VERSION_IN_INDEX} | grep "0.0.[0-9]*-${SPLIT_REPLACE_VERSION[1]}-commit-[^-]*-${SPLIT_REPLACE_VERSION[4]}") ]]; then
-                        echo "we found something in common with the latest bundle image version in the index, so we will use the version \"${LAST_VERSION_IN_INDEX}\" for the replacement"
-
-                        # if it has something in common then it would mean that there is most like only one version missing
-                        # in that case let's replace the "replaces" clause with the latest image version and use that one
-                        TEMP_CSV_REPLACE="${TEMP_DIR}/${PRJ_NAME}_${CURRENT_VERSION}_csv_replace.yaml"
-                        sed "s/replaces: ${REPLACE_VERSION}$/replaces: ${OPERATOR_NAME}.v${LAST_VERSION_IN_INDEX}/" ${CSV_LOCATION} > ${TEMP_CSV_REPLACE}
-                        mv ${TEMP_CSV_REPLACE} ${CSV_LOCATION}
-                    else
-                        echo "we didn't find anything in common in the the latest bundle image version, but we will continue and hope that it will magically work"
-                    fi
-                else
-                    echo "the next new version \"${CURRENT_VERSION}\" IS the same as the latest version in index \"${LAST_VERSION_IN_INDEX}\""
-                    echo "this means that the version has been already added to the index"
-                    echo "exiting the CD process..."
-                    exit 0
-                fi
-             else
-                echo "the replaces version \"${REPLACE_VERSION_SUFFIX}\" IS the same as the latest version in index \"${LAST_VERSION_IN_INDEX}\""
-                echo "that means that no version is missing in the index"
-             fi
-        else
-            echo "the latest bundle image wasn't found in the opm output - we will continue and hope that everything will work fine"
-            echo "see the opm output:"
-            cat ${EXPORT_OUTPUT_FILE}
-        fi
-    else
-        echo "the split replace version doesn't have 5 parts (${SPLIT_REPLACE_VERSION[@]}) so it means that it's not a combined operator (host-operator + registration-service)"
-    fi
-}
-
 # get abs path of the directory where this script is located
 # this way the source of the local file can work independently of where the script is executed from.
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
@@ -117,12 +41,7 @@ FROM_INDEX_IMAGE="${INDEX_IMAGE}"
 
 # get the current version that is in the "replaces" clause of the CSV
 REPLACE_VERSION=`grep "^  replaces: " ${CSV_LOCATION} | awk '{print $2}'`
-if [[ -n ${REPLACE_VERSION} ]]; then
-    # get only the suffix from the replace version (ie. from toolchain-host-operator.v0.0.217-105-commit-6c9926d-64af1be get only 0.0.217-105-commit-6c9926d-64af1be)
-    REPLACE_VERSION_SUFFIX=`echo ${REPLACE_VERSION} | sed -e "s/^.*operator.v//"`
-
-    handle_missing_version_in_combined_repo
-else
+if [[ -z ${REPLACE_VERSION} ]]; then
     FROM_INDEX_IMAGE=""
 fi
 

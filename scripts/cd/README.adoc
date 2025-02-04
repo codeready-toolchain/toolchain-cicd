@@ -17,17 +17,8 @@ The simplified flow of the script is the following:
 The `push-bundle-and-index-image.sh` takes the current operator bundle manifests in the `deploy/olm-catalog/<operator-name>/` directory and using the files it generates bundle image (uses "staging" channel), adds it to an index image and pushes them to a repository in https://quay.io[].
 The simplified flow of the script is the following:
 
-1. Reads the new version in CSV, parses it and checks if it contains 5 parts which means that when the CSV was being generated then either embedded or main repo was specified (eg. host-operator / registration-service)
-2. If the version contains 5 parts then it checks if the "replaces" version corresponds to what is in the index image:
-.. Reads the "replaces" version in the CSV
-.. Calls `opm index export` command for the given index and operator name and redirects the output to a file
-.. As soon as the file contains information that `opm` starts pulling bundle images, then the scripts stop the command and reads the latest version specified in the output line.
-.. Compare the "replaces" version from CSV with the latest version in index and if
-* they are the same, then it continues using the same "replaces" version.
-* if they both have "at least something in common", then the script assumes that there was one or more commits of the same repository skipped so it uses the version from the index as the one for replacement.
-* (there are more cases - see the script and the inline comments for more info)
-
-3. Replaces the channel name to "staging" in both bundle.Dockerfile and metadata/annotations.yaml.
-4. Builds a container for a bundle image.
-5. Builds the bundle image and pushes it to quay.
-6. Adds the bundle image to index image and pushes it to quay.
+1. Reads the new version in CSV and checks if it replaces an older version of the operator
+2. Replaces the channel name to "staging" in both bundle.Dockerfile and metadata/annotations.yaml.
+3. Builds a container for a bundle image.
+4. Builds the bundle image and pushes it to quay.
+5. Adds the bundle image to index image and pushes it to quay.
