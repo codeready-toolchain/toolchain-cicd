@@ -54,7 +54,7 @@ read_arguments() {
                     ;;
                 -rv|--replace-version)
                     shift
-                    EXPLICIT_REPLACE_VERSION=$1
+                    EXPLICIT_REPLACE_VERSION="$1"
                     shift
                     ;;
                 -ch|--channel)
