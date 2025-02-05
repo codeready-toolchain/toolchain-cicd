@@ -8,6 +8,7 @@ user_help () {
     echo "options:"
     echo "-pr, --project-root      Path to the root of the project the CSV should be generated for/in"
     echo "-nv, --next-version      Semantic version of the new CSV to be created"
+    echo "-rv, --replace-version   The CSV version to be replaced (without the operator name prefix - eg: 0.0.1035-460-commit-e2d2b30-280e4ec)"
     echo "-ch, --channel           Channel to be used for the CSV in the package manifest"
     echo "-on, --operator-name     Name of the operator - by default it uses toolchain-{repository_name}"
     echo "-mr, --main-repo         URL of the GH repo that should be used as the main repo (for CD). The current repo should be embedded in the main one. The operator bundle should be taken from the main repository (example of the main repo: https://github.com/codeready-toolchain/host-operator)"
@@ -49,6 +50,11 @@ read_arguments() {
                 -nv|--next-version)
                     shift
                     NEXT_CSV_VERSION=$1
+                    shift
+                    ;;
+                -rv|--replace-version)
+                    shift
+                    EXPLICIT_REPLACE_VERSION="$1"
                     shift
                     ;;
                 -ch|--channel)
@@ -312,6 +318,10 @@ setup_version_variables_based_on_commits() {
         # there is no other repo specified - use the basic version format
         NEXT_CSV_VERSION="0.0.${NUMBER_OF_COMMITS}-commit-${GIT_COMMIT_ID}"
         REPLACE_CSV_VERSION="0.0.$((${NUMBER_OF_COMMITS}-1))-commit-${PREVIOUS_GIT_COMMIT_ID}"
+    fi
+
+    if [[ -n "${EXPLICIT_REPLACE_VERSION}" ]]; then
+        REPLACE_CSV_VERSION=${EXPLICIT_REPLACE_VERSION}
     fi
     echo ${REPLACE_CSV_VERSION} ${NEXT_CSV_VERSION}
 }
