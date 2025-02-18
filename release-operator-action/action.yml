@@ -15,16 +15,17 @@ runs:
     shell: bash
     run: |
       set -e
-      mkdir -p  ~/.docker || true
+      export XDG_RUNTIME_DIR=/run/user/${UID}
+      mkdir -p ${XDG_RUNTIME_DIR}/containers || true
       echo "{
                     \"auths\": {
                             \"quay.io\": {
                                     \"auth\": \"${{ inputs.quay-token }}\"
                             }
                     }
-            }"> ~/.docker/config.json
+            }"> ${XDG_RUNTIME_DIR}/containers/auth.json
 
-      podman login quay.io  --authfile=~/.docker/config.json
+      podman login --get-login quay.io
 
   - name: Build & push
     shell: bash
