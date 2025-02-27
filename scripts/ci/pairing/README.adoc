@@ -18,5 +18,5 @@ cd scripts/ci/pairing
 and build the binary
 
 ```
-make build
+make build-pairing PAIRING_DIR=<dir-to-locate-pair-binary>
 ```
