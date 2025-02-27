@@ -1,0 +1,51 @@
+name: Build & Test
+on:
+  push:
+    branches:
+    - master
+    tags-ignore:
+    - '*.*'
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./scripts/ci/pairing
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+    name: Test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: ./scripts/ci/pairing/go.mod
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles ('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Lint
+      uses: golangci/golangci-lint-action@v6
+      with:
+        version: v1.63.1
+        skip-pkg-cache: true
+        skip-build-cache: true
+        working-directory: ./scripts/ci/pairing
+        args: --config=.golangci.yml --verbose
+
+    - name: Test
+      run: |
+        make test

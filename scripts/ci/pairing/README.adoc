@@ -1,0 +1,22 @@
+= Pairing Mechanism 
+
+This pairing mechanism, implemented in Go, simplifies the process by offering a more maintainable approach.
+It reduces complexity and eliminates redundancy, providing a more efficient and reusable solution for pairing.
+
+
+== Build
+
+Requires Go version 1.22.x (1.22.12 or higher) - download for your development environment https://golang.org/dl/[here].
+
+To build the binary, clone the latest version of toolchain-cicd repository:
+
+```
+git clone https://github.com/codeready-toolchain/toolchain-cicd.git
+cd scripts/ci/pairing
+```
+
+and build the binary
+
+```
+make build-pairing PAIRING_DIR=<pair-to-locate-binary>
+```
