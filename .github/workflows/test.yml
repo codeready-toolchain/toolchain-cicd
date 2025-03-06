@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: ./scripts/ci/pairing
+        working-directory: ./pairing
     strategy:
       matrix:
         os: [ ubuntu-latest ]
@@ -27,7 +27,7 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v5
       with:
-        go-version-file: ./scripts/ci/pairing/go.mod
+        go-version-file: ./pairing/go.mod
 
     - name: Cache dependencies
       uses: actions/cache@v4
@@ -43,7 +43,7 @@ jobs:
         version: v1.63.1
         skip-pkg-cache: true
         skip-build-cache: true
-        working-directory: ./scripts/ci/pairing
+        working-directory: ./pairing
         args: --config=.golangci.yml --verbose
 
     - name: Test

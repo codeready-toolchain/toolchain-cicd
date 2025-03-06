@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents the base command when called without any subcommands
 var rootCmd = NewRootCmd()
 
 func NewRootCmd() *cobra.Command {
@@ -18,8 +17,6 @@ func NewRootCmd() *cobra.Command {
 	}
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

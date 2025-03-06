@@ -6,13 +6,13 @@ It reduces complexity and eliminates redundancy, providing a more efficient and 
 
 == Build
 
-Requires Go version 1.22.x (1.22.12 or higher) - download for your development environment https://golang.org/dl/[here].
+Requires Go version 1.21.x (1.21.13 or higher) - download for your development environment https://golang.org/dl/[here].
 
 To build the binary, clone the latest version of toolchain-cicd repository:
 
 ```
 git clone https://github.com/codeready-toolchain/toolchain-cicd.git
-cd scripts/ci/pairing
+cd pairing
 ```
 
 and build the binary

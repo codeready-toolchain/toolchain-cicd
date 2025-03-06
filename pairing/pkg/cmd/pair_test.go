@@ -14,7 +14,7 @@ type MockPairingService struct {
 	mock.Mock
 }
 
-func (m *MockPairingService) shouldPair(orgForPairing, repoForPairing, currentRemoteName, currentBranchName string) (bool, error) {
+func (m *MockPairingService) shouldPair(forkRepoURL, branchForParing string) (bool, error) {
 	return true, nil
 }
 
