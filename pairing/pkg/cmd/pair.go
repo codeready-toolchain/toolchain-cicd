@@ -113,6 +113,21 @@ func getCurrentPRInfo() (string, string, error) {
 }
 
 func clone(cloneDir, url string) (*git.Repository, error) {
+	cloneDirInfo, err := os.Stat(cloneDir)
+
+	if !os.IsNotExist(err) {
+		if cloneDirInfo.IsDir() {
+			log.Printf("folder %s already exists... removing", cloneDir)
+
+			err := os.RemoveAll(cloneDir)
+			if err != nil {
+				return nil, fmt.Errorf("error removing %s folder: %w", cloneDir, err)
+			}
+		} else {
+			return nil, fmt.Errorf("cloneDir %s provided is not a directory", cloneDir)
+		}
+	}
+
 	repo, err := git.PlainClone(cloneDir, false, &git.CloneOptions{
 		URL:           url,
 		ReferenceName: plumbing.ReferenceName("refs/heads/master"),
@@ -128,20 +143,6 @@ func clone(cloneDir, url string) (*git.Repository, error) {
 
 func cloneAndPair(cloneDir, parentRepoURL, forkRepoURL, remoteBranch string) error {
 	log.Printf("branch ref of the user's fork (%s) to be used for pairing: %s\n", forkRepoURL, remoteBranch)
-	cloneDirInfo, err := os.Stat(cloneDir)
-
-	if !os.IsNotExist(err) {
-		if cloneDirInfo.IsDir() {
-			log.Printf("folder %s already exists... removing", cloneDir)
-
-			err := os.RemoveAll(cloneDir)
-			if err != nil {
-				return fmt.Errorf("error removing %s folder: %w", cloneDir, err)
-			}
-		} else {
-			return fmt.Errorf("cloneDir %s provided is not a directory", cloneDir)
-		}
-	}
 
 	// clone parent repo
 	// git clone parentRepoURL cloneDir
