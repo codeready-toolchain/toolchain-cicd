@@ -76,8 +76,9 @@ func shouldPair(forkRepoURL, branchForParing string) (bool, error) {
 		}
 	}
 
+	// branch not found
 	if branchHash == "" {
-		return false, fmt.Errorf("branch not found")
+		return false, nil
 	}
 
 	return true, nil
@@ -204,7 +205,7 @@ func Pair(cloneDir, organization, repository string, p PairingServiceInterface) 
 
 		shouldPair, err := p.shouldPair(forkRepoURL, remoteBranch)
 		if err != nil {
-			log.Printf("should not pair: %s", err.Error())
+			return err
 		}
 
 		if shouldPair {
