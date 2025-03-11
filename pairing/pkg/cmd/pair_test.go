@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // Mock the shouldPair function
@@ -20,8 +20,27 @@ func (m *MockPairingService) shouldPair(forkRepoURL, branchForParing string) (bo
 
 func TestPair(t *testing.T) {
 	t.Run("error during clone: repository not found", func(t *testing.T) {
-		expectedError := fmt.Errorf("failed to clone repository: authentication required: Repository not found.")
+		expectedError := fmt.Errorf("failed to clone repository: authentication required")
 		pair(t, "/tmp/repository-not-found", "codeready-toolchain", "host-operato", expectedError, &PairingService{})
+	})
+
+	t.Run("error during clone: cloneDir provided is not a directory", func(t *testing.T) {
+		filePath := "/tmp/file.txt"
+		file, err := os.Create(filePath)
+		require.NoError(t, err)
+		defer file.Close()
+		defer os.Remove(filePath)
+
+		expectedError := fmt.Errorf("cloneDir /tmp/file.txt provided is not a directory")
+		pair(t, filePath, "codeready-toolchain", "host-operator", expectedError, &PairingService{})
+	})
+
+	t.Run("cloneDir already exists (should clean it and return no error)", func(t *testing.T) {
+		// folder already exists
+		cloneDir := "/tmp/host-operator"
+		require.NoError(t, os.Mkdir(cloneDir, os.ModePerm))
+
+		pair(t, cloneDir, "codeready-toolchain", "host-operator", nil, &PairingService{})
 	})
 
 	t.Run("not running in ci", func(t *testing.T) {
@@ -45,7 +64,7 @@ func TestPair(t *testing.T) {
 
 	})
 
-	t.Run("error parsing openshift job spec data", func(t *testing.T) {
+	t.Run("running in ci - prow job - error parsing openshift job spec data", func(t *testing.T) {
 		t.Setenv("CI", "true")
 		t.Setenv("JOB_SPEC", `"type"`)
 		expectedError := fmt.Errorf("error when parsing openshift job spec data: json: cannot unmarshal string into Go value of type cmd.JobSpec")
@@ -53,7 +72,7 @@ func TestPair(t *testing.T) {
 		pair(t, "/tmp/running-in-ci-prow-job", "codeready-toolchain", "host-operator", expectedError, &PairingService{})
 	})
 
-	t.Run("should pair", func(t *testing.T) {
+	t.Run("running in ci - should pair", func(t *testing.T) {
 		t.Setenv("CI", "true")
 		t.Setenv("GITHUB_ACTIONS", "true")
 		t.Setenv("AUTHOR", "rsoaresd")
@@ -61,7 +80,23 @@ func TestPair(t *testing.T) {
 
 		pairingServiceMock := new(MockPairingService)
 		pair(t, "/tmp/should-pair", "codeready-toolchain", "host-operator", nil, pairingServiceMock)
+	})
 
+	t.Run("running in ci - failed to pair", func(t *testing.T) {
+		t.Setenv("CI", "true")
+		t.Setenv("GITHUB_ACTIONS", "true")
+		t.Setenv("AUTHOR", "rsoaesd")
+		t.Setenv("GITHUB_HEAD_REF", "clean_only_when_test_passed")
+
+		expectedError := fmt.Errorf("failed to get repo: Repository not found.")
+		pair(t, "/tmp/running-in-gh-action", "kubesaw", "ksctl", expectedError, &PairingService{})
+	})
+
+	t.Run("running in ci - but not running in OpenShift-CI job either GH action", func(t *testing.T) {
+		t.Setenv("CI", "true")
+
+		expectedError := fmt.Errorf("not running in OpenShift-CI job either GH action")
+		pair(t, "/tmp/running-in-gh-action", "kubesaw", "ksctl", expectedError, &PairingService{})
 	})
 }
 
@@ -75,8 +110,8 @@ func pair(t *testing.T, cloneDir, org, repo string, expectedError error, p Pairi
 	}()
 
 	if expectedError == nil {
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	} else {
-		assert.EqualError(t, err, expectedError.Error())
+		require.EqualError(t, err, expectedError.Error())
 	}
 }

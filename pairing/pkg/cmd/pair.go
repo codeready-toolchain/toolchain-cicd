@@ -66,6 +66,10 @@ func shouldPair(forkRepoURL, branchForParing string) (bool, error) {
 		return false, err
 	}
 
+	if resp.StatusCode != 200 {
+		return false, fmt.Errorf("failed to get repo: %s", string(body))
+	}
+
 	lines := strings.Split(string(body), "\n")
 	var branchHash string
 	for _, line := range lines {
