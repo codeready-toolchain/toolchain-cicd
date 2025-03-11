@@ -191,6 +191,9 @@ func cloneAndPair(cloneDir, parentRepoURL, forkRepoURL, remoteBranch string) err
 }
 
 func Pair(cloneDir, organization, repository string, p PairingServiceInterface) error {
+	parentRepoURL := fmt.Sprintf("https://github.com/%s/%s.git", organization, repository)
+
+	// running in CI
 	if os.Getenv("CI") == "true" {
 		authorName, remoteBranch, err := getCurrentPRInfo()
 		if err != nil {
@@ -204,17 +207,17 @@ func Pair(cloneDir, organization, repository string, p PairingServiceInterface) 
 			log.Printf("should not pair: %s", err.Error())
 		}
 
-		parentRepoURL := fmt.Sprintf("https://github.com/%s/%s.git", organization, repository)
-
 		if shouldPair {
-			fmt.Println("should pair")
 			return cloneAndPair(cloneDir, parentRepoURL, forkRepoURL, remoteBranch)
 		}
 
-		log.Printf("no pairing needed. cloning parent repo %s\n", parentRepoURL)
+		log.Printf("running in CI but no pairing needed. cloning parent repo %s\n", parentRepoURL)
 		_, err = clone(cloneDir, parentRepoURL)
 		return err
 	}
 
-	return fmt.Errorf("not running in CI")
+	// not running in CI
+	log.Printf("not running in CI, so pairing is not needed. cloning parent repo %s", parentRepoURL)
+	_, err := clone(cloneDir, parentRepoURL)
+	return err
 }
