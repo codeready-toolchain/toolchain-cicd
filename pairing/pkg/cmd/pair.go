@@ -74,7 +74,7 @@ func shouldPair(forkRepoURL, branchForParing string) (bool, error) {
 	var branchHash string
 	for _, line := range lines {
 		fields := strings.Fields(line)
-		if len(fields) == 2 && strings.Contains(fields[1], fmt.Sprintf("refs/heads/%s", branchForParing)) {
+		if len(fields) == 2 && fields[1] == fmt.Sprintf("refs/heads/%s", branchForParing) {
 			branchHash = fields[0]
 			break
 		}
