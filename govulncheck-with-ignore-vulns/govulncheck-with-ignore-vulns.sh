@@ -38,18 +38,18 @@ set -e -o pipefail
 
 read_arguments $@
 
-today=$(date -I)
+TODAY=$(date -I)
 
 # load vulns to ignore from $CONFIG_FILE using yq
-ignoreVulns="$(yq -o=json eval '.ignore' "$CONFIG_FILE")"
-echo ignoreVulns: $ignoreVulns
+IGNOREVULNS="$(yq -o=json eval '.ignore' "$CONFIG_FILE")"
+echo IGNOREVULNS: $IGNOREVULNS
 
 # run govulncheck
 echo running govulncheck...
-json="$(govulncheck -json ./...)"
+JSON="$(govulncheck -json ./...)"
 
 # extract vulns reported by govulncheck
-vulns="$(jq <<<"$json" -cs '
+VULNS="$(jq <<<"$JSON" -cs '
 	(
 		map(
 			.osv // empty
@@ -76,20 +76,20 @@ vulns="$(jq <<<"$json" -cs '
 	)
 ')"
 
-echo vulnerabilities reported by govulncheck $vulns
+echo vulnerabilities reported by govulncheck $VULNS
 
 # filtering the vulnerabilities to ignore
-filtered="$(jq <<<"$vulns" -c --arg today "$today" --arg ignoreVulns "$ignoreVulns" '
-  ($ignoreVulns | fromjson) as $ignore
+FILTERED="$(jq <<<"$VULNS" -c --arg TODAY "$TODAY" --arg IGNOREVULNS "$IGNOREVULNS" '
+  ($IGNOREVULNS | fromjson) as $ignore
   | map(select(
       .id as $id
-      | $ignore | map(select(.id == $id and .expires > $today)) | length == 0
+      | $ignore | map(select(.id == $id and .expires > $TODAY)) | length == 0
   ))
 ')"
 
-echo vulnerabilities filtered $filtered
+echo vulnerabilities filtered $FILTERED
 
-results="$(jq <<<"$filtered" -r 'map(
+RESULTS="$(jq <<<"$FILTERED" -r 'map(
   "- \(.id) (\(.database_specific.url))\n\t\(.details | gsub("\n"; "\n\t"))\n\tPackage: \(
     if .affected[0].package.name == "stdlib" then
       .affected[0].ecosystem_specific.imports[0].path // "N/A"
@@ -112,11 +112,11 @@ results="$(jq <<<"$filtered" -r 'map(
 ) | join("\n\n")')"
 
 
-if [ -z "$results" ]; then
+if [ -z "$RESULTS" ]; then
 	printf 'No vulnerabilities found.\n'
 	exit 0
 else
 	printf 'Vulnerabilities found:\n'
-	printf '%s\n' "$results"
+	printf '%s\n' "$RESULTS"
 	exit 1
 fi
