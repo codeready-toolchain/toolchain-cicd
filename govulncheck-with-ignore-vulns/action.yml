@@ -1,0 +1,12 @@
+name: 'govulncheck-with-ignore-vulns'
+description: 'Run govulncheck ignoring vulnerabilities from config file'
+runs:
+  using: "composite"
+  steps:
+    - name: Install govulncheck
+      run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      shell: bash
+
+    - name: Run govulncheck-with-ignore-vulns
+      run: bash ${{ github.action_path }}/govulncheck-with-ignore-vulns.sh -cfg ${{ github.action_path }}/.govulncheck.yaml
+      shell: bash

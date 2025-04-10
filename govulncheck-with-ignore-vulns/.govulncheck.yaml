@@ -1,0 +1,19 @@
+ignore:
+  # Kubernetes kube-apiserver Vulnerable to Race Condition in k8s.io/kubernetes
+  # More info: https://pkg.go.dev/vuln/GO-2025-3547
+  # Module: k8s.io/kubernetes
+  # Fixed in: N/A
+  - id: GO-2025-3547
+    expires: 2025-05-10
+  # Kubernetes GitRepo Volume Inadvertent Local Repository Access in k8s.io/kubernetes
+  # More info: https://pkg.go.dev/vuln/GO-2025-3521
+  # Module: k8s.io/kubernetes
+  # Fixed in: N/A
+  - id: GO-2025-3521
+    expires: 2025-05-10
+  # Request smuggling due to acceptance of invalid chunked data in net/http
+  # More info: https://pkg.go.dev/vuln/GO-2025-3563
+  # Standard library
+  # Fixed in: net/http/internal@go1.23.8
+  - id: GO-2025-3563
+    expires: 2025-05-10
