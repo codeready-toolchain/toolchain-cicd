@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,15 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type PairingServiceInterface interface {
-	shouldPair(forkRepoURL, branchForParing string) (bool, error)
-}
-
-type PairingService struct{}
-
-func (s *PairingService) shouldPair(forkRepoURL, branchForParing string) (bool, error) {
-	return shouldPair(forkRepoURL, branchForParing)
-}
+type ApplyPairFunc func(repo *git.Repository, forkRepoURL, remoteBranch string) error
 
 func NewPairCmd() *cobra.Command {
 	var cloneDir, organization, repository string
@@ -35,7 +28,7 @@ func NewPairCmd() *cobra.Command {
 		Long:  `Automatically tries to pair a PR opened on a specific repository with a branch of the same name that potentially could exist in the given organization and repository.`,
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return Pair(cloneDir, organization, repository, &PairingService{})
+			return Pair(cloneDir, organization, repository, applyPair)
 		},
 	}
 
@@ -70,22 +63,15 @@ func shouldPair(forkRepoURL, branchForParing string) (bool, error) {
 		return false, fmt.Errorf("failed to get repo: %s", string(body))
 	}
 
-	lines := strings.Split(string(body), "\n")
-	var branchHash string
-	for _, line := range lines {
-		fields := strings.Fields(line)
+	scanner := bufio.NewScanner(strings.NewReader(string(body)))
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
 		if len(fields) == 2 && fields[1] == fmt.Sprintf("refs/heads/%s", branchForParing) {
-			branchHash = fields[0]
-			break
+			return true, nil
 		}
 	}
-
 	// branch not found
-	if branchHash == "" {
-		return false, nil
-	}
-
-	return true, nil
+	return false, nil
 }
 
 // getCurrentPRInfo gets the current info of the PR that triggered the pairing
@@ -120,7 +106,7 @@ func getCurrentPRInfo() (string, string, error) {
 func clone(cloneDir, url string) (*git.Repository, error) {
 	cloneDirInfo, err := os.Stat(cloneDir)
 
-	if !os.IsNotExist(err) {
+	if err != nil && !os.IsNotExist(err) {
 		if cloneDirInfo.IsDir() {
 			log.Printf("folder %s already exists... removing", cloneDir)
 
@@ -135,7 +121,7 @@ func clone(cloneDir, url string) (*git.Repository, error) {
 
 	repo, err := git.PlainClone(cloneDir, false, &git.CloneOptions{
 		URL:           url,
-		ReferenceName: plumbing.ReferenceName("refs/heads/master"),
+		ReferenceName: "refs/heads/master",
 		// Depth:         1,
 		Progress: os.Stdout,
 	})
@@ -146,16 +132,8 @@ func clone(cloneDir, url string) (*git.Repository, error) {
 	return repo, nil
 }
 
-func cloneAndPair(cloneDir, parentRepoURL, forkRepoURL, remoteBranch string) error {
+func applyPair(repo *git.Repository, forkRepoURL, remoteBranch string) error {
 	log.Printf("branch ref of the user's fork (%s) to be used for pairing: %s\n", forkRepoURL, remoteBranch)
-
-	// clone parent repo
-	// git clone parentRepoURL cloneDir
-	log.Printf("cloning parent repository %s\n", parentRepoURL)
-	repo, err := clone(cloneDir, parentRepoURL)
-	if err != nil {
-		return fmt.Errorf("failed to clone repository: %w", err)
-	}
 
 	// add the user's fork as remote
 	// git remote add external forkRepoURL
@@ -169,17 +147,17 @@ func cloneAndPair(cloneDir, parentRepoURL, forkRepoURL, remoteBranch string) err
 
 	// fetch the remote branch
 	// git fetch external remoteBranch
+	remoteRefName := plumbing.NewRemoteReferenceName(remote.Config().Name, remoteBranch)
 	err = repo.Fetch(&git.FetchOptions{
 		RemoteName: remote.Config().Name,
 		RefSpecs: []config.RefSpec{
-			config.RefSpec(fmt.Sprintf("+refs/heads/%s:refs/remotes/%s/%s", remoteBranch, remote.Config().Name, remoteBranch)),
+			config.RefSpec(fmt.Sprintf("+refs/heads/%s:%s", remoteBranch, remoteRefName)),
 		},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to fetch: %w", err)
 	}
 
-	remoteRefName := plumbing.NewRemoteReferenceName(remote.Config().Name, remoteBranch)
 	reference, err := repo.Reference(remoteRefName, true)
 	if err != nil {
 		return fmt.Errorf("fetched branch does not exist: %w", err)
@@ -187,7 +165,7 @@ func cloneAndPair(cloneDir, parentRepoURL, forkRepoURL, remoteBranch string) err
 
 	// merge the remote branch with master
 	// git merge remoteBranch
-	err = repo.Merge(*reference, git.MergeOptions{})
+	err = repo.Merge(*reference, git.MergeOptions{Strategy: git.FastForwardMerge})
 	if err != nil {
 		return fmt.Errorf("failed to merge: %w", err)
 	}
@@ -195,8 +173,13 @@ func cloneAndPair(cloneDir, parentRepoURL, forkRepoURL, remoteBranch string) err
 	return err
 }
 
-func Pair(cloneDir, organization, repository string, p PairingServiceInterface) error {
+func Pair(cloneDir, organization, repository string, applyPair ApplyPairFunc) error {
 	parentRepoURL := fmt.Sprintf("https://github.com/%s/%s.git", organization, repository)
+	log.Printf("cloning parent repo %s", parentRepoURL)
+	repo, err := clone(cloneDir, parentRepoURL)
+	if err != nil {
+		return err
+	}
 
 	// running in CI
 	if os.Getenv("CI") == "true" {
@@ -207,22 +190,20 @@ func Pair(cloneDir, organization, repository string, p PairingServiceInterface) 
 
 		forkRepoURL := fmt.Sprintf("https://github.com/%s/%s.git", authorName, repository)
 
-		shouldPair, err := p.shouldPair(forkRepoURL, remoteBranch)
+		shouldPair, err := shouldPair(forkRepoURL, remoteBranch)
 		if err != nil {
 			return err
 		}
 
 		if shouldPair {
-			return cloneAndPair(cloneDir, parentRepoURL, forkRepoURL, remoteBranch)
+			return applyPair(repo, forkRepoURL, remoteBranch)
 		}
 
-		log.Printf("running in CI but no pairing needed. cloning parent repo %s\n", parentRepoURL)
-		_, err = clone(cloneDir, parentRepoURL)
-		return err
+		log.Println("running in CI but no pairing needed")
+		return nil
 	}
 
 	// not running in CI
-	log.Printf("not running in CI, so pairing is not needed. cloning parent repo %s", parentRepoURL)
-	_, err := clone(cloneDir, parentRepoURL)
-	return err
+	log.Println("not running in CI, so pairing is not needed")
+	return nil
 }

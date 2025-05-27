@@ -1,0 +1,93 @@
+{
+    "type": "presubmit",
+    "job": "pull-ci-codeready-toolchain-toolchain-e2e-master-e2e",
+    "buildid": "1889023022812106752",
+    "prowjobid": "9ccb229f-aebf-45d6-90e2-2388663e8b9a",
+    "refs": {
+        "org": "codeready-toolchain",
+        "repo": "toolchain-e2e",
+        "repo_link": "https://github.com/codeready-toolchain/toolchain-e2e",
+        "base_ref": "master",
+        "base_sha": "47ac08434063871caf78c8f3d6dbab6df61ecb63",
+        "base_link": "https://github.com/codeready-toolchain/toolchain-e2e/commit/47ac08434063871caf78c8f3d6dbab6df61ecb63",
+        "pulls": [
+            {
+                "number": 1113,
+                "author": "cosmic",
+                "sha": "67ece9d9716bcc8556f91c0c909ecea4b7c17bff",
+                "head_ref": "branch-test",
+                "link": "https://github.com/codeready-toolchain/toolchain-e2e/pull/1113",
+                "commit_link": "https://github.com/codeready-toolchain/toolchain-e2e/pull/1113/commits/67ece9d9716bcc8556f91c0c909ecea4b7c17bff",
+                "author_link": "https://github.com/cosmic"
+            }
+        ]
+    },
+    "decoration_config": {
+        "timeout": "2h0m0s",
+        "grace_period": "15s",
+        "utility_images": {
+            "clonerefs": "us-docker.pkg.dev/k8s-infra-prow/images/clonerefs:v20250205-e871edfd1",
+            "initupload": "us-docker.pkg.dev/k8s-infra-prow/images/initupload:v20250205-e871edfd1",
+            "entrypoint": "us-docker.pkg.dev/k8s-infra-prow/images/entrypoint:v20250205-e871edfd1",
+            "sidecar": "us-docker.pkg.dev/k8s-infra-prow/images/sidecar:v20250205-e871edfd1"
+        },
+        "resources": {
+            "clonerefs": {
+                "limits": {
+                    "memory": "3Gi"
+                },
+                "requests": {
+                    "cpu": "100m",
+                    "memory": "500Mi"
+                }
+            },
+            "initupload": {
+                "limits": {
+                    "memory": "200Mi"
+                },
+                "requests": {
+                    "cpu": "100m",
+                    "memory": "50Mi"
+                }
+            },
+            "place_entrypoint": {
+                "limits": {
+                    "memory": "100Mi"
+                },
+                "requests": {
+                    "cpu": "100m",
+                    "memory": "25Mi"
+                }
+            },
+            "sidecar": {
+                "limits": {
+                    "memory": "2Gi"
+                },
+                "requests": {
+                    "cpu": "100m",
+                    "memory": "250Mi"
+                }
+            }
+        },
+        "gcs_configuration": {
+            "bucket": "test-platform-results",
+            "path_strategy": "single",
+            "default_org": "openshift",
+            "default_repo": "origin",
+            "mediaTypes": {
+                "log": "text/plain"
+            },
+            "compress_file_types": [
+                "txt",
+                "log",
+                "json",
+                "tar",
+                "html",
+                "yaml"
+            ]
+        },
+        "gcs_credentials_secret": "gce-sa-credentials-gcs-publisher",
+        "skip_cloning": true,
+        "censor_secrets": true
+    }
+}
