@@ -1,13 +1,17 @@
-name: Build & Test
+name: Build & Test Pairing
 on:
   push:
     branches:
-    - master
+      - master
     tags-ignore:
-    - '*.*'
+      - "*.*"
+    paths:
+      - "pairing/**"
   pull_request:
     branches:
-    - master
+      - master
+    paths:
+      - "pairing/**"
 
 jobs:
   test:
@@ -21,31 +25,31 @@ jobs:
     name: Test
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Install Go
-      uses: actions/setup-go@v5
-      with:
-        go-version-file: ./pairing/go.mod
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ./pairing/go.mod
 
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles ('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-          
-    - name: Lint
-      uses: golangci/golangci-lint-action@v8
-      with:
-        version: v2.1.6
-        skip-pkg-cache: true
-        skip-build-cache: true
-        working-directory: ./pairing
-        args: --config=./.golangci.yml --verbose
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
-    - name: Test
-      run: |
-        make test
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.1.6
+          skip-pkg-cache: true
+          skip-build-cache: true
+          working-directory: ./pairing
+          args: --config=./.golangci.yml --verbose
+
+      - name: Test
+        run: |
+          make test
