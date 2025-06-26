@@ -1,0 +1,204 @@
+{
+  "config": {
+    "protocol_version": "v1.0.0",
+    "scanner_name": "govulncheck",
+    "scanner_version": "v1.1.4",
+    "db": "https://vuln.go.dev",
+    "db_last_modified": "2025-04-24T18:14:57Z",
+    "go_version": "go1.22.12",
+    "scan_level": "symbol",
+    "scan_mode": "source"
+  }
+}
+{
+  "osv": {
+    "schema_version": "1.3.1",
+    "id": "GO-2024-2611",
+    "summary": "Infinite loop in JSON unmarshaling in google.golang.org/protobuf",
+    "database_specific": {
+      "url": "https://pkg.go.dev/vuln/GO-2024-2611",
+      "review_status": "REVIEWED"
+    }
+  }
+}
+{
+  "osv": {
+    "schema_version": "1.3.1",
+    "id": "GO-2025-3563",
+    "modified": "2025-04-08T19:46:23Z",
+    "published": "2025-04-08T19:46:23Z",
+    "aliases": [
+      "CVE-2025-22871"
+    ],
+    "summary": "Request smuggling due to acceptance of invalid chunked data in net/http",
+	    "database_specific": {
+          "url": "https://pkg.go.dev/vuln/GO-2025-3563",
+          "review_status": "REVIEWED"
+      }
+   }
+}
+{
+  "osv": {
+    "schema_version": "1.3.1",
+    "id": "GO-2025-3547",
+    "summary": "Kubernetes kube-apiserver Vulnerable to Race Condition in k8s.io/kubernetes",
+    "database_specific": {
+      "url": "https://pkg.go.dev/vuln/GO-2025-3547",
+      "review_status": "UNREVIEWED"
+    }
+  }
+}    
+{
+  "finding": {
+    "osv": "GO-2025-3563",
+    "fixed_version": "v1.23.8",
+    "trace": [
+      {
+        "module": "stdlib",
+        "version": "v1.22.12"
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2025-3563",
+    "fixed_version": "v1.23.8",
+    "trace": [
+      {
+        "module": "stdlib",
+        "version": "v1.22.12",
+        "package": "net/http/internal"
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2025-3563",
+    "fixed_version": "v1.23.8",
+    "trace": [
+      {
+        "module": "stdlib",
+        "version": "v1.22.12",
+        "package": "net/http/internal",
+        "function": "Read",
+        "receiver": "*chunkedReader",
+        "position": {
+          "filename": "src/net/http/internal/chunked.go",
+          "offset": 2853,
+          "line": 97,
+          "column": 26
+        }
+      },
+      {
+        "module": "stdlib",
+        "version": "v1.22.12",
+        "package": "net/http",
+        "function": "readLocked",
+        "receiver": "*body",
+        "position": {
+          "filename": "src/net/http/transfer.go",
+          "offset": 23996,
+          "line": 840,
+          "column": 21
+        }
+      },
+      {
+        "module": "package",
+        "package": "package/pkg/configuration",
+        "function": "Load",
+        "position": {
+          "filename": "pkg/configuration/config.go",
+          "offset": 3504,
+          "line": 95,
+          "column": 26
+        }
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2025-3547",
+    "trace": [
+      {
+        "module": "k8s.io/kubernetes",
+        "version": "v1.30.10"
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2025-3547",
+    "trace": [
+      {
+        "module": "k8s.io/kubernetes",
+        "version": "v1.30.10",
+        "package": "k8s.io/kubernetes/pkg/kubelet/cri/remote"
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2025-3547",
+    "trace": [
+      {
+        "module": "k8s.io/kubernetes",
+        "version": "v1.30.10",
+        "package": "k8s.io/kubernetes/pkg/features",
+        "function": "init",
+        "position": {
+          "filename": "pkg/features/client_adapter.go",
+          "offset": 571,
+          "line": 17,
+          "column": 1
+        }
+      },
+      {
+        "module": "package",
+        "package": "package",
+        "function": "init",
+        "position": {
+          "filename": "main.go",
+          "offset": 1772,
+          "line": 46,
+          "column": 2
+        }
+      }
+    ]
+  }
+}
+{
+  "finding": {
+    "osv": "GO-2025-3547",
+    "trace": [
+      {
+        "module": "k8s.io/kubernetes",
+        "version": "v1.30.10",
+        "package": "k8s.io/kubernetes/pkg/kubelet/cri/remote",
+        "function": "ContainerStatus",
+        "receiver": "*remoteRuntimeService",
+        "position": {
+          "filename": "pkg/kubelet/cri/remote/remote_runtime.go",
+          "offset": 15587,
+          "line": 416,
+          "column": 32
+        }
+      },
+      {
+        "module": "package",
+        "package": "package/pkg/cri",
+        "function": "GetContainersPerPID",
+        "position": {
+          "filename": "pkg/cri/containers.go",
+          "offset": 1585,
+          "line": 39,
+          "column": 52
+        }
+      }
+    ]
+  }
+}
