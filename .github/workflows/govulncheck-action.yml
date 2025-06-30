@@ -28,7 +28,7 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v5
       with:
-        go-version-file: go.mod
+        go-version-file: govulncheck-action/go.mod
 
     - name: Cache dependencies
       uses: actions/cache@v4
@@ -47,5 +47,6 @@ jobs:
         args: --config=./govulncheck-action/.golangci.yml --verbose
 
     - name: Test
+      working-directory: govulncheck-action
       run: |
         make test
