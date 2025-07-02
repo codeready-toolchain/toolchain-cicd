@@ -45,7 +45,7 @@ jobs:
         version: v2.1.6
         skip-pkg-cache: true
         skip-build-cache: true
-        args: --config=./govulncheck-action/.golangci.yml --verbose .
+        args: --config=../govulncheck-action/.golangci.yml --verbose .
 
     - name: Test
       working-directory: govulncheck-action
