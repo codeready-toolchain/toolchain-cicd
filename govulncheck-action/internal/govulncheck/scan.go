@@ -30,12 +30,9 @@ type ScanFunc func(ctx context.Context, logger *log.Logger, path string) ([]byte
 
 var DefaultScan ScanFunc = func(ctx context.Context, logger *log.Logger, path string) ([]byte, error) {
 	// check that the path exists
-	fsEntries, err := os.ReadDir(path)
+	_, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
-	}
-	for _, e := range fsEntries {
-		logger.Println(e.Name())
 	}
 	c := scan.Command(ctx, "-C", path, "-format", "json", "./...")
 	out := &bytes.Buffer{}
