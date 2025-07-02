@@ -41,10 +41,11 @@ jobs:
     - name: Lint
       uses: golangci/golangci-lint-action@v8
       with:
+        working-directory: govulncheck-action
         version: v2.1.6
         skip-pkg-cache: true
         skip-build-cache: true
-        args: --config=./govulncheck-action/.golangci.yml --verbose ./govulncheck-action/...
+        args: --config=.golangci.yml --verbose .
 
     - name: Test
       working-directory: govulncheck-action
