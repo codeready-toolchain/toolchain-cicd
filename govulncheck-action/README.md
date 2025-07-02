@@ -16,13 +16,13 @@ ignored-vulnerabilities:
 As an example:
 ```
 ignored-vulnerabilities:
-    # Kubernetes kube-apiserver Vulnerable to Race Condition in k8s.io/kubernetes
-    # More info: https://pkg.go.dev/vuln/GO-2025-3547
-    # Module: k8s.io/kubernetes
-    # Fixed in: N/A
-    - id: GO-2025-3547
-      silence-until: 2020-05-10
-      info: https://pkg.go.dev/vuln/GO-2025-3547
+  # Kubernetes kube-apiserver Vulnerable to Race Condition in k8s.io/kubernetes
+  # More info: https://pkg.go.dev/vuln/GO-2025-3547
+  # Module: k8s.io/kubernetes
+  # Fixed in: N/A
+  - id: GO-2025-3547
+    silence-until: 2020-05-10
+    info: https://pkg.go.dev/vuln/GO-2025-3547
 ```
 
 ## Best practices
