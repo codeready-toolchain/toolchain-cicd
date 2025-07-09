@@ -329,4 +329,7 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Ignore build output artifacts for the pairing module
+pairing/build/_output/
+
 # End of https://www.gitignore.io/api/vim,git,macos,linux,emacs,windows,eclipse,intellij+all,visualstudiocode
