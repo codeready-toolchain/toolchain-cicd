@@ -1,0 +1,53 @@
+name: 'Publish Current Developer Sandbox UI'
+description: 'An action that publishes the current version of Developer Sandbox UI'
+inputs:
+  quay-token:
+    description: Quay token
+    required: true
+  quay-namespace:
+    description: Quay namespace
+    required: false
+    default: codeready-toolchain
+  sha:
+    description: PR head sha
+    default: ${{ github.event.pull_request.head.sha }}
+    required: false
+  pr-number:
+    description: Number of the PR
+    default: ${{ github.event.pull_request.number }}
+    required: false
+  author:
+    description: Author of the PR
+    default: ${{ github.event.pull_request.head.user.login }}
+    required: false
+  gh-head-ref:
+    description: Branch name the PR was opened from
+    default: ${{ github.event.pull_request.head.ref }}
+    required: false
+runs:
+  using: "composite"
+  steps:
+  - name: Login to quay
+    shell: bash
+    run: |
+      set -e
+      export XDG_RUNTIME_DIR=/run/user/${UID}
+      mkdir -p ${XDG_RUNTIME_DIR}/containers || true
+      echo "{
+                    \"auths\": {
+                            \"quay.io\": {
+                                    \"auth\": \"${{ inputs.quay-token }}\"
+                            }
+                    }
+            }"> ${XDG_RUNTIME_DIR}/containers/auth.json
+
+      podman login --get-login quay.io
+
+  - name: Publish current Developer Sandbox UI
+    shell: bash
+    run: |
+      PROVIDED_REF=${{ inputs.gh-head-ref }}
+      if [[ -n ${PROVIDED_REF} ]]; then
+        GH_HEAD_REF_PARAM="GITHUB_HEAD_REF=${PROVIDED_REF}"
+      fi
+      make push-sandbox-plugin QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman PULL_PULL_SHA=${{ inputs.sha }} PULL_NUMBER=${{ inputs.pr-number }} AUTHOR=${{ inputs.author }} GITHUB_BRANCH="${PROVIDED_REF}" ${GH_HEAD_REF_PARAM}
