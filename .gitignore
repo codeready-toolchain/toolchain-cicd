@@ -330,3 +330,6 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.gitignore.io/api/vim,git,macos,linux,emacs,windows,eclipse,intellij+all,visualstudiocode
+
+# Built binaries
+**/bin/
