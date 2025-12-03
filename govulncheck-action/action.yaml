@@ -1,13 +1,6 @@
 name: 'Check Vulnerabilites'
 description: 'Check the vulnerabilites and ignore those specified in a config file'
 inputs:
-  go-version-file:
-    description: 'Path to the go.mod or go.work file.'
-    required: true
-  cache:
-    description: 'Used to specify whether Go caching is needed. Set to true, if you would like to enable caching.'
-    required: false
-    default: true
   config:
     description: 'path to the config file'
     required: true
@@ -19,11 +12,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/setup-go@v6
-      with:
-        check-latest: false
-        go-version-file: ${{ github.workspace }}/${{ inputs.go-version-file }}
-        cache: ${{ inputs.cache }}
     - name: Install govulncheck
       shell: bash
       run: go install github.com/codeready-toolchain/toolchain-cicd/govulncheck-action@latest
