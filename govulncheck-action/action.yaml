@@ -21,7 +21,6 @@ runs:
   steps:
     - uses: actions/setup-go@v6
       with:
-        check-latest: false
         go-version-file: ${{ inputs.go-version-file }}
         cache: ${{ inputs.cache }}
     - name: Install govulncheck
