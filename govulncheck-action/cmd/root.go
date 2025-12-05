@@ -32,13 +32,14 @@ func NewVulnCheckCmd() *cobra.Command {
 				return err
 			}
 			logger := log.New(cmd.OutOrStdout(), "", 0)
-			vulns, err := govulncheck.Scan(cmd.Context(), logger, govulncheck.DefaultScan, config, path)
+			vulns, outdatedVulns, err := govulncheck.Scan(cmd.Context(), logger, govulncheck.DefaultScan, config, path)
 			switch {
 			case err != nil:
 				return err
-			case len(vulns) > 0:
+			case len(vulns) > 0 || len(outdatedVulns) > 0:
 				govulncheck.PrintVulnerabilities(logger, vulns)
-				return fmt.Errorf("%d vulnerabilities found", len(vulns))
+				govulncheck.PrintOutdatedVulnerabilities(logger, outdatedVulns)
+				return fmt.Errorf("%d vulnerabilities found and %d outdated vulnerabilities found", len(vulns), len(outdatedVulns))
 			default:
 				logger.Println("no vulnerabilities found")
 				return nil
