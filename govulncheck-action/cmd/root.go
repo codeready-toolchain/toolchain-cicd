@@ -45,7 +45,13 @@ func NewVulnCheckCmd() *cobra.Command {
 			}
 		},
 	}
-	cmd.Flags().StringVar(&configFile, "config", "", "path to the config file")
-	cmd.Flags().StringVar(&path, "path", ".", "path to the config file")
+	cmd.Flags().StringVar(&configFile, "config", "", "path to the ignored vulnerabilities config file")
+	if err := cmd.MarkFlagRequired("config"); err != nil {
+		log.Fatalf("failed to mark flag required: %v", err)
+	}
+	cmd.Flags().StringVar(&path, "path", ".", "path to the repository root directory to scan")
+	if err := cmd.MarkFlagRequired("path"); err != nil {
+		log.Fatalf("failed to mark flag required: %v", err)
+	}
 	return cmd
 }

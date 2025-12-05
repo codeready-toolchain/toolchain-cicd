@@ -1,0 +1,17 @@
+FROM --platform=$BUILDPLATFORM golang:1.23
+
+WORKDIR /usr/src/app
+
+ARG GOOS
+ARG GOARCH
+
+# pre-copy/cache parent go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
+
+COPY . .
+
+RUN echo "Building for govulncheck $GOOS/$GOARCH"
+RUN GOOS=$GOOS GOARCH=$GOARCH go build -v -o /usr/local/bin/govulncheck main.go
+
+ENTRYPOINT ["/usr/local/bin/govulncheck"]
