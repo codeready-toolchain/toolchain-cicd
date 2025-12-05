@@ -11,19 +11,19 @@ import (
 	"golang.org/x/vuln/scan"
 )
 
-func Scan(ctx context.Context, logger *log.Logger, scan ScanFunc, config configuration.Configuration, path string) ([]*Vulnerability, error) {
+func Scan(ctx context.Context, logger *log.Logger, scan ScanFunc, config configuration.Configuration, path string) ([]*Vulnerability, []*configuration.Vulnerability, error) {
 	rawReport, err := scan(ctx, logger, path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// get the vulns from the report
 	vulns, err := getVulnerabilities(rawReport)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// remove ignored vulnerabilities
-	return pruneIgnoredVulns(logger, vulns, config.IgnoredVulnerabilities), nil
+	return pruneIgnoredVulns(logger, vulns, config.IgnoredVulnerabilities), listOutdatedVulns(vulns, config.IgnoredVulnerabilities), nil
 }
 
 type ScanFunc func(ctx context.Context, logger *log.Logger, path string) ([]byte, error)
