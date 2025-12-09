@@ -2,7 +2,9 @@ name: Publish 'govulncheck-action'
 on:
   push:
     branches:
-      - master
+    - master
+    paths:
+    - 'govulncheck-action/**'
 
 jobs:
   build-image:
