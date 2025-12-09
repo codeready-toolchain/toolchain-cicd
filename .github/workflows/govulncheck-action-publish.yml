@@ -5,6 +5,12 @@ on:
     - master
     paths:
     - 'govulncheck-action/**'
+  pull_request:
+    branches:
+    - master
+    paths:
+    - 'govulncheck-action/**'
+
 
 jobs:
   build-image:
