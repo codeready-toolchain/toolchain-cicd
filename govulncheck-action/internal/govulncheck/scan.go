@@ -33,13 +33,17 @@ func DefaultScan(stderr io.Writer) ScanFunc {
 	return func(ctx context.Context, logger *slog.Logger, path string) ([]byte, error) {
 		// check that the path exists
 		logger.Info("scanning for vulnerabilities", "path", path)
-		if _, err := os.Stat(path); err != nil {
-			return nil, err
+		info, err := os.Stat(path)
+		if err != nil {
+			return nil, fmt.Errorf("invalid scan path: %w", err)
+		}
+		if !info.IsDir() {
+			return nil, fmt.Errorf("path is not a directory: %w", err)
 		}
 		if logger.Enabled(ctx, slog.LevelDebug) {
 			files, err := os.ReadDir(path)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to read directory: %w", err)
 			}
 			for _, file := range files {
 				logger.Debug(file.Name())
