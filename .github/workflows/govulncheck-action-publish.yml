@@ -5,12 +5,13 @@ on:
     - master
     paths:
     - 'govulncheck-action/**'
+    - '.github/workflows/govulncheck-action-*.yml'
   pull_request:
     branches:
     - master
     paths:
     - 'govulncheck-action/**'
-
+    - '.github/workflows/govulncheck-action-*.yml'
 
 jobs:
   build-image:
