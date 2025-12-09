@@ -51,6 +51,7 @@ func NewVulnCheckCmd() *cobra.Command {
 			// check that there is a `go.mod` file in the path
 			// (required by the underlying govulncheck command, but here we can collect insights of failures)
 			gomodCmd := exec.CommandContext(cmd.Context(), "go", "env", "GOMOD")
+			gomodCmd.Dir = path
 			output, err := gomodCmd.Output()
 			if err != nil {
 				return fmt.Errorf("failed to get `go.mod` file: %w", err)
