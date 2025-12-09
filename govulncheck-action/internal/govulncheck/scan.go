@@ -35,15 +35,15 @@ func DefaultScan(stderr io.Writer) ScanFunc {
 		logger.Info("scanning for vulnerabilities", "path", path)
 		info, err := os.Stat(path)
 		if err != nil {
-			return nil, fmt.Errorf("invalid scan path: %w", err)
+			return nil, fmt.Errorf("invalid scan path '%s': %w", path, err)
 		}
 		if !info.IsDir() {
-			return nil, fmt.Errorf("path is not a directory: %w", err)
+			return nil, fmt.Errorf("path '%s' is not a directory: %w", path, err)
 		}
 		if logger.Enabled(ctx, slog.LevelDebug) {
 			files, err := os.ReadDir(path)
 			if err != nil {
-				return nil, fmt.Errorf("failed to read directory: %w", err)
+				return nil, fmt.Errorf("failed to read directory '%s': %w", path, err)
 			}
 			for _, file := range files {
 				logger.Debug(file.Name())
