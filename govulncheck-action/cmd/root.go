@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
+	"os/exec"
 
 	"github.com/codeready-toolchain/toolchain-cicd/govulncheck-action/internal/configuration"
 	"github.com/codeready-toolchain/toolchain-cicd/govulncheck-action/internal/govulncheck"
@@ -21,6 +23,7 @@ func Execute() {
 
 func NewVulnCheckCmd() *cobra.Command {
 	var configFile, path string
+	var debug bool
 	var cmd = &cobra.Command{
 		Use:          "vuln-check",
 		Short:        "Run govulncheck and exclude vulnerabilities listed in the '--ignored' YAML file",
@@ -31,22 +34,51 @@ func NewVulnCheckCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			logger := log.New(cmd.OutOrStdout(), "", 0)
-			vulns, outdatedVulns, err := govulncheck.Scan(cmd.Context(), logger, govulncheck.DefaultScan, config, path)
+			opts := &slog.HandlerOptions{
+				Level: slog.LevelInfo,
+			}
+			if debug {
+				opts.Level = slog.LevelDebug
+			}
+			handler := slog.NewTextHandler(cmd.OutOrStdout(), opts)
+			logger := slog.New(handler)
+			// check the current working directory
+			workingDir, err := os.Getwd()
+			if err != nil {
+				return fmt.Errorf("failed to get working directory: %w", err)
+			}
+			logger.Debug("working directory", "path", workingDir)
+			// check that there is a `go.mod` file in the path
+			// (required by the underlying govulncheck command, but here we can collect insights of failures)
+			gomodCmd := exec.CommandContext(cmd.Context(), "go", "env", "GOMOD")
+			gomodCmd.Dir = path
+			output, err := gomodCmd.Output()
+			if err != nil {
+				return fmt.Errorf("failed to get `go.mod` file: %w", err)
+			}
+			logger.Debug("`go.mod` file", "path", string(output))
+			vulns, outdatedVulns, err := govulncheck.Scan(cmd.Context(), logger, govulncheck.DefaultScan(cmd.OutOrStderr()), path, config)
 			switch {
 			case err != nil:
 				return err
 			case len(vulns) > 0 || len(outdatedVulns) > 0:
-				govulncheck.PrintVulnerabilities(logger, vulns)
-				govulncheck.PrintOutdatedVulnerabilities(logger, outdatedVulns)
+				govulncheck.PrintVulnerabilities(cmd.OutOrStdout(), vulns)
+				govulncheck.PrintOutdatedVulnerabilities(cmd.OutOrStdout(), outdatedVulns)
 				return fmt.Errorf("%d vulnerabilities found and %d outdated vulnerabilities found", len(vulns), len(outdatedVulns))
 			default:
-				logger.Println("no vulnerabilities found")
+				logger.Info("no vulnerabilities found")
 				return nil
 			}
 		},
 	}
-	cmd.Flags().StringVar(&configFile, "config", "", "path to the config file")
-	cmd.Flags().StringVar(&path, "path", ".", "path to the config file")
+	cmd.Flags().StringVar(&configFile, "config", "", "path to the ignored vulnerabilities config file")
+	if err := cmd.MarkFlagRequired("config"); err != nil {
+		log.Fatalf("failed to mark flag required: %v", err)
+	}
+	cmd.Flags().StringVar(&path, "path", ".", "path to the repository root directory to scan")
+	if err := cmd.MarkFlagRequired("path"); err != nil {
+		log.Fatalf("failed to mark flag required: %v", err)
+	}
+	cmd.Flags().BoolVar(&debug, "debug", false, "debug mode")
 	return cmd
 }
