@@ -30,7 +30,7 @@ jobs:
         with:
           registry: quay.io
           username: codeready-toolchain+push
-          password: ${{ secrets.QUAY_TOKEN }}
+          password: ${{ secrets.QUAY_GOVULNCHECK_ACTION_TOKEN }}
     
       - name: Push to quay.io
         id: push-to-quay
