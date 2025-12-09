@@ -1,32 +1,22 @@
 name: 'Check Vulnerabilites'
 description: 'Check the vulnerabilites and ignore those specified in a config file'
 inputs:
-  go-version-file:
-    description: 'Path to the go.mod or go.work file.'
-    required: true
-  cache:
-    description: 'Used to specify whether Go caching is needed. Set to true, if you would like to enable caching.'
-    required: false
-    default: true
   config:
     description: 'path to the config file'
     required: true
   path:
     description: 'Directory in which to run govulncheck'
     required: true
-    default:  ${{ github.workspace }} # the mount directory when the action is executed in a container
+    default:  /github/workspace # the mount directory when the action is executed in a container
+  debug:
+    description: 'Debug mode'
+    required: false
+    default: 'false'
 
 runs:
-  using: "composite"
-  steps:
-    - uses: actions/setup-go@v6
-      with:
-        check-latest: false
-        go-version-file: ${{ github.workspace }}/${{ inputs.go-version-file }}
-        cache: ${{ inputs.cache }}
-    - name: Install govulncheck
-      shell: bash
-      run: go install github.com/codeready-toolchain/toolchain-cicd/govulncheck-action@latest
-    - name: Run govulncheck
-      shell: bash
-      run: govulncheck-action --path ${{ inputs.path }} --config ${{ inputs.config }}
+  using: 'docker'
+  image: 'docker://quay.io/codeready-toolchain/govulncheck-action:latest'
+  args:
+    - --path=${{ inputs.path }}
+    - --config=${{ inputs.config }}
+    - --debug=${{ inputs.debug }}

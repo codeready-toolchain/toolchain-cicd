@@ -1,12 +1,5 @@
-name: Build & Test 'govulncheck-action'
+name: Test and Lint 'govulncheck-action'
 on:
-  push:
-    branches:
-    - master
-    tags-ignore:
-    - '*.*'
-    paths:
-    - 'govulncheck-action/**'
   pull_request:
     branches:
     - master
@@ -15,10 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ ubuntu-latest ]
+    runs-on: ubuntu-latest
     name: Test
 
     steps:
@@ -37,17 +27,22 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles ('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-          
-    - name: Lint
-      uses: golangci/golangci-lint-action@v8
-      with:
-        working-directory: govulncheck-action
-        version: v2.1.6
-        skip-pkg-cache: true
-        skip-build-cache: true
-        args: --config=.golangci.yml --verbose .
-
+    
     - name: Test
       working-directory: govulncheck-action
       run: |
         make test
+
+  lint:
+    runs-on: ubuntu-latest
+    name: Lint
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Lint
+      uses: golangci/golangci-lint-action@v9
+      with:
+        working-directory: govulncheck-action
+        version: v2.7.2
+        args: --config=.golangci.yml --verbose .

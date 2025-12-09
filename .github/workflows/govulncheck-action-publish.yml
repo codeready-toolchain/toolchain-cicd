@@ -1,0 +1,42 @@
+name: Publish 'govulncheck-action'
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-image:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set short SHA
+        id: short-sha
+        run: echo "COMMIT_SHORT_SHA=$(git rev-parse --short ${GITHUB_SHA})" >> ${GITHUB_ENV}
+  
+      - name: Build image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: codeready-toolchain/govulncheck-action
+          tags: latest ${{ env.COMMIT_SHORT_SHA }}
+          containerfiles: govulncheck-action/Containerfile
+
+      - name: Log into quay.io
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: quay.io
+          username: codeready-toolchain+push
+          password: ${{ secrets.QUAY_TOKEN }}
+    
+      - name: Push to quay.io
+        id: push-to-quay
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          registry: quay.io
+
+      - name: Print image url
+        run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"

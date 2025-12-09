@@ -1,8 +1,8 @@
 module github.com/codeready-toolchain/toolchain-cicd/govulncheck-action
 
-go 1.22.0
+go 1.23.0
 
-toolchain go1.22.12
+toolchain go1.23.12
 
 require (
 	github.com/spf13/cobra v1.9.1
