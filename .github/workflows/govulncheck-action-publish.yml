@@ -23,7 +23,8 @@ jobs:
         with:
           image: codeready-toolchain/govulncheck-action
           tags: latest ${{ env.COMMIT_SHORT_SHA }}
-          containerfiles: govulncheck-action/Containerfile
+          context: govulncheck-action
+          containerfiles: Containerfile
 
       - name: Log into quay.io
         uses: redhat-actions/podman-login@v1
