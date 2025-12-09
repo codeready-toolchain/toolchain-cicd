@@ -33,16 +33,18 @@ func DefaultScan(stderr io.Writer) ScanFunc {
 	return func(ctx context.Context, logger *slog.Logger, path string) ([]byte, error) {
 		// check that the path exists
 		logger.Info("scanning for vulnerabilities", "path", path)
-		files, err := os.ReadDir(path)
-		if err != nil {
+		if _, err := os.Stat(path); err != nil {
 			return nil, err
 		}
 		if logger.Enabled(ctx, slog.LevelDebug) {
+			files, err := os.ReadDir(path)
+			if err != nil {
+				return nil, err
+			}
 			for _, file := range files {
 				logger.Debug(file.Name())
 			}
 		}
-
 		c := scan.Command(ctx, "-C", path, "-format", "json", "./...")
 		stdout := &bytes.Buffer{}
 		c.Stdout = stdout

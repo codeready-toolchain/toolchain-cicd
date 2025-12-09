@@ -1,7 +1,7 @@
 FROM golang:1.23 as builder
 
-ARG GOOS
-ARG GOARCH
+ARG GOOS=linux 
+ARG GOARCH=amd64
 
 WORKDIR /usr/src/app/  
 
