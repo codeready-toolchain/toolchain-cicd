@@ -1,4 +1,4 @@
-FROM golang:1.23 as builder
+FROM golang:1.24 as builder
 
 ARG GOOS=linux 
 ARG GOARCH=amd64
@@ -8,13 +8,16 @@ WORKDIR /usr/src/app/
 COPY . .
 
 RUN echo "Building for govulncheck $GOOS/$GOARCH"
-RUN GOOS=$GOOS GOARCH=$GOARCH go build -v -o govulncheck main.go
+RUN GOOS=$GOOS GOARCH=$GOARCH go build -v -o govulncheckx main.go
 
 FROM golang:1.23
 # using a fresh golang image without the `WORKDIR` from the builder stage
 # see https://docs.github.com/en/actions/reference/workflows-and-actions/dockerfile-support#workdir
 
 # copy the binary from the builder stage
-COPY --from=builder /usr/src/app/govulncheck /usr/local/bin/govulncheck
+COPY --from=builder /usr/src/app/govulncheckx /usr/local/bin/govulncheckx
+COPY --from=builder /usr/src/app/entrypoint.sh /usr/local/bin/entrypoint.sh
 
-ENTRYPOINT ["/usr/local/bin/govulncheck"]
+ENV GOTOOLCHAIN=auto
+
+ENTRYPOINT ["entrypoint.sh"]
