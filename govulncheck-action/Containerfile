@@ -20,6 +20,4 @@ FROM golang:1.24
 COPY --from=builder /usr/src/app/govulncheckx /usr/local/bin/govulncheckx
 COPY --from=builder /usr/src/app/entrypoint.sh /usr/local/bin/entrypoint.sh
 
-ENV GOTOOLCHAIN=auto
-
 ENTRYPOINT ["entrypoint.sh"]
