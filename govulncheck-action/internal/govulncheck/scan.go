@@ -40,15 +40,6 @@ func DefaultScan(stderr io.Writer) ScanFunc {
 		if !info.IsDir() {
 			return nil, fmt.Errorf("path '%s' is not a directory: %w", path, err)
 		}
-		if logger.Enabled(ctx, slog.LevelDebug) {
-			files, err := os.ReadDir(path)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read directory '%s': %w", path, err)
-			}
-			for _, file := range files {
-				logger.Debug(file.Name())
-			}
-		}
 		c := scan.Command(ctx, "-C", path, "-format", "json", "./...")
 		stdout := &bytes.Buffer{}
 		c.Stdout = stdout
@@ -59,6 +50,9 @@ func DefaultScan(stderr io.Writer) ScanFunc {
 		if err := c.Wait(); err != nil {
 			fmt.Fprintf(stderr, "%s", stdout.String())
 			return nil, fmt.Errorf("failed while running golang/govulncheck: %w", err)
+		}
+		if logger.Enabled(ctx, slog.LevelDebug) {
+			logger.Debug("govulncheck output", "output", stdout.String())
 		}
 		return stdout.Bytes(), nil
 	}
