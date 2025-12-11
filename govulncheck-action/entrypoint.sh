@@ -9,4 +9,4 @@ go mod verify
 go version
 
 # Run the govulncheck command
-govulncheckx $@
+govulncheckx "$@"
