@@ -2,6 +2,8 @@ module github.com/codeready-toolchain/toolchain-cicd/govulncheck-action
 
 go 1.24.0
 
+toolchain go1.24.11
+
 require (
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.9.0
