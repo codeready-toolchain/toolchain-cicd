@@ -10,9 +10,11 @@ COPY . .
 RUN echo "Building govulncheckx binary for $GOOS/$GOARCH"
 RUN GOOS=$GOOS GOARCH=$GOARCH go build -v -o govulncheckx main.go
 
-FROM golang:1.23
+FROM golang:1.24
 # using a fresh golang image without the `WORKDIR` from the builder stage
 # see https://docs.github.com/en/actions/reference/workflows-and-actions/dockerfile-support#workdir
+# using golang 1.24 but the entrypoint will trigger an install of the actual go version, 
+# even if it is 1.23 
 
 # copy the binary from the builder stage
 COPY --from=builder /usr/src/app/govulncheckx /usr/local/bin/govulncheckx

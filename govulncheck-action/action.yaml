@@ -15,7 +15,7 @@ inputs:
 
 runs:
   using: 'docker'
-  image: 'docker://quay.io/codeready-toolchain/govulncheck-action:entrypoint-test'
+  image: 'docker://quay.io/codeready-toolchain/govulncheck-action:latest'
   args:
     - --path=${{ inputs.path }}
     - --config=${{ inputs.config }}
