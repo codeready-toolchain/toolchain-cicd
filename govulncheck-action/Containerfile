@@ -7,7 +7,7 @@ WORKDIR /usr/src/app/
 
 COPY . .
 
-RUN echo "Building for govulncheck $GOOS/$GOARCH"
+RUN echo "Building govulncheckx binary for $GOOS/$GOARCH"
 RUN GOOS=$GOOS GOARCH=$GOARCH go build -v -o govulncheckx main.go
 
 FROM golang:1.23
