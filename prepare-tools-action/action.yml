@@ -21,7 +21,7 @@ runs:
         && sudo apt-get -y install podman dbus-x11 \
         && podman version
 
-  - name: Install operator-sdk, yq and opm
+  - name: Install operator-sdk
     shell: bash
     run: |
       set -ex
@@ -36,13 +36,6 @@ runs:
         && sudo cp operator-sdk /bin/operator-sdk \
         && rm operator-sdk \
         && operator-sdk version
-
-  - name: Install yq
-    shell: bash
-    run: |
-      set -ex
-
-      pip3 install yq
 
   - name: Install opm
     shell: bash
