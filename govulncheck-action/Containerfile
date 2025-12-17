@@ -12,10 +12,10 @@ ENV GOTOOLCHAIN=auto
 RUN echo "Building govulncheckx binary for $GOOS/$GOARCH"
 RUN GOOS=$GOOS GOARCH=$GOARCH go build -v -o govulncheckx main.go
 
-FROM golang:1.23.0
+FROM golang:1.24.0
 # using a fresh golang image without the `WORKDIR` from the builder stage
 # see https://docs.github.com/en/actions/reference/workflows-and-actions/dockerfile-support#workdir
-# using golang 1.23.0 since most of our projects are still using it (and toolchain will not downgrade the version of go) 
+# using golang 1.24.0 since most of our projects are still using it (and toolchain will not downgrade the version of go) 
 
 # copy the binary from the builder stage
 COPY --from=builder /usr/src/app/govulncheckx /usr/local/bin/govulncheckx
