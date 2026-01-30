@@ -53,21 +53,13 @@ install-golangci-lint:
 # Installing
 # --------------------------------------
 
-GIT_COMMIT_ID_SHORT := $(shell git rev-parse --short HEAD)
-ifneq ($(shell git status --porcelain --untracked-files=no),)
-       GIT_COMMIT_ID_SHORT := $(GIT_COMMIT_ID_SHORT)-dirty
-endif
-
-BUILD_TIME = `date -u '+%Y-%m-%dT%H:%M:%SZ'`
-
-
 .PHONY: build
 ## build the binary and copy into ./bin
 build:
 	@go build \
-	-o bin/govulncheck main.go 
+	-o bin/govulncheckx main.go 
 
 .PHONY: install
 ## build the binary and copy into $(GOPATH)/bin
 install: build
-	@mv bin/govulncheck ${GOPATH}/bin/govulncheck
+	@mv bin/govulncheckx ${GOPATH}/bin/govulncheckx
