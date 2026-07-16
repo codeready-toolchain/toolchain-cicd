@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/codeready-toolchain/toolchain-cicd/govulncheck-action/internal/configuration"
 	"github.com/stretchr/testify/assert"
@@ -87,6 +88,61 @@ func TestNewConfiguration(t *testing.T) {
 		assert.Equal(t, "GO-2025-3563", c.IgnoredVulnerabilities[2].ID)
 		assert.Equal(t, "2025-05-10", c.IgnoredVulnerabilities[2].SilenceUntil.Format("2006-01-02"))
 		assert.Equal(t, "https://pkg.go.dev/vuln/GO-2025-3563", c.IgnoredVulnerabilities[2].Info)
+	})
+
+	t.Run("save and reload", func(t *testing.T) {
+		// given
+		tempFile, err := os.CreateTemp("", "ignored-vuln-*.yaml")
+		require.NoError(t, err)
+		silenceUntil := time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)
+		cfg := configuration.Configuration{
+			IgnoredVulnerabilities: []*configuration.Vulnerability{
+				{
+					ID:           "GO-2025-0001",
+					SilenceUntil: silenceUntil,
+					Info:         "https://pkg.go.dev/vuln/GO-2025-0001",
+					Comment:      "Some vulnerability summary\nFound in: pkg@v1.0.0\nFixed in: pkg@v1.0.1",
+				},
+				{
+					ID:           "GO-2025-0002",
+					SilenceUntil: silenceUntil,
+					Info:         "https://pkg.go.dev/vuln/GO-2025-0002",
+				},
+			},
+		}
+		// when
+		err = configuration.Save(tempFile.Name(), cfg)
+		// then
+		require.NoError(t, err)
+		// verify by reading back
+		loaded, err := configuration.New(tempFile.Name())
+		require.NoError(t, err)
+		require.Len(t, loaded.IgnoredVulnerabilities, 2)
+		assert.Equal(t, "GO-2025-0001", loaded.IgnoredVulnerabilities[0].ID)
+		assert.Equal(t, "2025-06-15", loaded.IgnoredVulnerabilities[0].SilenceUntil.Format("2006-01-02"))
+		assert.Equal(t, "https://pkg.go.dev/vuln/GO-2025-0001", loaded.IgnoredVulnerabilities[0].Info)
+		assert.Equal(t, "GO-2025-0002", loaded.IgnoredVulnerabilities[1].ID)
+		assert.Equal(t, "2025-06-15", loaded.IgnoredVulnerabilities[1].SilenceUntil.Format("2006-01-02"))
+		assert.Equal(t, "https://pkg.go.dev/vuln/GO-2025-0002", loaded.IgnoredVulnerabilities[1].Info)
+		// verify comments are in the raw file
+		raw, err := os.ReadFile(tempFile.Name())
+		require.NoError(t, err)
+		assert.Contains(t, string(raw), "Some vulnerability summary")
+		assert.Contains(t, string(raw), "Found in: pkg@v1.0.0")
+	})
+
+	t.Run("save empty config", func(t *testing.T) {
+		// given
+		tempFile, err := os.CreateTemp("", "ignored-vuln-*.yaml")
+		require.NoError(t, err)
+		cfg := configuration.Configuration{}
+		// when
+		err = configuration.Save(tempFile.Name(), cfg)
+		// then
+		require.NoError(t, err)
+		loaded, err := configuration.New(tempFile.Name())
+		require.NoError(t, err)
+		assert.Empty(t, loaded.IgnoredVulnerabilities)
 	})
 
 	t.Run("invalid file", func(t *testing.T) {

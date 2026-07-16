@@ -46,7 +46,7 @@ lint: install-golangci-lint
 .PHONY: install-golangci-lint
 ## Install development tools.
 install-golangci-lint:
-	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin
+	@curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $GOPATH/bin
 
 
 # --------------------------------------

@@ -23,7 +23,7 @@ func Execute() {
 
 func NewVulnCheckCmd() *cobra.Command {
 	var configFile, path string
-	var debug bool
+	var debug, editConfig bool
 	var cmd = &cobra.Command{
 		Use:          "vuln-check",
 		Short:        "Run govulncheck and exclude vulnerabilities listed in the '--ignored' YAML file",
@@ -62,6 +62,14 @@ func NewVulnCheckCmd() *cobra.Command {
 			case err != nil:
 				return err
 			case len(vulns) > 0 || len(outdatedVulns) > 0:
+				if editConfig {
+					updated := govulncheck.UpdateConfig(config, vulns, outdatedVulns)
+					if err := configuration.Save(configFile, updated); err != nil {
+						return fmt.Errorf("failed to update config file: %w", err)
+					}
+					logger.Info("config file updated", "path", configFile, "new", len(vulns), "outdated-removed", len(outdatedVulns))
+					return nil
+				}
 				govulncheck.PrintVulnerabilities(cmd.OutOrStdout(), vulns)
 				govulncheck.PrintOutdatedVulnerabilities(cmd.OutOrStdout(), outdatedVulns)
 				return fmt.Errorf("%d vulnerabilities found and %d outdated vulnerabilities found", len(vulns), len(outdatedVulns))
@@ -80,5 +88,6 @@ func NewVulnCheckCmd() *cobra.Command {
 		log.Fatalf("failed to mark flag required: %v", err)
 	}
 	cmd.Flags().BoolVar(&debug, "debug", false, "debug mode")
+	cmd.Flags().BoolVarP(&editConfig, "edit-config", "e", false, "update the config file with new/expired/outdated vulnerabilities")
 	return cmd
 }
