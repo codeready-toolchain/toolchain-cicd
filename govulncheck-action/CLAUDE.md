@@ -20,7 +20,7 @@ This is a GitHub Action (Docker-based) that wraps `golang.org/x/vuln/scan` (govu
 
 **Flow:** `main.go` → `cmd/root.go` (cobra CLI) → `govulncheck.Scan()` → `pruneIgnoredVulns()` / `listOutdatedVulns()`.
 
-- `cmd/root.go` — CLI entry point with `--config`, `--path`, `--debug` flags. Orchestrates scanning and output.
+- `cmd/root.go` — CLI entry point with `--config`, `--path`, `--debug`, and `--edit-config` flags. Orchestrates scanning, output, and configuration updates.
 - `internal/configuration/` — Parses the `.govulncheck.yaml` ignore-list (vulnerability ID + silence-until date).
 - `internal/govulncheck/scan.go` — Runs govulncheck via `scan.Command` and returns raw JSON. `ScanFunc` type allows test injection.
 - `internal/govulncheck/report.go` — Parses govulncheck's streaming JSON output (one JSON object per line, not a single array) into `Report` (findings + OSV entries). Only keeps findings with a function-level trace.
@@ -29,4 +29,4 @@ This is a GitHub Action (Docker-based) that wraps `golang.org/x/vuln/scan` (govu
 
 **Container runtime:** `Containerfile` builds a multi-stage image from `golang:1.26.0`. `entrypoint.sh` reads the scanned project's `go.mod` to set `GOTOOLCHAIN` so govulncheck uses the project's Go version, not the container's.
 
-The action exits non-zero when it finds unignored vulnerabilities OR outdated ignore entries (vulns listed in config but no longer detected).
+Without `--edit-config`, the action exits non-zero when it finds unignored vulnerabilities or outdated ignore entries. With `--edit-config`, it persists the updates and exits successfully.
