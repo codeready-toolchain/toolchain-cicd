@@ -30,7 +30,7 @@ func setupTestClient(t *testing.T, mux *http.ServeMux) *Client {
 func TestGetDefaultBranch(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /repos/test-owner/test-repo", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(gh.Repository{
+		json.NewEncoder(w).Encode(gh.Repository{ //nolint:errcheck
 			DefaultBranch: gh.Ptr("main"),
 		})
 	})
@@ -45,7 +45,7 @@ func TestFindOpenPRByLabel(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /repos/test-owner/test-repo/pulls", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "open", r.URL.Query().Get("state"))
-		json.NewEncoder(w).Encode([]*gh.PullRequest{
+		json.NewEncoder(w).Encode([]*gh.PullRequest{ //nolint:errcheck
 			{
 				Number: gh.Ptr(1),
 				Title:  gh.Ptr("chore: bump Go from 1.26.0 to 1.26.1"),
@@ -77,9 +77,9 @@ func TestClosePR(t *testing.T) {
 	mux.HandleFunc("PATCH /repos/test-owner/test-repo/pulls/42", func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		var pr gh.PullRequest
-		json.Unmarshal(body, &pr)
+		json.Unmarshal(body, &pr) //nolint:errcheck
 		assert.Equal(t, "closed", pr.GetState())
-		json.NewEncoder(w).Encode(gh.PullRequest{
+		json.NewEncoder(w).Encode(gh.PullRequest{ //nolint:errcheck
 			Number: gh.Ptr(42),
 			State:  gh.Ptr("closed"),
 		})
@@ -94,28 +94,28 @@ func TestCreateBranchFromDefault(t *testing.T) {
 	t.Run("branch does not exist", func(t *testing.T) {
 		mux := http.NewServeMux()
 		mux.HandleFunc("GET /repos/test-owner/test-repo", func(w http.ResponseWriter, r *http.Request) {
-			json.NewEncoder(w).Encode(gh.Repository{
+			json.NewEncoder(w).Encode(gh.Repository{ //nolint:errcheck
 				DefaultBranch: gh.Ptr("main"),
 			})
 		})
 		mux.HandleFunc("GET /repos/test-owner/test-repo/git/ref/heads/main", func(w http.ResponseWriter, r *http.Request) {
-			json.NewEncoder(w).Encode(gh.Reference{
+			json.NewEncoder(w).Encode(gh.Reference{ //nolint:errcheck
 				Ref:    gh.Ptr("refs/heads/main"),
 				Object: &gh.GitObject{SHA: gh.Ptr("abc123")},
 			})
 		})
 		mux.HandleFunc("GET /repos/test-owner/test-repo/git/ref/heads/go-update-1.26.1", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(gh.ErrorResponse{
+			json.NewEncoder(w).Encode(gh.ErrorResponse{ //nolint:errcheck
 				Message: "Not Found",
 			})
 		})
 		var createdRef gh.Reference
 		mux.HandleFunc("POST /repos/test-owner/test-repo/git/refs", func(w http.ResponseWriter, r *http.Request) {
 			body, _ := io.ReadAll(r.Body)
-			json.Unmarshal(body, &createdRef)
+			json.Unmarshal(body, &createdRef) //nolint:errcheck
 			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(gh.Reference{
+			json.NewEncoder(w).Encode(gh.Reference{ //nolint:errcheck
 				Ref:    createdRef.Ref,
 				Object: createdRef.Object,
 			})
@@ -131,18 +131,18 @@ func TestCreateBranchFromDefault(t *testing.T) {
 	t.Run("branch already exists", func(t *testing.T) {
 		mux := http.NewServeMux()
 		mux.HandleFunc("GET /repos/test-owner/test-repo", func(w http.ResponseWriter, r *http.Request) {
-			json.NewEncoder(w).Encode(gh.Repository{
+			json.NewEncoder(w).Encode(gh.Repository{ //nolint:errcheck
 				DefaultBranch: gh.Ptr("main"),
 			})
 		})
 		mux.HandleFunc("GET /repos/test-owner/test-repo/git/ref/heads/main", func(w http.ResponseWriter, r *http.Request) {
-			json.NewEncoder(w).Encode(gh.Reference{
+			json.NewEncoder(w).Encode(gh.Reference{ //nolint:errcheck
 				Ref:    gh.Ptr("refs/heads/main"),
 				Object: &gh.GitObject{SHA: gh.Ptr("def456")},
 			})
 		})
 		mux.HandleFunc("GET /repos/test-owner/test-repo/git/ref/heads/go-update-1.26.1", func(w http.ResponseWriter, r *http.Request) {
-			json.NewEncoder(w).Encode(gh.Reference{
+			json.NewEncoder(w).Encode(gh.Reference{ //nolint:errcheck
 				Ref:    gh.Ptr("refs/heads/go-update-1.26.1"),
 				Object: &gh.GitObject{SHA: gh.Ptr("old-sha")},
 			})
@@ -150,8 +150,8 @@ func TestCreateBranchFromDefault(t *testing.T) {
 		var updatedRef gh.Reference
 		mux.HandleFunc("PATCH /repos/test-owner/test-repo/git/refs/heads/go-update-1.26.1", func(w http.ResponseWriter, r *http.Request) {
 			body, _ := io.ReadAll(r.Body)
-			json.Unmarshal(body, &updatedRef)
-			json.NewEncoder(w).Encode(gh.Reference{
+			json.Unmarshal(body, &updatedRef)       //nolint:errcheck
+			json.NewEncoder(w).Encode(gh.Reference{ //nolint:errcheck
 				Ref:    gh.Ptr("refs/heads/go-update-1.26.1"),
 				Object: &gh.GitObject{SHA: gh.Ptr("def456")},
 			})
@@ -171,15 +171,15 @@ func TestCreateCommit(t *testing.T) {
 	mux.HandleFunc("POST /repos/test-owner/test-repo/git/blobs", func(w http.ResponseWriter, r *http.Request) {
 		var blob gh.Blob
 		body, _ := io.ReadAll(r.Body)
-		json.Unmarshal(body, &blob)
+		json.Unmarshal(body, &blob) //nolint:errcheck
 		sha := "blob-" + blob.GetContent()[:5]
 		createdBlobs = append(createdBlobs, sha)
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(gh.Blob{SHA: gh.Ptr(sha)})
+		json.NewEncoder(w).Encode(gh.Blob{SHA: gh.Ptr(sha)}) //nolint:errcheck
 	})
 
 	mux.HandleFunc("GET /repos/test-owner/test-repo/git/commits/base-sha", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(gh.Commit{
+		json.NewEncoder(w).Encode(gh.Commit{ //nolint:errcheck
 			SHA:  gh.Ptr("base-sha"),
 			Tree: &gh.Tree{SHA: gh.Ptr("base-tree-sha")},
 		})
@@ -192,20 +192,20 @@ func TestCreateCommit(t *testing.T) {
 			Entries  []*gh.TreeEntry `json:"tree"`
 		}
 		body, _ := io.ReadAll(r.Body)
-		json.Unmarshal(body, &req)
+		json.Unmarshal(body, &req) //nolint:errcheck
 		treeEntries = req.Entries
 		assert.Equal(t, "base-tree-sha", req.BaseTree)
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(gh.Tree{SHA: gh.Ptr("new-tree-sha")})
+		json.NewEncoder(w).Encode(gh.Tree{SHA: gh.Ptr("new-tree-sha")}) //nolint:errcheck
 	})
 
 	mux.HandleFunc("POST /repos/test-owner/test-repo/git/commits", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(gh.Commit{SHA: gh.Ptr("new-commit-sha")})
+		json.NewEncoder(w).Encode(gh.Commit{SHA: gh.Ptr("new-commit-sha")}) //nolint:errcheck
 	})
 
 	mux.HandleFunc("PATCH /repos/test-owner/test-repo/git/refs/heads/go-update-1.26.1", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(gh.Reference{
+		json.NewEncoder(w).Encode(gh.Reference{ //nolint:errcheck
 			Ref:    gh.Ptr("refs/heads/go-update-1.26.1"),
 			Object: &gh.GitObject{SHA: gh.Ptr("new-commit-sha")},
 		})
@@ -228,7 +228,7 @@ func TestCreateCommit(t *testing.T) {
 func TestCreatePR(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /repos/test-owner/test-repo", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(gh.Repository{
+		json.NewEncoder(w).Encode(gh.Repository{ //nolint:errcheck
 			DefaultBranch: gh.Ptr("main"),
 		})
 	})
@@ -236,9 +236,9 @@ func TestCreatePR(t *testing.T) {
 	var createdPR gh.NewPullRequest
 	mux.HandleFunc("POST /repos/test-owner/test-repo/pulls", func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		json.Unmarshal(body, &createdPR)
+		json.Unmarshal(body, &createdPR) //nolint:errcheck
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(gh.PullRequest{
+		json.NewEncoder(w).Encode(gh.PullRequest{ //nolint:errcheck
 			Number:  gh.Ptr(99),
 			HTMLURL: gh.Ptr("https://github.com/test-owner/test-repo/pull/99"),
 		})
@@ -247,8 +247,8 @@ func TestCreatePR(t *testing.T) {
 	var addedLabels []string
 	mux.HandleFunc("POST /repos/test-owner/test-repo/issues/99/labels", func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		json.Unmarshal(body, &addedLabels)
-		json.NewEncoder(w).Encode([]*gh.Label{
+		json.Unmarshal(body, &addedLabels)     //nolint:errcheck
+		json.NewEncoder(w).Encode([]*gh.Label{ //nolint:errcheck
 			{Name: gh.Ptr("go-update")},
 		})
 	})

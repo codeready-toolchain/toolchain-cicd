@@ -248,7 +248,11 @@ func prepareChangesWithTidy(ctx context.Context, logger *slog.Logger, root strin
 		gomodPath := filepath.Join(root, dir, "go.mod")
 		for _, c := range changes {
 			if c.Path == filepath.Join(dir, "go.mod") {
-				if err := os.WriteFile(gomodPath, []byte(c.NewContent), 0o644); err != nil {
+				perm := os.FileMode(0o644)
+				if info, err := os.Stat(gomodPath); err == nil {
+					perm = info.Mode().Perm()
+				}
+				if err := os.WriteFile(gomodPath, []byte(c.NewContent), perm); err != nil {
 					return nil, "", fmt.Errorf("writing go.mod for tidy: %w", err)
 				}
 				break
@@ -303,7 +307,11 @@ func prepareChangesWithTidy(ctx context.Context, logger *slog.Logger, root strin
 		gomodPath := filepath.Join(root, dir, "go.mod")
 		for _, c := range changes {
 			if c.Path == filepath.Join(dir, "go.mod") {
-				_ = os.WriteFile(gomodPath, []byte(c.OldContent), 0o644)
+				perm := os.FileMode(0o644)
+				if info, err := os.Stat(gomodPath); err == nil {
+					perm = info.Mode().Perm()
+				}
+				_ = os.WriteFile(gomodPath, []byte(c.OldContent), perm)
 				break
 			}
 		}
@@ -314,21 +322,21 @@ func prepareChangesWithTidy(ctx context.Context, logger *slog.Logger, root strin
 
 func formatPRBody(current goversion.Version, target goversion.Version, changes []updater.FileChange, tidyWarning string) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("## Go version update: %s → %s\n\n", current.String(), target.String()))
+	fmt.Fprintf(&sb, "## Go version update: %s → %s\n\n", current.String(), target.String())
 
 	releaseURL := fmt.Sprintf("https://go.dev/doc/devel/release#go%s", target.MinorString())
-	sb.WriteString(fmt.Sprintf("[Release notes](%s)\n\n", releaseURL))
+	fmt.Fprintf(&sb, "[Release notes](%s)\n\n", releaseURL)
 
-	sb.WriteString("### Changed files\n\n")
+	fmt.Fprintf(&sb, "### Changed files\n\n")
 	for _, c := range changes {
-		sb.WriteString(fmt.Sprintf("- `%s`\n", c.Path))
+		fmt.Fprintf(&sb, "- `%s`\n", c.Path)
 	}
 
 	if tidyWarning != "" {
-		sb.WriteString(fmt.Sprintf("\n### Warnings\n\n%s\n", tidyWarning))
+		fmt.Fprintf(&sb, "\n### Warnings\n\n%s\n", tidyWarning)
 	}
 
-	sb.WriteString("\n---\n*This PR was automatically created by the go-update-action.*\n")
+	fmt.Fprintf(&sb, "\n---\n*This PR was automatically created by the go-update-action.*\n")
 	return sb.String()
 }
 
@@ -371,7 +379,7 @@ func handleSuggestionPR(ctx context.Context, logger *slog.Logger, ghClient *gith
 	sb.WriteString("This ensures your CI always uses the same Go version specified in your project.\n\n")
 	sb.WriteString("### Changed files\n\n")
 	for _, s := range suggestions {
-		sb.WriteString(fmt.Sprintf("- `%s`\n", s.Path))
+		fmt.Fprintf(&sb, "- `%s`\n", s.Path)
 	}
 	sb.WriteString("\n---\n*This PR was automatically created by the go-update-action.*\n")
 
@@ -389,7 +397,7 @@ func setOutput(key, value string) {
 	if outputFile == "" {
 		return
 	}
-	f, err := os.OpenFile(outputFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644)
+	f, err := os.OpenFile(filepath.Clean(outputFile), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644)
 	if err != nil {
 		return
 	}
