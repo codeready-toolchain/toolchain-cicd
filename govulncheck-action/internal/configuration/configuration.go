@@ -1,8 +1,10 @@
 package configuration
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -28,8 +30,44 @@ func New(path string) (Configuration, error) {
 	if err != nil {
 		return c, err
 	}
-	err = yaml.Unmarshal(contents, &c)
-	return c, err
+	var doc yaml.Node
+	if err := yaml.Unmarshal(contents, &doc); err != nil {
+		return c, err
+	}
+	if doc.Kind != yaml.DocumentNode || len(doc.Content) == 0 {
+		return c, nil
+	}
+	root := doc.Content[0]
+	if root.Kind != yaml.MappingNode {
+		return c, fmt.Errorf("expected mapping node, got %d", root.Kind)
+	}
+	for i := 0; i+1 < len(root.Content); i += 2 {
+		key := root.Content[i]
+		val := root.Content[i+1]
+		if key.Value != "ignored-vulnerabilities" || val.Kind != yaml.SequenceNode {
+			continue
+		}
+		for _, entry := range val.Content {
+			v := &Vulnerability{}
+			if err := entry.Decode(v); err != nil {
+				return c, err
+			}
+			if entry.HeadComment != "" {
+				v.Comment = stripCommentMarkers(entry.HeadComment)
+			}
+			c.IgnoredVulnerabilities = append(c.IgnoredVulnerabilities, v)
+		}
+	}
+	return c, nil
+}
+
+func stripCommentMarkers(comment string) string {
+	lines := strings.Split(comment, "\n")
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		lines[i] = strings.TrimPrefix(line, "# ")
+	}
+	return strings.Join(lines, "\n")
 }
 
 func Save(path string, cfg Configuration) error {
@@ -58,9 +96,14 @@ func Save(path string, cfg Configuration) error {
 
 	mapping.Content = append(mapping.Content, keyNode, seqNode)
 
-	data, err := yaml.Marshal(doc)
-	if err != nil {
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+	if err := enc.Encode(doc); err != nil {
 		return fmt.Errorf("failed to marshal configuration: %w", err)
 	}
-	return os.WriteFile(path, data, 0600)
+	if err := enc.Close(); err != nil {
+		return fmt.Errorf("failed to marshal configuration: %w", err)
+	}
+	return os.WriteFile(path, buf.Bytes(), 0600)
 }
