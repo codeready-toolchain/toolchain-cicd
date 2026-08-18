@@ -74,11 +74,6 @@ func TestVersion_String(t *testing.T) {
 	assert.Equal(t, "1.26.3", v.String())
 }
 
-func TestVersion_GoString(t *testing.T) {
-	v := goversion.Version{Major: 1, Minor: 26, Patch: 3}
-	assert.Equal(t, "go1.26.3", v.GoString())
-}
-
 func TestVersion_MinorString(t *testing.T) {
 	v := goversion.Version{Major: 1, Minor: 26, Patch: 3}
 	assert.Equal(t, "1.26", v.MinorString())

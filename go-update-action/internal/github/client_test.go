@@ -31,12 +31,12 @@ func TestGetDefaultBranch(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /repos/test-owner/test-repo", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(gh.Repository{ //nolint:errcheck
-			DefaultBranch: gh.Ptr("main"),
+			DefaultBranch: new("main"),
 		})
 	})
 
-	client := setupTestClient(t, mux)
-	branch, err := client.GetDefaultBranch(context.Background())
+	cl := setupTestClient(t, mux)
+	branch, err := cl.GetDefaultBranch(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, "main", branch)
 }
@@ -47,29 +47,34 @@ func TestFindOpenPRByLabel(t *testing.T) {
 		assert.Equal(t, "open", r.URL.Query().Get("state"))
 		json.NewEncoder(w).Encode([]*gh.PullRequest{ //nolint:errcheck
 			{
-				Number: gh.Ptr(1),
-				Title:  gh.Ptr("chore: bump Go from 1.26.0 to 1.26.1"),
-				Labels: []*gh.Label{{Name: gh.Ptr("go-update")}},
+				Number: new(1),
+				Title:  new("chore: bump Go from 1.26.0 to 1.26.1"),
+				Head:   &gh.PullRequestBranch{Ref: new("go-update-1.26.1")},
+				Labels: []*gh.Label{{Name: new("go-update")}},
 			},
 			{
-				Number: gh.Ptr(2),
-				Title:  gh.Ptr("unrelated PR"),
-				Labels: []*gh.Label{{Name: gh.Ptr("bug")}},
+				Number: new(2),
+				Title:  new("unrelated PR"),
+				Head:   &gh.PullRequestBranch{Ref: new("fix-bug")},
+				Labels: []*gh.Label{{Name: new("bug")}},
 			},
 			{
-				Number: gh.Ptr(3),
-				Title:  gh.Ptr("chore: bump Go from 1.25.0 to 1.26.0"),
-				Labels: []*gh.Label{{Name: gh.Ptr("go-update")}, {Name: gh.Ptr("enhancement")}},
+				Number: new(3),
+				Title:  new("chore: bump Go from 1.25.0 to 1.26.0"),
+				Head:   &gh.PullRequestBranch{Ref: new("go-update-1.26.0")},
+				Labels: []*gh.Label{{Name: new("go-update")}, {Name: new("enhancement")}},
 			},
 		})
 	})
 
-	client := setupTestClient(t, mux)
-	prs, err := client.FindOpenPRByLabel(context.Background(), "go-update")
+	cl := setupTestClient(t, mux)
+	prs, err := cl.FindOpenPRByLabel(context.Background(), "go-update")
 	require.NoError(t, err)
 	assert.Len(t, prs, 2)
-	assert.Equal(t, 1, prs[0].GetNumber())
-	assert.Equal(t, 3, prs[1].GetNumber())
+	assert.Equal(t, 1, prs[0].Number)
+	assert.Equal(t, "go-update-1.26.1", prs[0].HeadRef)
+	assert.Equal(t, 3, prs[1].Number)
+	assert.Equal(t, "go-update-1.26.0", prs[1].HeadRef)
 }
 
 func TestClosePR(t *testing.T) {
@@ -80,13 +85,13 @@ func TestClosePR(t *testing.T) {
 		json.Unmarshal(body, &pr) //nolint:errcheck
 		assert.Equal(t, "closed", pr.GetState())
 		json.NewEncoder(w).Encode(gh.PullRequest{ //nolint:errcheck
-			Number: gh.Ptr(42),
-			State:  gh.Ptr("closed"),
+			Number: new(42),
+			State:  new("closed"),
 		})
 	})
 
-	client := setupTestClient(t, mux)
-	err := client.ClosePR(context.Background(), 42)
+	cl := setupTestClient(t, mux)
+	err := cl.ClosePR(context.Background(), 42)
 	require.NoError(t, err)
 }
 
@@ -95,13 +100,13 @@ func TestCreateBranchFromDefault(t *testing.T) {
 		mux := http.NewServeMux()
 		mux.HandleFunc("GET /repos/test-owner/test-repo", func(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(gh.Repository{ //nolint:errcheck
-				DefaultBranch: gh.Ptr("main"),
+				DefaultBranch: new("main"),
 			})
 		})
 		mux.HandleFunc("GET /repos/test-owner/test-repo/git/ref/heads/main", func(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(gh.Reference{ //nolint:errcheck
-				Ref:    gh.Ptr("refs/heads/main"),
-				Object: &gh.GitObject{SHA: gh.Ptr("abc123")},
+				Ref:    new("refs/heads/main"),
+				Object: &gh.GitObject{SHA: new("abc123")},
 			})
 		})
 		mux.HandleFunc("GET /repos/test-owner/test-repo/git/ref/heads/go-update-1.26.1", func(w http.ResponseWriter, r *http.Request) {
@@ -121,8 +126,8 @@ func TestCreateBranchFromDefault(t *testing.T) {
 			})
 		})
 
-		client := setupTestClient(t, mux)
-		sha, err := client.CreateBranchFromDefault(context.Background(), "go-update-1.26.1")
+		cl := setupTestClient(t, mux)
+		sha, err := cl.CreateBranchFromDefault(context.Background(), "go-update-1.26.1")
 		require.NoError(t, err)
 		assert.Equal(t, "abc123", sha)
 		assert.Equal(t, "refs/heads/go-update-1.26.1", createdRef.GetRef())
@@ -132,19 +137,19 @@ func TestCreateBranchFromDefault(t *testing.T) {
 		mux := http.NewServeMux()
 		mux.HandleFunc("GET /repos/test-owner/test-repo", func(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(gh.Repository{ //nolint:errcheck
-				DefaultBranch: gh.Ptr("main"),
+				DefaultBranch: new("main"),
 			})
 		})
 		mux.HandleFunc("GET /repos/test-owner/test-repo/git/ref/heads/main", func(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(gh.Reference{ //nolint:errcheck
-				Ref:    gh.Ptr("refs/heads/main"),
-				Object: &gh.GitObject{SHA: gh.Ptr("def456")},
+				Ref:    new("refs/heads/main"),
+				Object: &gh.GitObject{SHA: new("def456")},
 			})
 		})
 		mux.HandleFunc("GET /repos/test-owner/test-repo/git/ref/heads/go-update-1.26.1", func(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(gh.Reference{ //nolint:errcheck
-				Ref:    gh.Ptr("refs/heads/go-update-1.26.1"),
-				Object: &gh.GitObject{SHA: gh.Ptr("old-sha")},
+				Ref:    new("refs/heads/go-update-1.26.1"),
+				Object: &gh.GitObject{SHA: new("old-sha")},
 			})
 		})
 		var updatedRef gh.Reference
@@ -152,13 +157,13 @@ func TestCreateBranchFromDefault(t *testing.T) {
 			body, _ := io.ReadAll(r.Body)
 			json.Unmarshal(body, &updatedRef)       //nolint:errcheck
 			json.NewEncoder(w).Encode(gh.Reference{ //nolint:errcheck
-				Ref:    gh.Ptr("refs/heads/go-update-1.26.1"),
-				Object: &gh.GitObject{SHA: gh.Ptr("def456")},
+				Ref:    new("refs/heads/go-update-1.26.1"),
+				Object: &gh.GitObject{SHA: new("def456")},
 			})
 		})
 
-		client := setupTestClient(t, mux)
-		sha, err := client.CreateBranchFromDefault(context.Background(), "go-update-1.26.1")
+		cl := setupTestClient(t, mux)
+		sha, err := cl.CreateBranchFromDefault(context.Background(), "go-update-1.26.1")
 		require.NoError(t, err)
 		assert.Equal(t, "def456", sha)
 	})
@@ -175,13 +180,13 @@ func TestCreateCommit(t *testing.T) {
 		sha := "blob-" + blob.GetContent()[:5]
 		createdBlobs = append(createdBlobs, sha)
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(gh.Blob{SHA: gh.Ptr(sha)}) //nolint:errcheck
+		json.NewEncoder(w).Encode(gh.Blob{SHA: new(sha)}) //nolint:errcheck
 	})
 
 	mux.HandleFunc("GET /repos/test-owner/test-repo/git/commits/base-sha", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(gh.Commit{ //nolint:errcheck
-			SHA:  gh.Ptr("base-sha"),
-			Tree: &gh.Tree{SHA: gh.Ptr("base-tree-sha")},
+		json.NewEncoder(w).Encode(gh.Commit{ //nolint:errcheck,nolintlint
+			SHA:  new("base-sha"),
+			Tree: &gh.Tree{SHA: new("base-tree-sha")},
 		})
 	})
 
@@ -196,23 +201,23 @@ func TestCreateCommit(t *testing.T) {
 		treeEntries = req.Entries
 		assert.Equal(t, "base-tree-sha", req.BaseTree)
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(gh.Tree{SHA: gh.Ptr("new-tree-sha")}) //nolint:errcheck
+		json.NewEncoder(w).Encode(gh.Tree{SHA: new("new-tree-sha")}) //nolint:errcheck
 	})
 
 	mux.HandleFunc("POST /repos/test-owner/test-repo/git/commits", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(gh.Commit{SHA: gh.Ptr("new-commit-sha")}) //nolint:errcheck
+		json.NewEncoder(w).Encode(gh.Commit{SHA: new("new-commit-sha")}) //nolint:errcheck
 	})
 
 	mux.HandleFunc("PATCH /repos/test-owner/test-repo/git/refs/heads/go-update-1.26.1", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(gh.Reference{ //nolint:errcheck
-			Ref:    gh.Ptr("refs/heads/go-update-1.26.1"),
-			Object: &gh.GitObject{SHA: gh.Ptr("new-commit-sha")},
+			Ref:    new("refs/heads/go-update-1.26.1"),
+			Object: &gh.GitObject{SHA: new("new-commit-sha")},
 		})
 	})
 
-	client := setupTestClient(t, mux)
-	sha, err := client.CreateCommit(context.Background(), "go-update-1.26.1", "base-sha", "chore: bump Go", []FileChange{
+	cl := setupTestClient(t, mux)
+	sha, err := cl.CreateCommit(context.Background(), "go-update-1.26.1", "base-sha", "chore: bump Go", []FileChange{
 		{Path: "go.mod", Content: "module example\n\ngo 1.26.1\n"},
 		{Path: "Dockerfile", Content: "FROM golang:1.26.1\n"},
 	})
@@ -229,7 +234,7 @@ func TestCreatePR(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /repos/test-owner/test-repo", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(gh.Repository{ //nolint:errcheck
-			DefaultBranch: gh.Ptr("main"),
+			DefaultBranch: new("main"),
 		})
 	})
 
@@ -239,8 +244,8 @@ func TestCreatePR(t *testing.T) {
 		json.Unmarshal(body, &createdPR) //nolint:errcheck
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(gh.PullRequest{ //nolint:errcheck
-			Number:  gh.Ptr(99),
-			HTMLURL: gh.Ptr("https://github.com/test-owner/test-repo/pull/99"),
+			Number:  new(99),
+			HTMLURL: new("https://github.com/test-owner/test-repo/pull/99"),
 		})
 	})
 
@@ -249,12 +254,12 @@ func TestCreatePR(t *testing.T) {
 		body, _ := io.ReadAll(r.Body)
 		json.Unmarshal(body, &addedLabels)     //nolint:errcheck
 		json.NewEncoder(w).Encode([]*gh.Label{ //nolint:errcheck
-			{Name: gh.Ptr("go-update")},
+			{Name: new("go-update")},
 		})
 	})
 
-	client := setupTestClient(t, mux)
-	prURL, err := client.CreatePR(context.Background(),
+	cl := setupTestClient(t, mux)
+	prURL, err := cl.CreatePR(context.Background(),
 		"chore: bump Go from 1.26.0 to 1.26.1",
 		"Update Go version",
 		"go-update-1.26.1",
@@ -277,8 +282,8 @@ func TestDeleteBranch(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	client := setupTestClient(t, mux)
-	err := client.DeleteBranch(context.Background(), "go-update-1.26.1")
+	cl := setupTestClient(t, mux)
+	err := cl.DeleteBranch(context.Background(), "go-update-1.26.1")
 	require.NoError(t, err)
 	assert.True(t, deleted)
 }

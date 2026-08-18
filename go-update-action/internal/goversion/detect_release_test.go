@@ -2,46 +2,45 @@ package goversion_test
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/codeready-toolchain/toolchain-cicd/go-update-action/internal/goversion"
+	"github.com/h2non/gock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestFetchLatestReleases(t *testing.T) {
-	apiResponse := []map[string]any{
-		{
-			"version": "go1.27.2",
-			"stable":  true,
-			"files":   []map[string]any{},
-		},
-		{
-			"version": "go1.26.6",
-			"stable":  true,
-			"files":   []map[string]any{},
-		},
-		{
-			"version": "go1.28rc1",
-			"stable":  false,
-			"files":   []map[string]any{},
-		},
-	}
+	defer gock.Off()
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(apiResponse) //nolint:errcheck
-	}))
-	defer srv.Close()
+	gock.New("https://go.dev").
+		Get("/dl/").
+		MatchParam("mode", "json").
+		Reply(200).
+		JSON([]map[string]any{
+			{
+				"version": "go1.27.2",
+				"stable":  true,
+				"files":   []map[string]any{},
+			},
+			{
+				"version": "go1.26.6",
+				"stable":  true,
+				"files":   []map[string]any{},
+			},
+			{
+				"version": "go1.28rc1",
+				"stable":  false,
+				"files":   []map[string]any{},
+			},
+		})
 
-	releases, err := goversion.FetchLatestReleasesFrom(context.Background(), srv.URL)
+	releases, err := goversion.FetchLatestReleases(context.Background())
 	require.NoError(t, err)
 	require.Len(t, releases, 2)
 	assert.Equal(t, goversion.Version{Major: 1, Minor: 27, Patch: 2}, releases[0].Version)
 	assert.Equal(t, goversion.Version{Major: 1, Minor: 26, Patch: 6}, releases[1].Version)
+	assert.True(t, gock.IsDone())
 }
 
 func TestFindPatchUpdate(t *testing.T) {

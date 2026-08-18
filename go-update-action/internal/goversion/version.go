@@ -40,10 +40,6 @@ func (v Version) String() string {
 	return fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
 }
 
-func (v Version) GoString() string {
-	return "go" + v.String()
-}
-
 func (v Version) MinorString() string {
 	return fmt.Sprintf("%d.%d", v.Major, v.Minor)
 }

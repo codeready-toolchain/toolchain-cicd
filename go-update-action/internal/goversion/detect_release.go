@@ -7,8 +7,6 @@ import (
 	"net/http"
 )
 
-const defaultAPIURL = "https://go.dev/dl/?mode=json"
-
 type Release struct {
 	Version Version
 	Files   []File
@@ -30,11 +28,7 @@ type apiRelease struct {
 }
 
 func FetchLatestReleases(ctx context.Context) ([]Release, error) {
-	return FetchLatestReleasesFrom(ctx, defaultAPIURL)
-}
-
-func FetchLatestReleasesFrom(ctx context.Context, url string) ([]Release, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://go.dev/dl/?mode=json", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}

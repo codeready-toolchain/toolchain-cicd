@@ -12,9 +12,9 @@ type FileChange struct {
 	Content string
 }
 
-type PRResult struct {
-	URL         string
-	ActionTaken string // "created", "skipped", "replaced"
+type PRInfo struct {
+	Number  int
+	HeadRef string
 }
 
 type Client struct {
@@ -23,13 +23,21 @@ type Client struct {
 	repo   string
 }
 
-func NewClient(_ context.Context, token, owner, repo string) *Client {
+func NewClient(owner, repo, token string) *Client {
 	client := gh.NewClient(nil).WithAuthToken(token)
-	return &Client{client: client, owner: owner, repo: repo}
+	return &Client{
+		client: client,
+		owner:  owner,
+		repo:   repo,
+	}
 }
 
 func newTestClient(ghClient *gh.Client, owner, repo string) *Client {
-	return &Client{client: ghClient, owner: owner, repo: repo}
+	return &Client{
+		client: ghClient,
+		owner:  owner,
+		repo:   repo,
+	}
 }
 
 func (c *Client) GetDefaultBranch(ctx context.Context) (string, error) {
@@ -40,8 +48,8 @@ func (c *Client) GetDefaultBranch(ctx context.Context) (string, error) {
 	return repo.GetDefaultBranch(), nil
 }
 
-func (c *Client) FindOpenPRByLabel(ctx context.Context, label string) ([]*gh.PullRequest, error) {
-	var allPRs []*gh.PullRequest
+func (c *Client) FindOpenPRByLabel(ctx context.Context, label string) ([]PRInfo, error) {
+	var allPRs []PRInfo
 	opts := &gh.PullRequestListOptions{
 		State: "open",
 		ListOptions: gh.ListOptions{
@@ -56,7 +64,10 @@ func (c *Client) FindOpenPRByLabel(ctx context.Context, label string) ([]*gh.Pul
 		for _, pr := range prs {
 			for _, l := range pr.Labels {
 				if l.GetName() == label {
-					allPRs = append(allPRs, pr)
+					allPRs = append(allPRs, PRInfo{
+						Number:  pr.GetNumber(),
+						HeadRef: pr.GetHead().GetRef(),
+					})
 					break
 				}
 			}
