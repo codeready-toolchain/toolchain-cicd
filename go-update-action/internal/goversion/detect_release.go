@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type Release struct {
@@ -32,7 +33,8 @@ func FetchLatestReleases(ctx context.Context) ([]Release, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetching Go releases: %w", err)
 	}
