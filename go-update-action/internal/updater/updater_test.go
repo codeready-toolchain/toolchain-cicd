@@ -239,6 +239,39 @@ go 1.26.1
 	assert.NotContains(t, paths, filepath.Join("legacy", "Dockerfile"))
 }
 
+func TestExcludeNestedPath(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root, "go.mod", "module example.com/foo\n\ngo 1.26.1\n")
+	writeFile(t, root, "legacy/sub/Dockerfile", "FROM golang:1.26.1\n")
+
+	result, err := updater.ScanAndUpdate(root, "1.26.1", "1.26.2", []string{"."}, []string{"legacy/*"})
+	require.NoError(t, err)
+	require.Len(t, result.Changes, 1)
+	assert.Equal(t, "go.mod", result.Changes[0].Path)
+}
+
+func TestExcludeByBasename(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root, "go.mod", "module example.com/foo\n\ngo 1.26.1\n")
+	writeFile(t, root, "sub/Dockerfile.dev", "FROM golang:1.26.1\n")
+
+	result, err := updater.ScanAndUpdate(root, "1.26.1", "1.26.2", []string{"."}, []string{"Dockerfile.*"})
+	require.NoError(t, err)
+	require.Len(t, result.Changes, 1)
+	assert.Equal(t, "go.mod", result.Changes[0].Path)
+}
+
+func TestExcludeDeepNestedFixtures(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root, "go.mod", "module example.com/foo\n\ngo 1.26.1\n")
+	writeFile(t, root, "test/fixtures/a/b/go.mod", "module fixtures\n\ngo 1.26.1\n")
+
+	result, err := updater.ScanAndUpdate(root, "1.26.1", "1.26.2", []string{"."}, []string{"test/fixtures/*"})
+	require.NoError(t, err)
+	require.Len(t, result.Changes, 1)
+	assert.Equal(t, "go.mod", result.Changes[0].Path)
+}
+
 func TestUnrelatedFilesNotTouched(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "README.md", `# Project

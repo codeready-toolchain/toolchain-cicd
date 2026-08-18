@@ -108,11 +108,13 @@ func ScanAndUpdate(root string, from, to string, paths []string, excludes []stri
 
 func isExcluded(rel string, excludes []string) bool {
 	for _, pattern := range excludes {
-		if matched, _ := filepath.Match(pattern, rel); matched {
-			return true
-		}
 		if matched, _ := filepath.Match(pattern, filepath.Base(rel)); matched {
 			return true
+		}
+		for path := rel; path != "."; path = filepath.Dir(path) {
+			if matched, _ := filepath.Match(pattern, path); matched {
+				return true
+			}
 		}
 	}
 	return false
