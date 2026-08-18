@@ -81,11 +81,11 @@ func Run(ctx context.Context, logger *slog.Logger, cfg Config, ghClient GitHubCl
 	branchName := fmt.Sprintf("go-update-%s", target.String())
 	prTitle := fmt.Sprintf("chore: bump Go from %s to %s", current.String(), target.String())
 
-	actionTaken, err := HandleExistingPRs(ctx, logger, ghClient, cfg.Labels[0], current, *target, cfg.UpdateType)
+	existing, err := FindExistingPRs(ctx, ghClient, cfg.Labels[0], current, *target, cfg.UpdateType)
 	if err != nil {
 		return nil, err
 	}
-	if actionTaken == "skipped" {
+	if existing.Action == "skipped" {
 		logger.Info("PR already exists for target version", "version", target.String())
 		return &Result{ActionTaken: "skipped"}, nil
 	}
@@ -128,9 +128,11 @@ func Run(ctx context.Context, logger *slog.Logger, cfg Config, ghClient GitHubCl
 
 	logger.Info("PR created", "url", prURL)
 
-	finalAction := actionTaken
-	if finalAction != "replaced" {
-		finalAction = "created"
+	CloseOutdatedPRs(ctx, logger, ghClient, existing.Outdated)
+
+	finalAction := "created"
+	if len(existing.Outdated) > 0 {
+		finalAction = "replaced"
 	}
 
 	if len(scanResult.Suggestions) > 0 {
@@ -152,14 +154,25 @@ func ReadCurrentVersion(goModPath string) (goversion.Version, error) {
 	return goversion.Parse(string(matches[1]))
 }
 
-func HandleExistingPRs(ctx context.Context, logger *slog.Logger, ghClient GitHubClient, label string, current, target goversion.Version, updateType string) (string, error) {
+type outdatedPR struct {
+	Number  int
+	Branch  string
+	Version goversion.Version
+}
+
+type existingPRCheck struct {
+	Action   string // "created" or "skipped"
+	Outdated []outdatedPR
+}
+
+func FindExistingPRs(ctx context.Context, ghClient GitHubClient, label string, current, target goversion.Version, updateType string) (*existingPRCheck, error) {
 	existingPRs, err := ghClient.FindOpenPRByLabel(ctx, label)
 	if err != nil {
-		return "", fmt.Errorf("finding existing PRs: %w", err)
+		return nil, fmt.Errorf("finding existing PRs: %w", err)
 	}
 
 	branchVersionRe := regexp.MustCompile(`^go-update-(\d+\.\d+\.\d+)$`)
-	actionTaken := "created"
+	result := &existingPRCheck{Action: "created"}
 
 	for _, pr := range existingPRs {
 		matches := branchVersionRe.FindStringSubmatch(pr.HeadRef)
@@ -172,7 +185,7 @@ func HandleExistingPRs(ctx context.Context, logger *slog.Logger, ghClient GitHub
 		}
 
 		if prVersion.Compare(target) == 0 {
-			return "skipped", nil
+			return &existingPRCheck{Action: "skipped"}, nil
 		}
 
 		shouldClose := false
@@ -184,19 +197,27 @@ func HandleExistingPRs(ctx context.Context, logger *slog.Logger, ghClient GitHub
 		}
 
 		if shouldClose {
-			logger.Info("closing outdated PR", "number", pr.Number, "version", prVersion.String())
-			if err := ghClient.ClosePR(ctx, pr.Number); err != nil {
-				logger.Warn("failed to close PR", "number", pr.Number, "error", err)
-			}
-			oldBranch := fmt.Sprintf("go-update-%s", prVersion.String())
-			if err := ghClient.DeleteBranch(ctx, oldBranch); err != nil {
-				logger.Debug("failed to delete old branch", "branch", oldBranch, "error", err)
-			}
-			actionTaken = "replaced"
+			result.Outdated = append(result.Outdated, outdatedPR{
+				Number:  pr.Number,
+				Branch:  fmt.Sprintf("go-update-%s", prVersion.String()),
+				Version: prVersion,
+			})
 		}
 	}
 
-	return actionTaken, nil
+	return result, nil
+}
+
+func CloseOutdatedPRs(ctx context.Context, logger *slog.Logger, ghClient GitHubClient, outdated []outdatedPR) {
+	for _, pr := range outdated {
+		logger.Info("closing outdated PR", "number", pr.Number, "version", pr.Version.String())
+		if err := ghClient.ClosePR(ctx, pr.Number); err != nil {
+			logger.Warn("failed to close PR", "number", pr.Number, "error", err)
+		}
+		if err := ghClient.DeleteBranch(ctx, pr.Branch); err != nil {
+			logger.Debug("failed to delete old branch", "branch", pr.Branch, "error", err)
+		}
+	}
 }
 
 func PrepareChangesWithTidy(ctx context.Context, logger *slog.Logger, root string, changes []updater.FileChange, target goversion.Version, tidy TidyFunc) ([]github.FileChange, string, error) {

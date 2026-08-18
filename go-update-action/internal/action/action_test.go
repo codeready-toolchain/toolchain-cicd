@@ -112,17 +112,18 @@ func TestReadCurrentVersion(t *testing.T) {
 	})
 }
 
-// HandleExistingPRs tests
+// FindExistingPRs tests
 
-func TestHandleExistingPRs(t *testing.T) {
+func TestFindExistingPRs(t *testing.T) {
 	ctx := context.Background()
 	current := goversion.Version{Major: 1, Minor: 26, Patch: 0}
 
 	t.Run("no existing PRs", func(t *testing.T) {
 		mock := &MockGitHubClient{}
-		result, err := HandleExistingPRs(ctx, discardLogger, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch")
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch")
 		require.NoError(t, err)
-		assert.Equal(t, "created", result)
+		assert.Equal(t, "created", result.Action)
+		assert.Empty(t, result.Outdated)
 	})
 
 	t.Run("PR exists for same version", func(t *testing.T) {
@@ -131,49 +132,51 @@ func TestHandleExistingPRs(t *testing.T) {
 				{Number: 1, HeadRef: "go-update-1.26.1"},
 			},
 		}
-		result, err := HandleExistingPRs(ctx, discardLogger, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch")
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch")
 		require.NoError(t, err)
-		assert.Equal(t, "skipped", result)
+		assert.Equal(t, "skipped", result.Action)
 	})
 
-	t.Run("patch: closes older patch PR", func(t *testing.T) {
+	t.Run("patch: identifies older patch PR as outdated", func(t *testing.T) {
 		mock := &MockGitHubClient{
 			prs: []github.PRInfo{
 				{Number: 5, HeadRef: "go-update-1.26.1"},
 			},
 		}
 		target := goversion.Version{Major: 1, Minor: 26, Patch: 2}
-		result, err := HandleExistingPRs(ctx, discardLogger, mock, "go-update", current, target, "patch")
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, target, "patch")
 		require.NoError(t, err)
-		assert.Equal(t, "replaced", result)
-		assert.Equal(t, []int{5}, mock.closedPRs)
-		assert.Equal(t, []string{"go-update-1.26.1"}, mock.deletedBranches)
+		assert.Equal(t, "created", result.Action)
+		require.Len(t, result.Outdated, 1)
+		assert.Equal(t, 5, result.Outdated[0].Number)
+		assert.Equal(t, "go-update-1.26.1", result.Outdated[0].Branch)
 	})
 
-	t.Run("patch: does not close PR for different minor", func(t *testing.T) {
+	t.Run("patch: does not flag PR for different minor", func(t *testing.T) {
 		mock := &MockGitHubClient{
 			prs: []github.PRInfo{
 				{Number: 5, HeadRef: "go-update-1.27.0"},
 			},
 		}
 		target := goversion.Version{Major: 1, Minor: 26, Patch: 2}
-		result, err := HandleExistingPRs(ctx, discardLogger, mock, "go-update", current, target, "patch")
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, target, "patch")
 		require.NoError(t, err)
-		assert.Equal(t, "created", result)
-		assert.Empty(t, mock.closedPRs)
+		assert.Equal(t, "created", result.Action)
+		assert.Empty(t, result.Outdated)
 	})
 
-	t.Run("minor: closes older minor PR", func(t *testing.T) {
+	t.Run("minor: identifies older minor PR as outdated", func(t *testing.T) {
 		mock := &MockGitHubClient{
 			prs: []github.PRInfo{
 				{Number: 10, HeadRef: "go-update-1.27.0"},
 			},
 		}
 		target := goversion.Version{Major: 1, Minor: 28, Patch: 0}
-		result, err := HandleExistingPRs(ctx, discardLogger, mock, "go-update", current, target, "minor")
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, target, "minor")
 		require.NoError(t, err)
-		assert.Equal(t, "replaced", result)
-		assert.Equal(t, []int{10}, mock.closedPRs)
+		assert.Equal(t, "created", result.Action)
+		require.Len(t, result.Outdated, 1)
+		assert.Equal(t, 10, result.Outdated[0].Number)
 	})
 
 	t.Run("ignores PR with non-matching branch name", func(t *testing.T) {
@@ -182,17 +185,42 @@ func TestHandleExistingPRs(t *testing.T) {
 				{Number: 1, HeadRef: "some-other-branch"},
 			},
 		}
-		result, err := HandleExistingPRs(ctx, discardLogger, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch")
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch")
 		require.NoError(t, err)
-		assert.Equal(t, "created", result)
+		assert.Equal(t, "created", result.Action)
+		assert.Empty(t, result.Outdated)
 	})
 
 	t.Run("FindOpenPRByLabel error", func(t *testing.T) {
 		mock := &MockGitHubClient{
 			findPRErr: fmt.Errorf("API error"),
 		}
-		_, err := HandleExistingPRs(ctx, discardLogger, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch")
+		_, err := FindExistingPRs(ctx, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch")
 		assert.ErrorContains(t, err, "finding existing PRs")
+	})
+}
+
+// CloseOutdatedPRs tests
+
+func TestCloseOutdatedPRs(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("closes PRs and deletes branches", func(t *testing.T) {
+		mock := &MockGitHubClient{}
+		outdated := []outdatedPR{
+			{Number: 5, Branch: "go-update-1.26.1", Version: goversion.Version{Major: 1, Minor: 26, Patch: 1}},
+			{Number: 8, Branch: "go-update-1.26.2", Version: goversion.Version{Major: 1, Minor: 26, Patch: 2}},
+		}
+		CloseOutdatedPRs(ctx, discardLogger, mock, outdated)
+		assert.Equal(t, []int{5, 8}, mock.closedPRs)
+		assert.Equal(t, []string{"go-update-1.26.1", "go-update-1.26.2"}, mock.deletedBranches)
+	})
+
+	t.Run("no-op with empty list", func(t *testing.T) {
+		mock := &MockGitHubClient{}
+		CloseOutdatedPRs(ctx, discardLogger, mock, nil)
+		assert.Empty(t, mock.closedPRs)
+		assert.Empty(t, mock.deletedBranches)
 	})
 }
 
