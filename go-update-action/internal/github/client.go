@@ -91,26 +91,28 @@ func (c *Client) ClosePR(ctx context.Context, number int) error {
 	return nil
 }
 
+const branchRefPrefix = "refs/heads/"
+
 func (c *Client) CreateBranchFromDefault(ctx context.Context, branchName string) (string, error) {
 	defaultBranch, err := c.GetDefaultBranch(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	defaultRef, _, err := c.client.Git.GetRef(ctx, c.owner, c.repo, "refs/heads/"+defaultBranch)
+	defaultRef, _, err := c.client.Git.GetRef(ctx, c.owner, c.repo, branchRefPrefix+defaultBranch)
 	if err != nil {
 		return "", fmt.Errorf("failed to get default branch ref: %w", err)
 	}
 	baseSHA := defaultRef.GetObject().GetSHA()
 
 	ref := &gh.Reference{
-		Ref: gh.Ptr("refs/heads/" + branchName),
+		Ref: gh.Ptr(branchRefPrefix + branchName),
 		Object: &gh.GitObject{
 			SHA: &baseSHA,
 		},
 	}
 
-	_, resp, err := c.client.Git.GetRef(ctx, c.owner, c.repo, "refs/heads/"+branchName)
+	_, resp, err := c.client.Git.GetRef(ctx, c.owner, c.repo, branchRefPrefix+branchName)
 	if err == nil {
 		// branch exists, update it
 		_, _, err = c.client.Git.UpdateRef(ctx, c.owner, c.repo, ref, true)
@@ -170,7 +172,7 @@ func (c *Client) CreateCommit(ctx context.Context, branch, baseSHA, message stri
 
 	commitSHA := commit.GetSHA()
 	ref := &gh.Reference{
-		Ref: gh.Ptr("refs/heads/" + branch),
+		Ref: gh.Ptr(branchRefPrefix + branch),
 		Object: &gh.GitObject{
 			SHA: &commitSHA,
 		},
@@ -210,7 +212,7 @@ func (c *Client) CreatePR(ctx context.Context, title, body, branch string, label
 }
 
 func (c *Client) DeleteBranch(ctx context.Context, branch string) error {
-	_, err := c.client.Git.DeleteRef(ctx, c.owner, c.repo, "refs/heads/"+branch)
+	_, err := c.client.Git.DeleteRef(ctx, c.owner, c.repo, branchRefPrefix+branch)
 	if err != nil {
 		return fmt.Errorf("failed to delete branch %s: %w", branch, err)
 	}
