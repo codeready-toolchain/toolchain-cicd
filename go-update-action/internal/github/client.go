@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	gh "github.com/google/go-github/v72/github"
 )
@@ -122,7 +123,7 @@ func (c *Client) CreateBranchFromDefault(ctx context.Context, branchName string)
 		return baseSHA, nil
 	}
 
-	if resp.StatusCode != 404 {
+	if resp != nil && resp.StatusCode != http.StatusNotFound {
 		return "", fmt.Errorf("failed to check branch existence: %w", err)
 	}
 
