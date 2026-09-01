@@ -21,7 +21,7 @@ type GitHubClient interface {
 	DeleteBranch(ctx context.Context, branch string) error
 	CreateBranchFromDefault(ctx context.Context, branchName string) (string, error)
 	CreateCommit(ctx context.Context, branch, baseSHA, message string, changes []github.FileChange) (string, error)
-	CreatePR(ctx context.Context, title, body, branch string, labels []string) (string, error)
+	CreatePR(ctx context.Context, logger *slog.Logger, title, body, branch string, labels []string) (string, error)
 }
 
 type TidyFunc func(ctx context.Context, dir string, goVersion string) ([]byte, error)
@@ -121,7 +121,7 @@ func Run(ctx context.Context, logger *slog.Logger, cfg Config, ghClient GitHubCl
 	}
 
 	prBody := FormatPRBody(current, *target, scanResult.Changes, tidyWarning)
-	prURL, err := ghClient.CreatePR(ctx, prTitle, prBody, branchName, cfg.Labels)
+	prURL, err := ghClient.CreatePR(ctx, logger, prTitle, prBody, branchName, cfg.Labels)
 	if err != nil {
 		return nil, fmt.Errorf("creating PR: %w", err)
 	}
@@ -367,7 +367,7 @@ func HandleSuggestionPR(ctx context.Context, logger *slog.Logger, ghClient GitHu
 	}
 	sb.WriteString("\n---\n*This PR was automatically created by the go-update-action.*\n")
 
-	prURL, err := ghClient.CreatePR(ctx, "chore: use go-version-file instead of hardcoded go-version", sb.String(), branchName, []string{"go-version-file"})
+	prURL, err := ghClient.CreatePR(ctx, logger, "chore: use go-version-file instead of hardcoded go-version", sb.String(), branchName, []string{"go-version-file"})
 	if err != nil {
 		logger.Warn("failed to create suggestion PR", "error", err)
 		return

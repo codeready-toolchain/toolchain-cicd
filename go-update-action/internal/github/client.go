@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	gh "github.com/google/go-github/v72/github"
@@ -186,7 +187,7 @@ func (c *Client) CreateCommit(ctx context.Context, branch, baseSHA, message stri
 	return commitSHA, nil
 }
 
-func (c *Client) CreatePR(ctx context.Context, title, body, branch string, labels []string) (string, error) {
+func (c *Client) CreatePR(ctx context.Context, logger *slog.Logger, title, body, branch string, labels []string) (string, error) {
 	defaultBranch, err := c.GetDefaultBranch(ctx)
 	if err != nil {
 		return "", err
@@ -205,7 +206,8 @@ func (c *Client) CreatePR(ctx context.Context, title, body, branch string, label
 	if len(labels) > 0 {
 		_, _, err = c.client.Issues.AddLabelsToIssue(ctx, c.owner, c.repo, pr.GetNumber(), labels)
 		if err != nil {
-			return "", fmt.Errorf("failed to add labels to PR: %w", err)
+			// log the error and continue, since the Pr has been created and we can still add labels manually
+			logger.Error("failed to add labels to PR", "error", err)
 		}
 	}
 

@@ -62,7 +62,7 @@ func (m *MockGitHubClient) CreateCommit(_ context.Context, _, _, _ string, chang
 	return m.createCommitSHA, m.createCommitErr
 }
 
-func (m *MockGitHubClient) CreatePR(_ context.Context, _, _, _ string, labels []string) (string, error) {
+func (m *MockGitHubClient) CreatePR(_ context.Context, _ *slog.Logger, _, _, _ string, labels []string) (string, error) {
 	m.createdPRLabels = labels
 	return m.createdPRURL, m.createPRErr
 }

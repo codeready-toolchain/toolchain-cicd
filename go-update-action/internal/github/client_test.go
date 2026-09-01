@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -260,6 +261,7 @@ func TestCreatePR(t *testing.T) {
 
 	cl := setupTestClient(t, mux)
 	prURL, err := cl.CreatePR(context.Background(),
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		"chore: bump Go from 1.26.0 to 1.26.1",
 		"Update Go version",
 		"go-update-1.26.1",
