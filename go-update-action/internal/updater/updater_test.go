@@ -272,6 +272,15 @@ func TestExcludeDeepNestedFixtures(t *testing.T) {
 	assert.Equal(t, "go.mod", result.Changes[0].Path)
 }
 
+func TestScanPathOutsideRoot(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root, "go.mod", "module example.com/foo\n\ngo 1.26.1\n")
+
+	_, err := updater.ScanAndUpdate(root, "1.26.1", "1.26.2", []string{"../../etc"}, []string{"*.txt"})
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "escapes root directory")
+}
+
 func TestUnrelatedFilesNotTouched(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "README.md", `# Project

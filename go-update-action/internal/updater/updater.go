@@ -30,6 +30,9 @@ func ScanAndUpdate(root string, from, to string, paths []string, excludes []stri
 
 	for _, p := range paths {
 		scanRoot := filepath.Join(root, p)
+		if rel, err := filepath.Rel(root, scanRoot); err != nil || strings.HasPrefix(rel, "..") {
+			return nil, fmt.Errorf("path %q escapes root directory", p)
+		}
 		info, err := os.Stat(scanRoot)
 		if err != nil {
 			return nil, fmt.Errorf("path %q: %w", p, err)
@@ -111,7 +114,7 @@ func isExcluded(rel string, excludes []string) bool {
 		if matched, _ := filepath.Match(pattern, filepath.Base(rel)); matched {
 			return true
 		}
-		for path := rel; path != "."; path = filepath.Dir(path) {
+		for path := rel; path != "." && path != ".."; path = filepath.Dir(path) {
 			if matched, _ := filepath.Match(pattern, path); matched {
 				return true
 			}
