@@ -1,0 +1,63 @@
+name: 'Go Version Updater'
+description: 'Check for Go version updates and open PRs to bump go.mod, Dockerfiles, Containerfiles, and workflow files'
+
+inputs:
+  type:
+    description: 'Update type: patch or minor'
+    required: true
+  token:
+    description: 'GitHub token (GitHub App token recommended to trigger downstream workflows)'
+    required: true
+  go-version-file:
+    description: 'Path to go.mod file for current version detection'
+    required: false
+    default: 'go.mod'
+  paths:
+    description: 'Directories to scan for files to update (newline-separated)'
+    required: false
+    default: '.'
+  labels:
+    description: 'Labels to apply to PRs (newline-separated)'
+    required: false
+    default: 'go-update'
+  exclude:
+    description: 'Glob patterns to exclude files from updates (newline-separated)'
+    required: false
+    default: ''
+
+outputs:
+  pr-url:
+    description: 'URL of the created PR (empty if skipped)'
+    value: ${{ steps.update.outputs.pr-url }}
+  action-taken:
+    description: 'Action taken: created, skipped, or replaced'
+    value: ${{ steps.update.outputs.action-taken }}
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-go@v5
+      with:
+        go-version: 'stable'
+    - id: update
+      shell: bash
+      env:
+        INPUT_TYPE: ${{ inputs.type }}
+        INPUT_TOKEN: ${{ inputs.token }}
+        INPUT_GO_VERSION_FILE: ${{ inputs.go-version-file }}
+        INPUT_PATHS: ${{ inputs.paths }}
+        INPUT_LABELS: ${{ inputs.labels }}
+        INPUT_EXCLUDE: ${{ inputs.exclude }}
+        INPUT_OWNER: ${{ github.repository_owner }}
+        INPUT_REPO: ${{ github.event.repository.name }}
+      run: |
+        cd "${{ github.action_path }}"
+        go run . \
+          --type="${INPUT_TYPE}" \
+          --token="${INPUT_TOKEN}" \
+          --go-version-file="${INPUT_GO_VERSION_FILE}" \
+          --paths="${INPUT_PATHS}" \
+          --labels="${INPUT_LABELS}" \
+          --exclude="${INPUT_EXCLUDE}" \
+          --owner="${INPUT_OWNER}" \
+          --repo="${INPUT_REPO}"
