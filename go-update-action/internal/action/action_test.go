@@ -430,3 +430,15 @@ func TestParseNewlineSeparated(t *testing.T) {
 		assert.Equal(t, []string{}, ParseNewlineSeparated(""))
 	})
 }
+
+// Run tests
+
+func TestRunWithNilLabels(t *testing.T) {
+	ctx := context.Background()
+	cfg := Config{
+		Labels: nil,
+	}
+	_, err := Run(ctx, discardLogger, cfg, &MockGitHubClient{}, nil)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "at least one label is required")
+}

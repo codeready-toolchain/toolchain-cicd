@@ -50,6 +50,10 @@ type Result struct {
 var goDirectiveRe = regexp.MustCompile(`(?m)^go\s+(\d+\.\d+(?:\.\d+)?)\s*$`)
 
 func Run(ctx context.Context, logger *slog.Logger, cfg Config, ghClient GitHubClient, tidy TidyFunc) (*Result, error) {
+	if len(cfg.Labels) == 0 {
+		return nil, fmt.Errorf("at least one label is required")
+	}
+
 	current, err := ReadCurrentVersion(cfg.GoVersionFile)
 	if err != nil {
 		return nil, fmt.Errorf("reading current Go version: %w", err)
