@@ -54,8 +54,8 @@ jobs:
       - uses: actions/create-github-app-token@v1
         id: app-token
         with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.GO_VERSION_UPDATER_APP_ID }}
+          private-key: ${{ secrets.GO_VERSION_UPDATER_APP_PRIVATE_KEY }}
       - uses: codeready-toolchain/toolchain-cicd/go-update-action@master
         with:
           type: patch
@@ -68,8 +68,8 @@ jobs:
       - uses: actions/create-github-app-token@v1
         id: app-token
         with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.GO_VERSION_UPDATER_APP_ID }}
+          private-key: ${{ secrets.GO_VERSION_UPDATER_APP_PRIVATE_KEY }}
       - uses: codeready-toolchain/toolchain-cicd/go-update-action@master
         with:
           type: minor
