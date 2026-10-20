@@ -54,8 +54,8 @@ jobs:
       - uses: actions/create-github-app-token@v1
         id: app-token
         with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.GO_VERSION_UPDATER_APP_ID }}
+          private-key: ${{ secrets.GO_VERSION_UPDATER_APP_PRIVATE_KEY }}
       - uses: codeready-toolchain/toolchain-cicd/go-update-action@master
         with:
           type: patch
@@ -68,8 +68,8 @@ jobs:
       - uses: actions/create-github-app-token@v1
         id: app-token
         with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.GO_VERSION_UPDATER_APP_ID }}
+          private-key: ${{ secrets.GO_VERSION_UPDATER_APP_PRIVATE_KEY }}
       - uses: codeready-toolchain/toolchain-cicd/go-update-action@master
         with:
           type: minor
@@ -79,6 +79,24 @@ jobs:
 ### Why a GitHub App token?
 
 PRs created with the default `GITHUB_TOKEN` do **not** trigger other workflows (e.g., CI on the PR). Using a [GitHub App token](https://github.com/actions/create-github-app-token) ensures your CI pipeline runs on the update PRs.
+
+### Required GitHub App permissions
+
+The GitHub App needs these **repository** permissions:
+
+| Permission | Access | Why |
+|---|---|---|
+| **Contents** | Read & Write | Create branches and commits via the Git Data API |
+| **Pull requests** | Read & Write | Open, close, and list PRs |
+| **Metadata** | Read-only | Required by all GitHub Apps (granted automatically) |
+
+Optionally, if you want the action to apply labels to PRs (default: `go-update`):
+
+| Permission | Access | Why |
+|---|---|---|
+| **Issues** | Read & Write | GitHub's API manages labels through the Issues permission, even on pull requests |
+
+No organization-level permissions are needed.
 
 ### Scanning multiple directories
 
