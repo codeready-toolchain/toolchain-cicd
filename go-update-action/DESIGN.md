@@ -129,9 +129,13 @@ No third-party actions (like `peter-evans/create-pull-request`) are used, for se
 
 ### Q18: go.mod directives
 
-**Decision:** Update the `go` directive only; let `go mod tidy` handle the `toolchain` directive.
+**Decision:** Bump the `toolchain` directive when present, the `go` directive otherwise.
 
-Since Go 1.21, `go.mod` has both a `go` directive (minimum version) and an optional `toolchain` directive. Running `go mod tidy` with the new Go version will set the toolchain directive correctly, avoiding the need to encode Go's evolving toolchain logic into the action.
+Since Go 1.21, `go.mod` has both a `go` directive (minimum version required by the module and its consumers) and an optional `toolchain` directive (version used to build the module). `go mod tidy` does not bump the `toolchain` directive on its own, so the action handles it explicitly:
+
+- The current version is read from the `toolchain` directive if present, from the `go` directive otherwise.
+- If the `toolchain` directive matches the current version, it is updated to the target version. The `go` directive is only updated if it has the same version (e.g. `go 1.26.5` + `toolchain go1.26.5`), so that the minimum version required by consumers is not raised.
+- If there is no `toolchain` directive, the `go` directive is updated. When the `go` directive is a language version without patch (e.g. `go 1.26`), a `toolchain` directive is added instead.
 
 ### Q19: PR body content
 

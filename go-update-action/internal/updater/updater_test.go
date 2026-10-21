@@ -54,6 +54,57 @@ go 1.25.0
 	assert.Empty(t, result.Changes)
 }
 
+func TestGoModToolchain(t *testing.T) {
+	t.Run("toolchain directive is updated, language version is kept", func(t *testing.T) {
+		root := t.TempDir()
+		writeFile(t, root, "go.mod", "module example.com/foo\n\ngo 1.26\n\ntoolchain go1.26.5\n")
+
+		result, err := updater.ScanAndUpdate(root, "1.26.5", "1.26.10", []string{"."}, nil)
+		require.NoError(t, err)
+		require.Len(t, result.Changes, 1)
+		assert.Equal(t, "module example.com/foo\n\ngo 1.26\n\ntoolchain go1.26.10\n", result.Changes[0].NewContent)
+	})
+
+	t.Run("go and toolchain directives with same version are both updated", func(t *testing.T) {
+		root := t.TempDir()
+		writeFile(t, root, "go.mod", "module example.com/foo\n\ngo 1.26.5\n\ntoolchain go1.26.5\n")
+
+		result, err := updater.ScanAndUpdate(root, "1.26.5", "1.26.10", []string{"."}, nil)
+		require.NoError(t, err)
+		require.Len(t, result.Changes, 1)
+		assert.Equal(t, "module example.com/foo\n\ngo 1.26.10\n\ntoolchain go1.26.10\n", result.Changes[0].NewContent)
+	})
+
+	t.Run("go directive lower than toolchain is kept", func(t *testing.T) {
+		root := t.TempDir()
+		writeFile(t, root, "go.mod", "module example.com/foo\n\ngo 1.26.1\n\ntoolchain go1.26.5\n")
+
+		result, err := updater.ScanAndUpdate(root, "1.26.5", "1.26.10", []string{"."}, nil)
+		require.NoError(t, err)
+		require.Len(t, result.Changes, 1)
+		assert.Equal(t, "module example.com/foo\n\ngo 1.26.1\n\ntoolchain go1.26.10\n", result.Changes[0].NewContent)
+	})
+
+	t.Run("toolchain directive is added after language version", func(t *testing.T) {
+		root := t.TempDir()
+		writeFile(t, root, "go.mod", "module example.com/foo\n\ngo 1.26\n\nrequire github.com/some/pkg v1.0.0\n")
+
+		result, err := updater.ScanAndUpdate(root, "1.26.0", "1.26.10", []string{"."}, nil)
+		require.NoError(t, err)
+		require.Len(t, result.Changes, 1)
+		assert.Equal(t, "module example.com/foo\n\ngo 1.26\n\ntoolchain go1.26.10\n\nrequire github.com/some/pkg v1.0.0\n", result.Changes[0].NewContent)
+	})
+
+	t.Run("toolchain directive with other version is not touched", func(t *testing.T) {
+		root := t.TempDir()
+		writeFile(t, root, "go.mod", "module example.com/foo\n\ngo 1.26\n\ntoolchain go1.25.3\n")
+
+		result, err := updater.ScanAndUpdate(root, "1.26.0", "1.26.10", []string{"."}, nil)
+		require.NoError(t, err)
+		assert.Empty(t, result.Changes)
+	})
+}
+
 func TestGoModMultiple(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "go.mod", `module example.com/foo

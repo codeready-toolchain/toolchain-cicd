@@ -47,7 +47,10 @@ type Result struct {
 	PRURL       string
 }
 
-var goDirectiveRe = regexp.MustCompile(`(?m)^go\s+(\d+\.\d+(?:\.\d+)?)\s*$`)
+var (
+	goDirectiveRe        = regexp.MustCompile(`(?m)^go\s+(\d+\.\d+(?:\.\d+)?)\s*$`)
+	toolchainDirectiveRe = regexp.MustCompile(`(?m)^toolchain\s+go(\d+\.\d+\.\d+)\s*$`)
+)
 
 func Run(ctx context.Context, logger *slog.Logger, cfg Config, ghClient GitHubClient, tidy TidyFunc) (*Result, error) {
 	if len(cfg.Labels) == 0 {
@@ -150,6 +153,10 @@ func ReadCurrentVersion(goModPath string) (goversion.Version, error) {
 	content, err := os.ReadFile(goModPath)
 	if err != nil {
 		return goversion.Version{}, fmt.Errorf("reading %s: %w", goModPath, err)
+	}
+	// the toolchain directive, when present, is the version actually used to build the module
+	if matches := toolchainDirectiveRe.FindSubmatch(content); matches != nil {
+		return goversion.Parse(string(matches[1]))
 	}
 	matches := goDirectiveRe.FindSubmatch(content)
 	if matches == nil {
