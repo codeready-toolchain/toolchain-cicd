@@ -51,8 +51,11 @@ runs:
         INPUT_OWNER: ${{ github.repository_owner }}
         INPUT_REPO: ${{ github.event.repository.name }}
       run: |
-        cd "${{ github.action_path }}"
-        go run . \
+        # build from the action's own module, but run from the caller's workspace
+        # so that relative paths (go.mod, scanned dirs, `go mod tidy`) target the caller's repo
+        go -C "${{ github.action_path }}" build -o "${RUNNER_TEMP}/go-update-action" .
+        cd "${GITHUB_WORKSPACE}"
+        "${RUNNER_TEMP}/go-update-action" \
           --type="${INPUT_TYPE}" \
           --token="${INPUT_TOKEN}" \
           --go-version-file="${INPUT_GO_VERSION_FILE}" \
