@@ -7,7 +7,7 @@ A GitHub Action (composite, Go-based) that checks for new Go versions and opens 
 - Detects both **patch** (1.26.1 → 1.26.2) and **minor** (1.26 → 1.27) Go updates
 - Fetches latest stable versions from the official [Go downloads API](https://go.dev/dl/?mode=json)
 - Updates:
-  - `go` directive in all `go.mod` files
+  - `toolchain` directive (or `go` directive, if there is no `toolchain` directive) in all `go.mod` files
   - `FROM golang:X.Y.Z` lines in Dockerfiles/Containerfiles (preserving suffixes like `-alpine` and multi-stage `AS` clauses)
   - `ARG`/`ENV` variables (`GO_VERSION`, `GOLANG_VERSION`, `GO_VER`)
   - Hardcoded `go-version:` in `actions/setup-go` workflow steps
