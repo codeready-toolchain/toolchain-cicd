@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	goDirectiveRe        = regexp.MustCompile(`(?m)^go\s+(\d+\.\d+(?:\.\d+)?)[ \t]*$`)
-	toolchainDirectiveRe = regexp.MustCompile(`(?m)^toolchain\s+go(\d+\.\d+\.\d+)[ \t]*$`)
+	goDirectiveRe        = regexp.MustCompile(`(?m)^go\s+(\d+\.\d+(?:\.\d+)?)[ \t]*(\r?)$`)
+	toolchainDirectiveRe = regexp.MustCompile(`(?m)^toolchain\s+go(\d+\.\d+\.\d+)[ \t]*(\r?)$`)
 )
 
 // updateGoMod bumps the Go version used to build the module, without raising the
@@ -26,11 +26,12 @@ func updateGoMod(path, rel, from, to string) (*FileChange, error) {
 	old := string(content)
 	updated := goDirectiveRe.ReplaceAllStringFunc(old, func(match string) string {
 		sub := goDirectiveRe.FindStringSubmatch(match)
+		cr := sub[2] // preserve CRLF line endings
 		switch {
 		case sub[1] == from:
-			return "go " + to
+			return "go " + to + cr
 		case sub[1]+".0" == from && !toolchainDirectiveRe.MatchString(old):
-			return match + "\n\ntoolchain go" + to
+			return match + "\n" + cr + "\ntoolchain go" + to + cr
 		default:
 			return match
 		}
@@ -40,7 +41,7 @@ func updateGoMod(path, rel, from, to string) (*FileChange, error) {
 		if sub[1] != from {
 			return match
 		}
-		return "toolchain go" + to
+		return "toolchain go" + to + sub[2]
 	})
 
 	if updated == old {

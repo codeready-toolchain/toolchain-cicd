@@ -105,6 +105,38 @@ func TestGoModToolchain(t *testing.T) {
 	})
 }
 
+func TestGoModCRLF(t *testing.T) {
+	for name, tc := range map[string]struct {
+		from, content, expected string
+	}{
+		"go directive is updated": {
+			from:     "1.26.5",
+			content:  "module example.com/foo\r\n\r\ngo 1.26.5\r\n",
+			expected: "module example.com/foo\r\n\r\ngo 1.26.10\r\n",
+		},
+		"toolchain directive is updated": {
+			from:     "1.26.5",
+			content:  "module example.com/foo\r\n\r\ngo 1.26\r\n\r\ntoolchain go1.26.5\r\n",
+			expected: "module example.com/foo\r\n\r\ngo 1.26\r\n\r\ntoolchain go1.26.10\r\n",
+		},
+		"toolchain directive is added": {
+			from:     "1.26.0",
+			content:  "module example.com/foo\r\n\r\ngo 1.26\r\n",
+			expected: "module example.com/foo\r\n\r\ngo 1.26\r\n\r\ntoolchain go1.26.10\r\n",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			root := t.TempDir()
+			writeFile(t, root, "go.mod", tc.content)
+
+			result, err := updater.ScanAndUpdate(root, tc.from, "1.26.10", []string{"."}, nil)
+			require.NoError(t, err)
+			require.Len(t, result.Changes, 1)
+			assert.Equal(t, tc.expected, result.Changes[0].NewContent)
+		})
+	}
+}
+
 func TestGoModMultiple(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "go.mod", `module example.com/foo
