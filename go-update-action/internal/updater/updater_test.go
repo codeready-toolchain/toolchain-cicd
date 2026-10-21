@@ -95,6 +95,15 @@ func TestGoModToolchain(t *testing.T) {
 		assert.Equal(t, "module example.com/foo\n\ngo 1.26\n\ntoolchain go1.26.10\n\nrequire github.com/some/pkg v1.0.0\n", result.Changes[0].NewContent)
 	})
 
+	t.Run("go directive is not updated when toolchain directive has other version", func(t *testing.T) {
+		root := t.TempDir()
+		writeFile(t, root, "go.mod", "module example.com/foo\n\ngo 1.26.5\n\ntoolchain go1.26.8\n")
+
+		result, err := updater.ScanAndUpdate(root, "1.26.5", "1.26.10", []string{"."}, nil)
+		require.NoError(t, err)
+		assert.Empty(t, result.Changes)
+	})
+
 	t.Run("toolchain directive with other version is not touched", func(t *testing.T) {
 		root := t.TempDir()
 		writeFile(t, root, "go.mod", "module example.com/foo\n\ngo 1.26\n\ntoolchain go1.25.3\n")
