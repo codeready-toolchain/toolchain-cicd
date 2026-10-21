@@ -44,7 +44,10 @@ name: Go Version Update
 
 on:
   schedule:
-    - cron: '0 8 * * *'  # daily at 8am UTC
+    - cron: '0/5 * * * *'
+
+permissions:
+  contents: read
 
 jobs:
   go-patch-update:
@@ -56,6 +59,8 @@ jobs:
         with:
           app-id: ${{ secrets.GO_VERSION_UPDATER_APP_ID }}
           private-key: ${{ secrets.GO_VERSION_UPDATER_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
       - uses: codeready-toolchain/toolchain-cicd/go-update-action@master
         with:
           type: patch
@@ -70,6 +75,8 @@ jobs:
         with:
           app-id: ${{ secrets.GO_VERSION_UPDATER_APP_ID }}
           private-key: ${{ secrets.GO_VERSION_UPDATER_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
       - uses: codeready-toolchain/toolchain-cicd/go-update-action@master
         with:
           type: minor
