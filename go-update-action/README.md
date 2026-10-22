@@ -44,18 +44,25 @@ name: Go Version Update
 
 on:
   schedule:
-    - cron: '0 8 * * *'  # daily at 8am UTC
+    - cron: '0 6 * * *' # 6 AM UTC
+
+permissions:
+  contents: read
 
 jobs:
   go-patch-update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/create-github-app-token@v3
         id: app-token
         with:
-          app-id: ${{ secrets.GO_VERSION_UPDATER_APP_ID }}
+          client-id: ${{ secrets.GO_VERSION_UPDATER_APP_CLIENT_ID }}
           private-key: ${{ secrets.GO_VERSION_UPDATER_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
       - uses: codeready-toolchain/toolchain-cicd/go-update-action@master
         with:
           type: patch
@@ -64,12 +71,16 @@ jobs:
   go-minor-update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/create-github-app-token@v3
         id: app-token
         with:
-          app-id: ${{ secrets.GO_VERSION_UPDATER_APP_ID }}
+          client-id: ${{ secrets.GO_VERSION_UPDATER_APP_CLIENT_ID }}
           private-key: ${{ secrets.GO_VERSION_UPDATER_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
       - uses: codeready-toolchain/toolchain-cicd/go-update-action@master
         with:
           type: minor
