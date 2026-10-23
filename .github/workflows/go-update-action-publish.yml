@@ -6,11 +6,18 @@ on:
     paths:
     - 'go-update-action/**'
     - '.github/workflows/go-update-action-*.yml'
+    # changes to the action metadata or docs do not affect the image.
+    # Ignoring `action.yml` also prevents the PR opened below from triggering another publish.
+    - '!go-update-action/action.yml'
+    - '!go-update-action/**.md'
 
 jobs:
   build-image:
     name: Build and push image
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -18,7 +25,7 @@ jobs:
       - name: Set short SHA
         id: short-sha
         run: echo "COMMIT_SHORT_SHA=$(git rev-parse --short ${GITHUB_SHA})" >> ${GITHUB_ENV}
-  
+
       - name: Build image
         id: build-image
         uses: redhat-actions/buildah-build@v2
@@ -34,7 +41,7 @@ jobs:
           registry: quay.io
           username: codeready-toolchain+push
           password: ${{ secrets.QUAY_GO_UPDATE_ACTION_TOKEN }}
-    
+
       - name: Push to quay.io
         id: push-to-quay
         uses: redhat-actions/push-to-registry@v2
@@ -45,3 +52,19 @@ jobs:
 
       - name: Print image url
         run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"
+
+      # the image tag can only be known once the commit exists, so pin the new image in `action.yml` via a PR
+      - name: Pin the new image in action.yml
+        run: sed -i -E "s|(image: 'docker://quay.io/codeready-toolchain/go-update-action:)[^']*'|\1${COMMIT_SHORT_SHA}'|" go-update-action/action.yml
+
+      - name: Open PR to pin the new image
+        uses: peter-evans/create-pull-request@v8
+        with:
+          # using a fixed branch so that subsequent publishes update the same PR
+          branch: go-update-action/pin-image
+          delete-branch: true
+          commit-message: 'go-update-action: pin image to ${{ env.COMMIT_SHORT_SHA }}'
+          title: 'go-update-action: pin image to ${{ env.COMMIT_SHORT_SHA }}'
+          body: |
+            Pins the action to `quay.io/codeready-toolchain/go-update-action:${{ env.COMMIT_SHORT_SHA }}`, built from ${{ github.sha }}.
+          add-paths: go-update-action/action.yml

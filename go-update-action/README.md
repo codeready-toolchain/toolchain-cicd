@@ -166,6 +166,13 @@ go-update-action/
 - **Labels:** `go-update` for version update PRs, `go-version-file` for suggestion PRs
 - **PR body:** includes release notes link, list of changed files, and warnings if `go mod tidy` failed
 
+## Container image
+
+The action runs the `quay.io/codeready-toolchain/go-update-action` image, built from the `Containerfile`.
+On every push to `master` that affects the image, the [publish workflow](../.github/workflows/go-update-action-publish.yml)
+pushes an image tagged with the short commit SHA (and `latest`), then opens a PR to pin that tag in `action.yml`.
+This way, each commit of the action references a specific image rather than `latest`.
+
 ## Build & Test
 
 ```bash
