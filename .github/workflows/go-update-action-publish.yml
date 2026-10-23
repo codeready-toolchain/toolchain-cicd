@@ -11,6 +11,9 @@ on:
     - '!go-update-action/action.yml'
     - '!go-update-action/**.md'
 
+permissions:
+  contents: read
+
 jobs:
   build-image:
     name: Build and push image
