@@ -24,6 +24,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          # `create-pull-request` sets up its own credentials to push the branch
+          persist-credentials: false
 
       - name: Set short SHA
         id: short-sha
