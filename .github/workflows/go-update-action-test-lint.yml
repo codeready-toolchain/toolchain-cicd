@@ -56,4 +56,5 @@ jobs:
       uses: golangci/golangci-lint-action@v9
       with:
         version: v2.15.0
-        args: --config=./.golangci.yml --verbose
+        working-directory: go-update-action
+        args: --path-mode=abs --config=.golangci.yml --verbose ./...
