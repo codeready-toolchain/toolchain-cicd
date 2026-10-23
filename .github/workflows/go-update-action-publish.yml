@@ -14,6 +14,12 @@ on:
 permissions:
   contents: read
 
+# run publishes one at a time, in order, so that an older run cannot overwrite
+# the `latest` tag or the image pinned in the PR by a newer run
+concurrency:
+  group: go-update-action-publish
+  cancel-in-progress: false
+
 jobs:
   build-image:
     name: Build and push image
