@@ -1,0 +1,23 @@
+FROM golang:1.27.0 as builder
+
+ARG GOOS=linux 
+ARG GOARCH=amd64
+
+WORKDIR /usr/src/app/  
+
+COPY . .
+
+ENV GOTOOLCHAIN=auto
+
+RUN echo "Building go-update-action binary for $GOOS/$GOARCH"
+RUN GOOS=$GOOS GOARCH=$GOARCH go build -v -o go-update-action main.go
+
+FROM golang:1.27.0
+# using a fresh golang image without the `WORKDIR` from the builder stage
+# see https://docs.github.com/en/actions/reference/workflows-and-actions/dockerfile-support#workdir
+
+# copy the binary from the builder stage
+COPY --from=builder /usr/src/app/go-update-action /usr/local/bin/go-update-action
+
+# use ENTRYPOINT (not CMD) so that the `args` from action.yml are passed to the binary
+ENTRYPOINT ["go-update-action"]

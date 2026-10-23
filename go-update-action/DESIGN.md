@@ -103,9 +103,9 @@ Lightweight, useful for filtering and dashboard queries. Reviewers are not auto-
 
 ### Q15: Go toolchain source
 
-**Decision:** Composite action with `actions/setup-go`.
+**Decision:** Docker container action, using a prebuilt image.
 
-The action is a composite action (not Docker-based) that uses `actions/setup-go` to install a stable Go version, then runs the Go binary. The binary uses `GOTOOLCHAIN=goX.Y.Z` to let Go auto-download the target version for `go mod tidy`.
+The action runs the prebuilt `quay.io/codeready-toolchain/go-update-action` image (built from the `Containerfile` and published on every push to `master`), which is based on the official `golang` image. This avoids installing Go and compiling the binary on every run. The binary uses `GOTOOLCHAIN=goX.Y.Z` to let Go auto-download the target version for `go mod tidy`.
 
 ## Round 4 — Mechanics
 
@@ -151,7 +151,7 @@ PR body includes:
 
 **Decision:** One update per invocation with a `--type` flag.
 
-The binary handles one update type per run. The composite action's calling workflow runs two separate jobs (one for patch, one for minor), giving clean isolation — if one fails, the other still runs.
+The binary handles one update type per run. The action's calling workflow runs two separate jobs (one for patch, one for minor), giving clean isolation — if one fails, the other still runs.
 
 ## Round 5 — Execution flow and auth
 

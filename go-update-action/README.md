@@ -1,6 +1,6 @@
 # go-update-action
 
-A GitHub Action (composite, Go-based) that checks for new Go versions and opens PRs to update `go.mod`, Dockerfiles, Containerfiles, and GitHub Actions workflow files.
+A GitHub Action (Docker container, Go-based) that checks for new Go versions and opens PRs to update `go.mod`, Dockerfiles, Containerfiles, and GitHub Actions workflow files.
 
 ## Features
 
@@ -87,6 +87,17 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
 ```
 
+### Runner and version pinning
+
+The action runs in a container, so it requires a Linux runner (e.g. `ubuntu-latest`). There is no need to set up Go in the calling workflow.
+
+Using `@master` runs the image pinned in `action.yml` on the `master` branch, which changes whenever a new image is published.
+To control when you pick up a new version, pin the action to a commit SHA instead:
+
+```yaml
+- uses: codeready-toolchain/toolchain-cicd/go-update-action@<commit-sha> # master
+```
+
 ### Why a GitHub App token?
 
 PRs created with the default `GITHUB_TOKEN` do **not** trigger other workflows (e.g., CI on the PR). Using a [GitHub App token](https://github.com/actions/create-github-app-token) ensures your CI pipeline runs on the update PRs.
@@ -138,7 +149,8 @@ No organization-level permissions are needed.
 
 ```
 go-update-action/
-├── action.yml                    # Composite action definition
+├── action.yml                    # Docker action definition (uses the quay.io image)
+├── Containerfile                 # Image published to quay.io/codeready-toolchain/go-update-action
 ├── main.go                       # Entry point
 ├── cmd/
 │   └── root.go                   # Cobra CLI — orchestrates the full flow
@@ -164,6 +176,13 @@ go-update-action/
 - **PR titles:** `chore: bump Go from 1.26.1 to 1.26.2`
 - **Labels:** `go-update` for version update PRs, `go-version-file` for suggestion PRs
 - **PR body:** includes release notes link, list of changed files, and warnings if `go mod tidy` failed
+
+## Container image
+
+The action runs the `quay.io/codeready-toolchain/go-update-action` image, built from the `Containerfile`.
+On every push to `master` that affects the image, the [publish workflow](../.github/workflows/go-update-action-publish.yml)
+pushes an image tagged with the short commit SHA (and `latest`), then opens a PR to pin that tag in `action.yml`.
+This way, each commit of the action references a specific image rather than `latest`.
 
 ## Build & Test
 
