@@ -28,39 +28,20 @@ inputs:
 outputs:
   pr-url:
     description: 'URL of the created PR (empty if skipped)'
-    value: ${{ steps.update.outputs.pr-url }}
   action-taken:
     description: 'Action taken: created, skipped, or replaced'
-    value: ${{ steps.update.outputs.action-taken }}
 
 runs:
-  using: 'composite'
-  steps:
-    - uses: actions/setup-go@v5
-      with:
-        go-version: 'stable'
-    - id: update
-      shell: bash
-      env:
-        INPUT_TYPE: ${{ inputs.type }}
-        INPUT_TOKEN: ${{ inputs.token }}
-        INPUT_GO_VERSION_FILE: ${{ inputs.go-version-file }}
-        INPUT_PATHS: ${{ inputs.paths }}
-        INPUT_LABELS: ${{ inputs.labels }}
-        INPUT_EXCLUDE: ${{ inputs.exclude }}
-        INPUT_OWNER: ${{ github.repository_owner }}
-        INPUT_REPO: ${{ github.event.repository.name }}
-      run: |
-        # build from the action's own module, but run from the caller's workspace
-        # so that relative paths (go.mod, scanned dirs, `go mod tidy`) target the caller's repo
-        go -C "${{ github.action_path }}" build -o "${RUNNER_TEMP}/go-update-action" .
-        cd "${GITHUB_WORKSPACE}"
-        "${RUNNER_TEMP}/go-update-action" \
-          --type="${INPUT_TYPE}" \
-          --token="${INPUT_TOKEN}" \
-          --go-version-file="${INPUT_GO_VERSION_FILE}" \
-          --paths="${INPUT_PATHS}" \
-          --labels="${INPUT_LABELS}" \
-          --exclude="${INPUT_EXCLUDE}" \
-          --owner="${INPUT_OWNER}" \
-          --repo="${INPUT_REPO}"
+  # the container runs with the caller's workspace mounted at /github/workspace as its working directory,
+  # so relative paths (go.mod, scanned dirs, `go mod tidy`) target the caller's repo
+  using: 'docker'
+  image: 'docker://quay.io/codeready-toolchain/go-update-action:latest'
+  args:
+    - --type=${{ inputs.type }}
+    - --token=${{ inputs.token }}
+    - --go-version-file=${{ inputs.go-version-file }}
+    - --paths=${{ inputs.paths }}
+    - --labels=${{ inputs.labels }}
+    - --exclude=${{ inputs.exclude }}
+    - --owner=${{ github.repository_owner }}
+    - --repo=${{ github.event.repository.name }}

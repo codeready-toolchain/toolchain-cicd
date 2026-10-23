@@ -1,6 +1,6 @@
 module github.com/codeready-toolchain/toolchain-cicd/go-update-action
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/google/go-github/v72 v72.0.0

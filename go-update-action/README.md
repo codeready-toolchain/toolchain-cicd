@@ -1,6 +1,6 @@
 # go-update-action
 
-A GitHub Action (composite, Go-based) that checks for new Go versions and opens PRs to update `go.mod`, Dockerfiles, Containerfiles, and GitHub Actions workflow files.
+A GitHub Action (Docker container, Go-based) that checks for new Go versions and opens PRs to update `go.mod`, Dockerfiles, Containerfiles, and GitHub Actions workflow files.
 
 ## Features
 
@@ -138,7 +138,8 @@ No organization-level permissions are needed.
 
 ```
 go-update-action/
-├── action.yml                    # Composite action definition
+├── action.yml                    # Docker action definition (uses the quay.io image)
+├── Containerfile                 # Image published to quay.io/codeready-toolchain/go-update-action
 ├── main.go                       # Entry point
 ├── cmd/
 │   └── root.go                   # Cobra CLI — orchestrates the full flow
