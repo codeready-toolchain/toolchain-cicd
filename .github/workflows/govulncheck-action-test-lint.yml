@@ -45,9 +45,9 @@ jobs:
       with:
         go-version-file: govulncheck-action/go.mod
 
-    - name: Install golangci-lint
-      run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.2
-
     - name: Lint
-      working-directory: govulncheck-action
-      run: golangci-lint run --path-mode=abs --config=.golangci.yml --verbose ./...
+      uses: golangci/golangci-lint-action@v9
+      with:
+        version: v2.15.0
+        working-directory: govulncheck-action
+        args: --path-mode=abs --config=.golangci.yml --verbose ./...
