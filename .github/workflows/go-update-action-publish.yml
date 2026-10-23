@@ -55,7 +55,8 @@ jobs:
 
       # the image tag can only be known once the commit exists, so pin the new image in `action.yml` via a PR
       - name: Pin the new image in action.yml
-        run: sed -i -E "s|(image: 'docker://quay.io/codeready-toolchain/go-update-action:)[^']*'|\1${COMMIT_SHORT_SHA}'|" go-update-action/action.yml
+        run: |
+          sed -i -E "s|(image: 'docker://quay.io/codeready-toolchain/go-update-action:)[^']*'|\1${COMMIT_SHORT_SHA}'|" go-update-action/action.yml
 
       - name: Open PR to pin the new image
         uses: peter-evans/create-pull-request@v8
