@@ -87,6 +87,17 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
 ```
 
+### Runner and version pinning
+
+The action runs in a container, so it requires a Linux runner (e.g. `ubuntu-latest`). There is no need to set up Go in the calling workflow.
+
+Using `@master` runs the image pinned in `action.yml` on the `master` branch, which changes whenever a new image is published.
+To control when you pick up a new version, pin the action to a commit SHA instead:
+
+```yaml
+- uses: codeready-toolchain/toolchain-cicd/go-update-action@<commit-sha> # master
+```
+
 ### Why a GitHub App token?
 
 PRs created with the default `GITHUB_TOKEN` do **not** trigger other workflows (e.g., CI on the PR). Using a [GitHub App token](https://github.com/actions/create-github-app-token) ensures your CI pipeline runs on the update PRs.
