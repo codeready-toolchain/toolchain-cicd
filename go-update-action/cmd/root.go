@@ -87,7 +87,7 @@ func setOutput(key, value string) {
 	if outputFile == "" {
 		return
 	}
-	f, err := os.OpenFile(filepath.Clean(outputFile), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644)
+	f, err := os.OpenFile(filepath.Clean(outputFile), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644) //nolint:gosec // G703: GITHUB_OUTPUT is set by the Actions runner
 	if err != nil {
 		return
 	}
