@@ -33,6 +33,8 @@ jobs:
         with:
           # `create-pull-request` sets up its own credentials to push the branch
           persist-credentials: false
+          # full history to look for newer commits on master before publishing
+          fetch-depth: 0
 
       - name: Set short SHA
         id: short-sha
@@ -47,7 +49,23 @@ jobs:
           context: go-update-action
           containerfiles: go-update-action/Containerfile
 
+      # skip publishing if a newer commit on master also triggers this workflow (e.g. when re-running an old run):
+      # the newer run publishes instead, and this one must not overwrite its `latest` tag or image pin
+      - name: Check for newer publishes
+        id: check-newer
+        run: |
+          git fetch --no-tags origin master
+          newer=$(git log --format=%H "${GITHUB_SHA}..FETCH_HEAD" -- \
+            go-update-action '.github/workflows/go-update-action-*.yml' \
+            ':(exclude)go-update-action/action.yml' ':(exclude,glob)go-update-action/**/*.md')
+          if [ -n "${newer}" ]; then
+            echo "Skipping publish: newer commits on master trigger another publish:"
+            echo "${newer}"
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+          fi
+
       - name: Log into quay.io
+        if: steps.check-newer.outputs.skip != 'true'
         uses: redhat-actions/podman-login@v1
         with:
           registry: quay.io
@@ -55,6 +73,7 @@ jobs:
           password: ${{ secrets.QUAY_GO_UPDATE_ACTION_TOKEN }}
 
       - name: Push to quay.io
+        if: steps.check-newer.outputs.skip != 'true'
         id: push-to-quay
         uses: redhat-actions/push-to-registry@v2
         with:
@@ -63,14 +82,17 @@ jobs:
           registry: quay.io
 
       - name: Print image url
+        if: steps.check-newer.outputs.skip != 'true'
         run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"
 
       # the image tag can only be known once the commit exists, so pin the new image in `action.yml` via a PR
       - name: Pin the new image in action.yml
+        if: steps.check-newer.outputs.skip != 'true'
         run: |
           sed -i -E "s|(image: 'docker://quay.io/codeready-toolchain/go-update-action:)[^']*'|\1${COMMIT_SHORT_SHA}'|" go-update-action/action.yml
 
       - name: Open PR to pin the new image
+        if: steps.check-newer.outputs.skip != 'true'
         uses: peter-evans/create-pull-request@v8
         with:
           # using a fixed branch so that subsequent publishes update the same PR
