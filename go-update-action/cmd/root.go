@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/codeready-toolchain/toolchain-cicd/go-update-action/internal/action"
 	"github.com/codeready-toolchain/toolchain-cicd/go-update-action/internal/github"
@@ -36,6 +37,10 @@ func NewGoUpdateCmd() *cobra.Command {
 		Short:        "Check for Go version updates and open PRs",
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if owner == "" || repo == "" {
+				return fmt.Errorf("repository owner and name must be set with the '--owner' and '--repo' flags " +
+					"or with the 'GITHUB_REPOSITORY_OWNER' and 'GITHUB_REPOSITORY' env vars")
+			}
 			cfg := action.Config{
 				UpdateType:    updateType,
 				Paths:         action.ParseNewlineSeparated(pathsRaw),
@@ -69,10 +74,9 @@ func NewGoUpdateCmd() *cobra.Command {
 	_ = cmd.MarkFlagRequired("type")
 	cmd.Flags().StringVar(&token, "token", "", "GitHub token")
 	_ = cmd.MarkFlagRequired("token")
-	cmd.Flags().StringVar(&owner, "owner", "", "repository owner")
-	_ = cmd.MarkFlagRequired("owner")
-	cmd.Flags().StringVar(&repo, "repo", "", "repository name")
-	_ = cmd.MarkFlagRequired("repo")
+	// when running as a GitHub Action, the owner and repo default to the values provided by the runner
+	cmd.Flags().StringVar(&owner, "owner", os.Getenv("GITHUB_REPOSITORY_OWNER"), "repository owner (defaults to $GITHUB_REPOSITORY_OWNER)")
+	cmd.Flags().StringVar(&repo, "repo", repoName(os.Getenv("GITHUB_REPOSITORY")), "repository name (defaults to the name in $GITHUB_REPOSITORY)")
 	cmd.Flags().StringVar(&goVersionFile, "go-version-file", "go.mod", "path to go.mod for version detection")
 	cmd.Flags().StringVar(&pathsRaw, "paths", ".", "directories to scan (newline-separated)")
 	cmd.Flags().StringVar(&labelsRaw, "labels", "go-update", "labels for PRs (newline-separated)")
@@ -80,6 +84,12 @@ func NewGoUpdateCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&debug, "debug", false, "debug mode")
 
 	return cmd
+}
+
+// repoName returns the name of the repository from the given `owner/name` value
+func repoName(repository string) string {
+	_, name, _ := strings.Cut(repository, "/")
+	return name
 }
 
 func setOutput(key, value string) {
