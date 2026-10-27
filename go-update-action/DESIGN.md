@@ -129,14 +129,17 @@ No third-party actions (like `peter-evans/create-pull-request`) are used, for se
 
 ### Q18: go.mod directives
 
-**Decision:** Bump the `toolchain` directive when present, the `go` directive otherwise.
+**Decision:** Set the `go` directive to the minor version and the `toolchain` directive to the exact version, for both patch and minor updates.
 
-Since Go 1.21, `go.mod` has both a `go` directive (minimum version required by the module and its consumers) and an optional `toolchain` directive (version used to build the module). `go mod tidy` does not bump the `toolchain` directive on its own, so the action handles it explicitly:
+Since Go 1.21, `go.mod` has both a `go` directive (minimum version required by the module and its consumers) and an optional `toolchain` directive (version used to build the module). `go mod tidy` does not bump the `toolchain` directive on its own, so the action handles it explicitly, with a single rule:
 
 - The current version is read from the `toolchain` directive if present, from the `go` directive otherwise.
-- If the `toolchain` directive matches the current version, it is updated to the target version. The `go` directive is only updated if it has the same version (e.g. `go 1.26.5` + `toolchain go1.26.5`), so that the minimum version required by consumers is not raised.
-- If there is no `toolchain` directive, the `go` directive is updated. When the `go` directive is a language version without patch (e.g. `go 1.26`), a `toolchain` directive is added instead.
-- On a minor version upgrade (e.g. `1.26.8` → `1.27.3`), the `go` directive is always updated along with the `toolchain` directive, so that both directives refer to the same minor version (and not, e.g., `go 1.26.4` + `toolchain go1.27.3`). A language version is kept as such: `go 1.26` + `toolchain go1.26.8` becomes `go 1.27` + `toolchain go1.27.3`, and `go 1.26.4` + `toolchain go1.26.8` becomes `go 1.27.3` + `toolchain go1.27.3`.
+- The version of each `go.mod` file is read the same way (`go 1.26` stands for `1.26.0`), and all the `go.mod` files on a version older than the target version are updated, whatever their minor version. This way, a module on an older minor version (e.g. `go 1.25.0`) is updated in both the patch update PR (to `go 1.26` + `toolchain go1.26.10`) and the minor update PR (to `go 1.27` + `toolchain go1.27.3`), and the team can decide which Go version they prefer.
+- The `go` directive is set to the language version of the target (e.g. `go 1.27`) and the `toolchain` directive to the target version (e.g. `toolchain go1.27.3`). The `toolchain` directive is added if it is missing.
+
+This way, both directives always refer to the same minor version (and not, e.g., `go 1.26.4` + `toolchain go1.27.3`), and the minimum version required by consumers is only the language version. The `go` directive is not set to the target version, as `go mod tidy` would then remove the `toolchain` directive, which would be redundant. If a dependency requires a higher version, `go mod tidy` raises the `go` directive accordingly.
+
+See the [README](README.md#gomod-updates) for a table of examples.
 
 ### Q19: PR body content
 

@@ -7,7 +7,7 @@ A GitHub Action (Docker container, Go-based) that checks for new Go versions and
 - Detects both **patch** (1.26.1 → 1.26.2) and **minor** (1.26 → 1.27) Go updates
 - Fetches latest stable versions from the official [Go downloads API](https://go.dev/dl/?mode=json)
 - Updates:
-  - `toolchain` directive (or `go` directive, if there is no `toolchain` directive) in all `go.mod` files. On minor updates, the `go` directive is also updated so that both directives refer to the same minor version
+  - `go` and `toolchain` directives in all `go.mod` files (see [go.mod updates](#gomod-updates))
   - `FROM golang:X.Y.Z` lines in Dockerfiles/Containerfiles (preserving suffixes like `-alpine` and multi-stage `AS` clauses)
   - `ARG`/`ENV` variables (`GO_VERSION`, `GOLANG_VERSION`, `GO_VER`)
   - Hardcoded `go-version:` in `actions/setup-go` workflow steps
@@ -16,6 +16,31 @@ A GitHub Action (Docker container, Go-based) that checks for new Go versions and
 - Handles duplicate PRs: skips if one already exists, closes-and-replaces if a newer version is available
 - Automatically opens a separate suggestion PR to replace hardcoded `go-version:` with `go-version-file: 'go.mod'`
 - PR bodies include links to Go release notes and a list of changed files
+
+## go.mod updates
+
+For both patch and minor updates, the `go` directive is set to the minor version (e.g. `go 1.27`) and the `toolchain` directive to the exact version (e.g. `toolchain go1.27.3`). The `toolchain` directive is added if it is missing.
+
+The current version, from which the target version of the patch and minor updates is computed, is read from the `toolchain` directive of the `go-version-file` if present, from its `go` directive otherwise (`go 1.26` stands for `1.26.0`). The version of each `go.mod` file is read the same way, and all the `go.mod` files on a version older than the target version are updated, whatever their minor version.
+
+As a consequence, a `go.mod` file on an older minor version (e.g. `go 1.25.0`) is updated in both the patch update PR and the minor update PR, and the team can decide which Go version they prefer to move to.
+
+Examples with a current version of `1.26.8` (or `1.26.0` for `go 1.26` without `toolchain` directive):
+
+| `go.mod` before                    | Patch update to `1.26.10`          | Minor update to `1.27.3`          |
+|------------------------------------|------------------------------------|-----------------------------------|
+| `go 1.26.8`                        | `go 1.26` + `toolchain go1.26.10`  | `go 1.27` + `toolchain go1.27.3`  |
+| `go 1.26`                          | `go 1.26` + `toolchain go1.26.10`  | `go 1.27` + `toolchain go1.27.3`  |
+| `go 1.26.8` + `toolchain go1.26.8` | `go 1.26` + `toolchain go1.26.10`  | `go 1.27` + `toolchain go1.27.3`  |
+| `go 1.26.4` + `toolchain go1.26.8` | `go 1.26` + `toolchain go1.26.10`  | `go 1.27` + `toolchain go1.27.3`  |
+| `go 1.26` + `toolchain go1.26.8`   | `go 1.26` + `toolchain go1.26.10`  | `go 1.27` + `toolchain go1.27.3`  |
+| `go 1.25.4` + `toolchain go1.26.8` | `go 1.26` + `toolchain go1.26.10`  | `go 1.27` + `toolchain go1.27.3`  |
+| `go 1.26.4` + `toolchain go1.26.5` (other patch version) | `go 1.26` + `toolchain go1.26.10` | `go 1.27` + `toolchain go1.27.3` |
+| `go 1.25.0` (other minor version)  | `go 1.26` + `toolchain go1.26.10`  | `go 1.27` + `toolchain go1.27.3`  |
+
+The `go` directive is not set to the exact version, as `go mod tidy` would then remove the `toolchain` directive, which would be redundant. Note that `go mod tidy` (which runs after the update) raises the `go` directive if a dependency requires a higher version (e.g. `go 1.26.4`).
+
+Patch updates are only available for the Go versions listed by the [Go downloads API](https://go.dev/dl/?mode=json), i.e., the two latest minor versions.
 
 ## Inputs
 

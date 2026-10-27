@@ -3,7 +3,8 @@ package updater
 import (
 	"os"
 	"regexp"
-	"strings"
+
+	"github.com/codeready-toolchain/toolchain-cicd/go-update-action/internal/goversion"
 )
 
 var (
@@ -11,55 +12,50 @@ var (
 	toolchainDirectiveRe = regexp.MustCompile(`(?m)^toolchain\s+go(\d+\.\d+\.\d+)[ \t]*(\r?)$`)
 )
 
-// updateGoMod bumps the Go version used to build the module, without raising the
-// minimum version required by its consumers more than necessary:
-//   - if there is a `toolchain` directive matching `from`, it is updated (and so is the
-//     `go` directive, if it has the same value or if `to` is a new minor version)
-//   - otherwise, if there is no `toolchain` directive and the `go` directive is `from`, it is updated
-//   - otherwise, if the `go` directive is a language version (eg: `go 1.26`) matching `from`,
-//     a `toolchain` directive is added after it (and the language version is updated if `to`
-//     is a new minor version)
+// updateGoMod sets the `go` directive to the language version of `to` (eg: `go 1.27`) and the
+// `toolchain` directive to `to` (eg: `toolchain go1.27.3`), adding the `toolchain` directive if
+// it is missing. The `go` directive is not set to `to`, as `go mod tidy` would then remove the
+// `toolchain` directive, which would be redundant.
 //
-// When `to` is a new minor version, the `go` directive is updated along with the `toolchain`
-// directive, so that they do not refer to different minor versions (eg: `go 1.26.4` and
-// `toolchain go1.27.3`). A language version (eg: `go 1.26`) is kept as a language version (eg: `go 1.27`).
-func updateGoMod(path, rel, from, to string) (*FileChange, error) {
+// The version of the module is read from its `toolchain` directive if present, from its `go`
+// directive otherwise (where `go 1.26` stands for `1.26.0`). The file is only updated if the
+// module is on a version older than `to`, whatever its minor version.
+func updateGoMod(path, rel, to string) (*FileChange, error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
 	old := string(content)
-	minorUpgrade := languageVersion(from) != languageVersion(to)
+	goDirective := goDirectiveRe.FindStringSubmatch(old)
+	if goDirective == nil {
+		return nil, nil
+	}
 	toolchain := toolchainDirectiveRe.FindStringSubmatch(old)
-	updated := goDirectiveRe.ReplaceAllStringFunc(old, func(match string) string {
-		sub := goDirectiveRe.FindStringSubmatch(match)
-		cr := sub[2] // preserve CRLF line endings
-		switch {
-		case sub[1] == from && (toolchain == nil || toolchain[1] == from):
-			return "go " + to + cr
-		case minorUpgrade && toolchain != nil && toolchain[1] == from:
-			if sub[1] == languageVersion(sub[1]) {
-				return "go " + languageVersion(to) + cr
-			}
-			return "go " + to + cr
-		case sub[1]+".0" == from && toolchain == nil:
-			goVersion := sub[1]
-			if minorUpgrade {
-				goVersion = languageVersion(to)
-			}
-			return "go " + goVersion + cr + "\n" + cr + "\ntoolchain go" + to + cr
-		default:
-			return match
-		}
-	})
-	updated = toolchainDirectiveRe.ReplaceAllStringFunc(updated, func(match string) string {
-		sub := toolchainDirectiveRe.FindStringSubmatch(match)
-		if sub[1] != from {
-			return match
-		}
-		return "toolchain go" + to + sub[2]
-	})
+	current := goDirective[1]
+	if toolchain != nil {
+		current = toolchain[1]
+	}
+	currentVersion, err := goversion.Parse(current)
+	if err != nil {
+		return nil, err
+	}
+	target, err := goversion.Parse(to)
+	if err != nil {
+		return nil, err
+	}
+	if currentVersion.Compare(target) >= 0 {
+		return nil, nil
+	}
+
+	cr := goDirective[2] // preserve CRLF line endings
+	var updated string
+	if toolchain != nil {
+		updated = goDirectiveRe.ReplaceAllLiteralString(old, "go "+target.MinorString()+cr)
+		updated = toolchainDirectiveRe.ReplaceAllLiteralString(updated, "toolchain go"+target.String()+toolchain[2])
+	} else {
+		updated = goDirectiveRe.ReplaceAllLiteralString(old, "go "+target.MinorString()+cr+"\n"+cr+"\ntoolchain go"+target.String()+cr)
+	}
 
 	if updated == old {
 		return nil, nil
@@ -70,13 +66,4 @@ func updateGoMod(path, rel, from, to string) (*FileChange, error) {
 		OldContent: old,
 		NewContent: updated,
 	}, nil
-}
-
-// languageVersion returns the `major.minor` part of the given version (eg: `1.26` for `1.26.5`)
-func languageVersion(v string) string {
-	parts := strings.SplitN(v, ".", 3)
-	if len(parts) < 2 {
-		return v
-	}
-	return parts[0] + "." + parts[1]
 }

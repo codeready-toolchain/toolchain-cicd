@@ -66,7 +66,7 @@ func ScanAndUpdate(root string, from, to string, paths []string, excludes []stri
 
 			switch {
 			case name == "go.mod":
-				change, err := updateGoMod(path, rel, from, to)
+				change, err := updateGoMod(path, rel, to)
 				if err != nil {
 					return err
 				}
