@@ -7,9 +7,10 @@ import (
 	"github.com/codeready-toolchain/toolchain-cicd/go-update-action/internal/goversion"
 )
 
+// the directives may have a trailing comment (eg: `go 1.26 // comment`), which is captured to be preserved
 var (
-	goDirectiveRe        = regexp.MustCompile(`(?m)^go\s+(\d+\.\d+(?:\.\d+)?)[ \t]*(\r?)$`)
-	toolchainDirectiveRe = regexp.MustCompile(`(?m)^toolchain\s+go(\d+\.\d+\.\d+)[ \t]*(\r?)$`)
+	goDirectiveRe        = regexp.MustCompile(`(?m)^go\s+(\d+\.\d+(?:\.\d+)?)([ \t]*//[^\r\n]*)?[ \t]*(\r?)$`)
+	toolchainDirectiveRe = regexp.MustCompile(`(?m)^toolchain\s+go(\d+\.\d+\.\d+)([ \t]*//[^\r\n]*)?[ \t]*(\r?)$`)
 )
 
 // updateGoMod sets the `go` directive to the language version of `to` (eg: `go 1.27`) and the
@@ -48,13 +49,13 @@ func updateGoMod(path, rel, to string) (*FileChange, error) {
 		return nil, nil
 	}
 
-	cr := goDirective[2] // preserve CRLF line endings
+	comment, cr := goDirective[2], goDirective[3] // preserve trailing comment and CRLF line endings
 	var updated string
 	if toolchain != nil {
-		updated = goDirectiveRe.ReplaceAllLiteralString(old, "go "+target.MinorString()+cr)
-		updated = toolchainDirectiveRe.ReplaceAllLiteralString(updated, "toolchain go"+target.String()+toolchain[2])
+		updated = goDirectiveRe.ReplaceAllLiteralString(old, "go "+target.MinorString()+comment+cr)
+		updated = toolchainDirectiveRe.ReplaceAllLiteralString(updated, "toolchain go"+target.String()+toolchain[2]+toolchain[3])
 	} else {
-		updated = goDirectiveRe.ReplaceAllLiteralString(old, "go "+target.MinorString()+cr+"\n"+cr+"\ntoolchain go"+target.String()+cr)
+		updated = goDirectiveRe.ReplaceAllLiteralString(old, "go "+target.MinorString()+comment+cr+"\n"+cr+"\ntoolchain go"+target.String()+cr)
 	}
 
 	if updated == old {

@@ -167,6 +167,25 @@ func TestGoModUpdate(t *testing.T) {
 			content:  "module example.com/foo\r\n\r\ngo 1.26.4\r\n\r\ntoolchain go1.26.8\r\n",
 			expected: "module example.com/foo\r\n\r\ngo 1.27\r\n\r\ntoolchain go1.27.3\r\n",
 		},
+		// trailing comments
+		"trailing comments - comments are preserved": {
+			from:     "1.26.8",
+			to:       "1.27.3",
+			content:  "module example.com/foo\n\ngo 1.26.4 // minimum version\n\ntoolchain go1.26.8 // build version\n",
+			expected: "module example.com/foo\n\ngo 1.27 // minimum version\n\ntoolchain go1.27.3 // build version\n",
+		},
+		"trailing comments - toolchain directive is added after comment": {
+			from:     "1.26.8",
+			to:       "1.26.10",
+			content:  "module example.com/foo\n\ngo 1.26.8 // minimum version\n",
+			expected: "module example.com/foo\n\ngo 1.26 // minimum version\n\ntoolchain go1.26.10\n",
+		},
+		"trailing comments - comments are preserved with CRLF line endings": {
+			from:     "1.26.8",
+			to:       "1.27.3",
+			content:  "module example.com/foo\r\n\r\ngo 1.26.4 // minimum version\r\n\r\ntoolchain go1.26.8 // build version\r\n",
+			expected: "module example.com/foo\r\n\r\ngo 1.27 // minimum version\r\n\r\ntoolchain go1.27.3 // build version\r\n",
+		},
 		"CRLF line endings - toolchain directive is added": {
 			from:     "1.26.8",
 			to:       "1.26.10",
