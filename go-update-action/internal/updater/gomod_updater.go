@@ -7,10 +7,11 @@ import (
 	"github.com/codeready-toolchain/toolchain-cicd/go-update-action/internal/goversion"
 )
 
-// the directives may have a trailing comment (eg: `go 1.26 // comment`), which is captured to be preserved
+// the directives may have a trailing comment (eg: `go 1.26 // comment`), which is captured to be preserved.
+// The `toolchain` directive may also be `toolchain default`, in which case no version is captured.
 var (
 	goDirectiveRe        = regexp.MustCompile(`(?m)^go\s+(\d+\.\d+(?:\.\d+)?)([ \t]*//[^\r\n]*)?[ \t]*(\r?)$`)
-	toolchainDirectiveRe = regexp.MustCompile(`(?m)^toolchain\s+go(\d+\.\d+\.\d+)([ \t]*//[^\r\n]*)?[ \t]*(\r?)$`)
+	toolchainDirectiveRe = regexp.MustCompile(`(?m)^toolchain\s+(?:go(\d+\.\d+\.\d+)|default)([ \t]*//[^\r\n]*)?[ \t]*(\r?)$`)
 )
 
 // updateGoMod sets the `go` directive to the language version of `to` (eg: `go 1.27`) and the
@@ -18,9 +19,10 @@ var (
 // it is missing. The `go` directive is not set to `to`, as `go mod tidy` would then remove the
 // `toolchain` directive, which would be redundant.
 //
-// The version of the module is read from its `toolchain` directive if present, from its `go`
-// directive otherwise (where `go 1.26` stands for `1.26.0`). The file is only updated if the
-// module is on a version older than `to`, whatever its minor version.
+// The version of the module is read from its `toolchain` directive if present (and not
+// `toolchain default`), from its `go` directive otherwise (where `go 1.26` stands for `1.26.0`).
+// The file is only updated if the module is on a version older than `to`, whatever its minor
+// version. A `toolchain default` directive is replaced with the `toolchain` directive for `to`.
 func updateGoMod(path, rel, to string) (*FileChange, error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
@@ -34,7 +36,7 @@ func updateGoMod(path, rel, to string) (*FileChange, error) {
 	}
 	toolchain := toolchainDirectiveRe.FindStringSubmatch(old)
 	current := goDirective[1]
-	if toolchain != nil {
+	if toolchain != nil && toolchain[1] != "" {
 		current = toolchain[1]
 	}
 	currentVersion, err := goversion.Parse(current)

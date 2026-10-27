@@ -186,6 +186,19 @@ func TestGoModUpdate(t *testing.T) {
 			content:  "module example.com/foo\r\n\r\ngo 1.26.4 // minimum version\r\n\r\ntoolchain go1.26.8 // build version\r\n",
 			expected: "module example.com/foo\r\n\r\ngo 1.27 // minimum version\r\n\r\ntoolchain go1.27.3 // build version\r\n",
 		},
+		// `toolchain default`
+		"toolchain default - toolchain directive is replaced": {
+			from:     "1.26.8",
+			to:       "1.27.3",
+			content:  "module example.com/foo\n\ngo 1.26.8\n\ntoolchain default\n\nrequire github.com/some/pkg v1.0.0\n",
+			expected: "module example.com/foo\n\ngo 1.27\n\ntoolchain go1.27.3\n\nrequire github.com/some/pkg v1.0.0\n",
+		},
+		"toolchain default - toolchain directive is replaced, comments and CRLF line endings are preserved": {
+			from:     "1.26.8",
+			to:       "1.26.10",
+			content:  "module example.com/foo\r\n\r\ngo 1.26 // minimum version\r\n\r\ntoolchain default // build version\r\n",
+			expected: "module example.com/foo\r\n\r\ngo 1.26 // minimum version\r\n\r\ntoolchain go1.26.10 // build version\r\n",
+		},
 		"CRLF line endings - toolchain directive is added": {
 			from:     "1.26.8",
 			to:       "1.26.10",
