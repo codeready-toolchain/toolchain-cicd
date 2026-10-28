@@ -441,6 +441,38 @@ func TestParseNewlineSeparated(t *testing.T) {
 	})
 }
 
+func TestHasGoModChange(t *testing.T) {
+	for name, tc := range map[string]struct {
+		paths    []string
+		expected bool
+	}{
+		"no changes": {
+			paths:    nil,
+			expected: false,
+		},
+		"root go.mod": {
+			paths:    []string{"Dockerfile", "go.mod"},
+			expected: true,
+		},
+		"nested go.mod": {
+			paths:    []string{"tools/go.mod"},
+			expected: true,
+		},
+		"no go.mod": {
+			paths:    []string{"Dockerfile", ".github/workflows/ci.yml", "go.mod.bak"},
+			expected: false,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var changes []updater.FileChange
+			for _, p := range tc.paths {
+				changes = append(changes, updater.FileChange{Path: p})
+			}
+			assert.Equal(t, tc.expected, HasGoModChange(changes))
+		})
+	}
+}
+
 // Run tests
 
 func TestRunWithNilLabels(t *testing.T) {

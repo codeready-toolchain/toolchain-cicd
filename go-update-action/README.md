@@ -13,6 +13,7 @@ A GitHub Action (Docker container, Go-based) that checks for new Go versions and
   - Hardcoded `go-version:` in `actions/setup-go` workflow steps
 - Runs `go mod tidy` with the target Go version via `GOTOOLCHAIN`
 - Creates commits via the GitHub Git Data API (no local git needed)
+- Skips the update (no PR) if no `go.mod` file needs updating, even if other files do
 - Handles duplicate PRs: skips if one already exists, closes-and-replaces if a newer version is available
 - Automatically opens a separate suggestion PR to replace hardcoded `go-version:` with `go-version-file: 'go.mod'`
 - PR bodies include links to Go release notes and a list of changed files

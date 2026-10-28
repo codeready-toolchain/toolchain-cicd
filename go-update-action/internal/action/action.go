@@ -102,8 +102,10 @@ func Run(ctx context.Context, logger *slog.Logger, cfg Config, ghClient GitHubCl
 		return nil, fmt.Errorf("scanning files: %w", err)
 	}
 
-	if len(scanResult.Changes) == 0 {
-		logger.Info("no files need updating")
+	// no PR is opened if no go.mod file needs updating (eg: `toolchain default` on a minor update),
+	// even if other files (Dockerfiles, workflows) do
+	if !HasGoModChange(scanResult.Changes) {
+		logger.Info("no go.mod file needs updating", "files", len(scanResult.Changes))
 		return &Result{ActionTaken: "skipped"}, nil
 	}
 
@@ -147,6 +149,16 @@ func Run(ctx context.Context, logger *slog.Logger, cfg Config, ghClient GitHubCl
 	}
 
 	return &Result{ActionTaken: finalAction, PRURL: prURL}, nil
+}
+
+// HasGoModChange returns true if at least one of the given changes is on a `go.mod` file
+func HasGoModChange(changes []updater.FileChange) bool {
+	for _, c := range changes {
+		if filepath.Base(c.Path) == "go.mod" {
+			return true
+		}
+	}
+	return false
 }
 
 func ReadCurrentVersion(goModPath string) (goversion.Version, error) {
