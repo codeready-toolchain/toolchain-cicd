@@ -1,5 +1,0 @@
-= CodeReady Toolchain CI/CD
-
-This repository contains composite run steps actions used in GH Actions workflows.
-
-This repository also contains scripts used in CI setup as well as in CD processes.
