@@ -14,15 +14,14 @@ var (
 // updateGoMod bumps the Go version used to build the module, without raising the
 // minimum version required by its consumers more than necessary:
 //   - if there is a `toolchain` directive matching `from`, it is updated (and so is the
-//     `go` directive, if it has the same value or if `to` is a new minor version)
+//     `go` directive, if it has the same value and `to` is not a new minor version)
 //   - otherwise, if there is no `toolchain` directive and the `go` directive is `from`, it is updated
-//   - otherwise, if the `go` directive is a language version (eg: `go 1.26`) matching `from`,
-//     a `toolchain` directive is added after it (and the language version is updated if `to`
-//     is a new minor version)
+//     if `to` is not a new minor version
+//   - otherwise, if the `go` directive is a language version (eg: `go 1.26`) matching `from`, or
+//     if `to` is a new minor version, it is kept and a `toolchain` directive is added after it
 //
-// When `to` is a new minor version, the `go` directive is updated along with the `toolchain`
-// directive, so that they do not refer to different minor versions (eg: `go 1.26.4` and
-// `toolchain go1.27.3`). A language version (eg: `go 1.26`) is kept as a language version (eg: `go 1.27`).
+// In other words, the `go` directive is never updated when `to` is a new minor version
+// (eg: `go 1.26.8` becomes `go 1.26.8` and `toolchain go1.27.3`).
 func updateGoMod(path, rel, from, to string) (*FileChange, error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
@@ -36,19 +35,10 @@ func updateGoMod(path, rel, from, to string) (*FileChange, error) {
 		sub := goDirectiveRe.FindStringSubmatch(match)
 		cr := sub[2] // preserve CRLF line endings
 		switch {
-		case sub[1] == from && (toolchain == nil || toolchain[1] == from):
+		case sub[1] == from && !minorUpgrade && (toolchain == nil || toolchain[1] == from):
 			return "go " + to + cr
-		case minorUpgrade && toolchain != nil && toolchain[1] == from:
-			if sub[1] == languageVersion(sub[1]) {
-				return "go " + languageVersion(to) + cr
-			}
-			return "go " + to + cr
-		case sub[1]+".0" == from && toolchain == nil:
-			goVersion := sub[1]
-			if minorUpgrade {
-				goVersion = languageVersion(to)
-			}
-			return "go " + goVersion + cr + "\n" + cr + "\ntoolchain go" + to + cr
+		case toolchain == nil && (sub[1]+".0" == from || (sub[1] == from && minorUpgrade)):
+			return "go " + sub[1] + cr + "\n" + cr + "\ntoolchain go" + to + cr
 		default:
 			return match
 		}

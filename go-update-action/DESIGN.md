@@ -136,7 +136,7 @@ Since Go 1.21, `go.mod` has both a `go` directive (minimum version required by t
 - The current version is read from the `toolchain` directive if present, from the `go` directive otherwise.
 - If the `toolchain` directive matches the current version, it is updated to the target version. The `go` directive is only updated if it has the same version (e.g. `go 1.26.5` + `toolchain go1.26.5`), so that the minimum version required by consumers is not raised.
 - If there is no `toolchain` directive, the `go` directive is updated. When the `go` directive is a language version without patch (e.g. `go 1.26`), a `toolchain` directive is added instead.
-- On a minor version upgrade (e.g. `1.26.8` → `1.27.3`), the `go` directive is always updated along with the `toolchain` directive, so that both directives refer to the same minor version (and not, e.g., `go 1.26.4` + `toolchain go1.27.3`). A language version is kept as such: `go 1.26` + `toolchain go1.26.8` becomes `go 1.27` + `toolchain go1.27.3`, and `go 1.26.4` + `toolchain go1.26.8` becomes `go 1.27.3` + `toolchain go1.27.3`.
+- On a minor version upgrade (e.g. `1.26.8` → `1.27.3`), the `go` directive is left unchanged when there is a `toolchain` directive, even if both have the same version: `go 1.26.8` + `toolchain go1.26.8` becomes `go 1.26.8` + `toolchain go1.27.3`, and `go 1.26` + `toolchain go1.26.8` becomes `go 1.26` + `toolchain go1.27.3`. When there is no `toolchain` directive, the `go` directive is also left unchanged and a `toolchain` directive is added: `go 1.26.8` becomes `go 1.26.8` + `toolchain go1.27.3`, and `go 1.26` becomes `go 1.26` + `toolchain go1.27.3`.
 
 ### Q19: PR body content
 

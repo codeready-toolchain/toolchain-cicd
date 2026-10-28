@@ -117,40 +117,50 @@ func TestGoModToolchain(t *testing.T) {
 		for name, tc := range map[string]struct {
 			from, content, expected string
 		}{
-			"go directive lower than toolchain is updated": {
+			"go directive lower than toolchain is kept": {
 				from:     "1.26.8",
 				content:  "module example.com/foo\n\ngo 1.26.4\n\ntoolchain go1.26.8\n",
-				expected: "module example.com/foo\n\ngo 1.27.3\n\ntoolchain go1.27.3\n",
+				expected: "module example.com/foo\n\ngo 1.26.4\n\ntoolchain go1.27.3\n",
 			},
-			"go directive with older minor version than toolchain is updated": {
+			"go directive with older minor version than toolchain is kept": {
 				from:     "1.26.8",
 				content:  "module example.com/foo\n\ngo 1.25.4\n\ntoolchain go1.26.8\n",
-				expected: "module example.com/foo\n\ngo 1.27.3\n\ntoolchain go1.27.3\n",
+				expected: "module example.com/foo\n\ngo 1.25.4\n\ntoolchain go1.27.3\n",
 			},
-			"go and toolchain directives with same version are both updated": {
+			"go directive with same version as toolchain is kept": {
 				from:     "1.26.8",
 				content:  "module example.com/foo\n\ngo 1.26.8\n\ntoolchain go1.26.8\n",
-				expected: "module example.com/foo\n\ngo 1.27.3\n\ntoolchain go1.27.3\n",
+				expected: "module example.com/foo\n\ngo 1.26.8\n\ntoolchain go1.27.3\n",
 			},
-			"language version is updated along with toolchain directive": {
+			"language version is kept when toolchain directive is updated": {
 				from:     "1.26.8",
 				content:  "module example.com/foo\n\ngo 1.26\n\ntoolchain go1.26.8\n",
-				expected: "module example.com/foo\n\ngo 1.27\n\ntoolchain go1.27.3\n",
+				expected: "module example.com/foo\n\ngo 1.26\n\ntoolchain go1.27.3\n",
 			},
-			"language version is updated when toolchain directive is added": {
+			"language version is kept when toolchain directive is added": {
 				from:     "1.26.0",
 				content:  "module example.com/foo\n\ngo 1.26\n",
-				expected: "module example.com/foo\n\ngo 1.27\n\ntoolchain go1.27.3\n",
+				expected: "module example.com/foo\n\ngo 1.26\n\ntoolchain go1.27.3\n",
 			},
-			"go directive is updated when there is no toolchain directive": {
+			"go directive is kept when toolchain directive is added": {
 				from:     "1.26.8",
 				content:  "module example.com/foo\n\ngo 1.26.8\n",
-				expected: "module example.com/foo\n\ngo 1.27.3\n",
+				expected: "module example.com/foo\n\ngo 1.26.8\n\ntoolchain go1.27.3\n",
 			},
-			"go directive is updated with CRLF line endings": {
+			"toolchain directive is updated with CRLF line endings": {
 				from:     "1.26.8",
 				content:  "module example.com/foo\r\n\r\ngo 1.26\r\n\r\ntoolchain go1.26.8\r\n",
-				expected: "module example.com/foo\r\n\r\ngo 1.27\r\n\r\ntoolchain go1.27.3\r\n",
+				expected: "module example.com/foo\r\n\r\ngo 1.26\r\n\r\ntoolchain go1.27.3\r\n",
+			},
+			"toolchain directive is added after full version with CRLF line endings": {
+				from:     "1.26.8",
+				content:  "module example.com/foo\r\n\r\ngo 1.26.8\r\n",
+				expected: "module example.com/foo\r\n\r\ngo 1.26.8\r\n\r\ntoolchain go1.27.3\r\n",
+			},
+			"toolchain directive is added with CRLF line endings": {
+				from:     "1.26.0",
+				content:  "module example.com/foo\r\n\r\ngo 1.26\r\n",
+				expected: "module example.com/foo\r\n\r\ngo 1.26\r\n\r\ntoolchain go1.27.3\r\n",
 			},
 		} {
 			t.Run(name, func(t *testing.T) {
