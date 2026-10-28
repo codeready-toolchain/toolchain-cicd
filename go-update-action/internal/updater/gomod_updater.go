@@ -8,7 +8,7 @@ import (
 
 var (
 	goDirectiveRe        = regexp.MustCompile(`(?m)^go\s+(\d+\.\d+(?:\.\d+)?)[ \t]*(\r?)$`)
-	toolchainDirectiveRe = regexp.MustCompile(`(?m)^toolchain\s+go(\d+\.\d+\.\d+)[ \t]*(\r?)$`)
+	toolchainDirectiveRe = regexp.MustCompile(`(?m)^toolchain\s+go(\d+\.\d+\.\d+)([ \t]*//[^\r\n]*)?[ \t]*(\r?)$`)
 	// matches any `toolchain` directive, including the ones that are not updated (eg: `toolchain default`)
 	anyToolchainDirectiveRe = regexp.MustCompile(`(?m)^toolchain\s`)
 )
@@ -52,7 +52,7 @@ func updateGoMod(path, rel, from, to string) (*FileChange, error) {
 		if sub[1] != from {
 			return match
 		}
-		return "toolchain go" + to + sub[2]
+		return "toolchain go" + to + sub[2] + sub[3] // preserve trailing comment and CRLF line endings
 	})
 
 	if updated == old {

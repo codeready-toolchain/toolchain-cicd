@@ -49,7 +49,7 @@ type Result struct {
 
 var (
 	goDirectiveRe        = regexp.MustCompile(`(?m)^go\s+(\d+\.\d+(?:\.\d+)?)\s*$`)
-	toolchainDirectiveRe = regexp.MustCompile(`(?m)^toolchain\s+go(\d+\.\d+\.\d+)\s*$`)
+	toolchainDirectiveRe = regexp.MustCompile(`(?m)^toolchain\s+go(\d+\.\d+\.\d+)(?:[ \t]*//.*)?\s*$`)
 )
 
 func Run(ctx context.Context, logger *slog.Logger, cfg Config, ghClient GitHubClient, tidy TidyFunc) (*Result, error) {

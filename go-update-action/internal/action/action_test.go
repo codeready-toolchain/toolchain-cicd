@@ -107,6 +107,16 @@ func TestReadCurrentVersion(t *testing.T) {
 		assert.Equal(t, goversion.Version{Major: 1, Minor: 26, Patch: 5}, v)
 	})
 
+	t.Run("toolchain directive with trailing comment takes precedence over go directive", func(t *testing.T) {
+		dir := t.TempDir()
+		gomod := filepath.Join(dir, "go.mod")
+		require.NoError(t, os.WriteFile(gomod, []byte("module example\n\ngo 1.26.4\n\ntoolchain go1.26.8 // pinned\n"), 0o644)) //nolint:gosec
+
+		v, err := ReadCurrentVersion(gomod)
+		require.NoError(t, err)
+		assert.Equal(t, goversion.Version{Major: 1, Minor: 26, Patch: 8}, v)
+	})
+
 	t.Run("no go directive", func(t *testing.T) {
 		dir := t.TempDir()
 		gomod := filepath.Join(dir, "go.mod")

@@ -175,6 +175,43 @@ func TestGoModToolchain(t *testing.T) {
 		}
 	})
 
+	t.Run("toolchain directive with trailing comment", func(t *testing.T) {
+		for name, tc := range map[string]struct {
+			to, content, expected string
+		}{
+			"patch upgrade": {
+				to:       "1.26.10",
+				content:  "module example.com/foo\n\ngo 1.26.4\n\ntoolchain go1.26.8 // pinned\n",
+				expected: "module example.com/foo\n\ngo 1.26.4\n\ntoolchain go1.26.10 // pinned\n",
+			},
+			"patch upgrade with same go version": {
+				to:       "1.26.10",
+				content:  "module example.com/foo\n\ngo 1.26.8\n\ntoolchain go1.26.8 // pinned\n",
+				expected: "module example.com/foo\n\ngo 1.26.10\n\ntoolchain go1.26.10 // pinned\n",
+			},
+			"minor upgrade": {
+				to:       "1.27.3",
+				content:  "module example.com/foo\n\ngo 1.26\n\ntoolchain go1.26.8 // pinned\n",
+				expected: "module example.com/foo\n\ngo 1.26\n\ntoolchain go1.27.3 // pinned\n",
+			},
+			"CRLF line endings": {
+				to:       "1.27.3",
+				content:  "module example.com/foo\r\n\r\ngo 1.26\r\n\r\ntoolchain go1.26.8 // pinned\r\n",
+				expected: "module example.com/foo\r\n\r\ngo 1.26\r\n\r\ntoolchain go1.27.3 // pinned\r\n",
+			},
+		} {
+			t.Run(name, func(t *testing.T) {
+				root := t.TempDir()
+				writeFile(t, root, "go.mod", tc.content)
+
+				result, err := updater.ScanAndUpdate(root, "1.26.8", tc.to, []string{"."}, nil)
+				require.NoError(t, err)
+				require.Len(t, result.Changes, 1)
+				assert.Equal(t, tc.expected, result.Changes[0].NewContent)
+			})
+		}
+	})
+
 	t.Run("toolchain default", func(t *testing.T) {
 		for name, tc := range map[string]struct {
 			from, to, content, expected string
