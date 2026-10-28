@@ -107,6 +107,16 @@ func TestReadCurrentVersion(t *testing.T) {
 		assert.Equal(t, goversion.Version{Major: 1, Minor: 26, Patch: 5}, v)
 	})
 
+	t.Run("toolchain directive with trailing comment takes precedence over go directive", func(t *testing.T) {
+		dir := t.TempDir()
+		gomod := filepath.Join(dir, "go.mod")
+		require.NoError(t, os.WriteFile(gomod, []byte("module example\n\ngo 1.26.4\n\ntoolchain go1.26.8 // pinned\n"), 0o644)) //nolint:gosec
+
+		v, err := ReadCurrentVersion(gomod)
+		require.NoError(t, err)
+		assert.Equal(t, goversion.Version{Major: 1, Minor: 26, Patch: 8}, v)
+	})
+
 	t.Run("no go directive", func(t *testing.T) {
 		dir := t.TempDir()
 		gomod := filepath.Join(dir, "go.mod")
@@ -439,6 +449,38 @@ func TestParseNewlineSeparated(t *testing.T) {
 	t.Run("empty input", func(t *testing.T) {
 		assert.Equal(t, []string{}, ParseNewlineSeparated(""))
 	})
+}
+
+func TestHasGoModChange(t *testing.T) {
+	for name, tc := range map[string]struct {
+		paths    []string
+		expected bool
+	}{
+		"no changes": {
+			paths:    nil,
+			expected: false,
+		},
+		"root go.mod": {
+			paths:    []string{"Dockerfile", "go.mod"},
+			expected: true,
+		},
+		"nested go.mod": {
+			paths:    []string{"tools/go.mod"},
+			expected: true,
+		},
+		"no go.mod": {
+			paths:    []string{"Dockerfile", ".github/workflows/ci.yml", "go.mod.bak"},
+			expected: false,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var changes []updater.FileChange
+			for _, p := range tc.paths {
+				changes = append(changes, updater.FileChange{Path: p})
+			}
+			assert.Equal(t, tc.expected, HasGoModChange(changes))
+		})
+	}
 }
 
 // Run tests

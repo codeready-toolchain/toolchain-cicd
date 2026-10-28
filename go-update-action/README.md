@@ -7,15 +7,36 @@ A GitHub Action (Docker container, Go-based) that checks for new Go versions and
 - Detects both **patch** (1.26.1 → 1.26.2) and **minor** (1.26 → 1.27) Go updates
 - Fetches latest stable versions from the official [Go downloads API](https://go.dev/dl/?mode=json)
 - Updates:
-  - `toolchain` directive (or `go` directive, if there is no `toolchain` directive) in all `go.mod` files. On minor updates, the `go` directive is also updated so that both directives refer to the same minor version
+  - `toolchain` directive (or `go` directive, if there is no `toolchain` directive) in all `go.mod` files (see [go.mod update strategy](#gomod-update-strategy))
   - `FROM golang:X.Y.Z` lines in Dockerfiles/Containerfiles (preserving suffixes like `-alpine` and multi-stage `AS` clauses)
   - `ARG`/`ENV` variables (`GO_VERSION`, `GOLANG_VERSION`, `GO_VER`)
   - Hardcoded `go-version:` in `actions/setup-go` workflow steps
 - Runs `go mod tidy` with the target Go version via `GOTOOLCHAIN`
 - Creates commits via the GitHub Git Data API (no local git needed)
+- Skips the update (no PR) if no `go.mod` file needs updating, even if other files do
 - Handles duplicate PRs: skips if one already exists, closes-and-replaces if a newer version is available
 - Automatically opens a separate suggestion PR to replace hardcoded `go-version:` with `go-version-file: 'go.mod'`
 - PR bodies include links to Go release notes and a list of changed files
+
+## go.mod update strategy
+
+The current version is read from the `toolchain` directive if present, from the `go` directive otherwise (a language version such as `go 1.26` is read as `1.26.0`).
+The table below shows how `go.mod` is updated from `1.26.8` to `1.26.9` (patch) or `1.27.3` (minor):
+
+| `toolchain` | Before | After patch update (→ 1.26.9) | After minor update (→ 1.27.3) |
+|---|---|---|---|
+| present | `go 1.26.8`<br>`toolchain go1.26.8` | `go 1.26.9`<br>`toolchain go1.26.9` | `go 1.26.8` (unchanged)<br>`toolchain go1.27.3` |
+| present | `go 1.26.4`<br>`toolchain go1.26.8` | `go 1.26.4` (unchanged)<br>`toolchain go1.26.9` | `go 1.26.4` (unchanged)<br>`toolchain go1.27.3` |
+| present | `go 1.26`<br>`toolchain go1.26.8` | `go 1.26` (unchanged)<br>`toolchain go1.26.9` | `go 1.26` (unchanged)<br>`toolchain go1.27.3` |
+| missing | `go 1.26.8` | `go 1.26.9` | `go 1.26.8` (unchanged)<br>`toolchain go1.27.3` (added) |
+| missing | `go 1.26` | `go 1.26` (unchanged)<br>`toolchain go1.26.9` (added) | `go 1.26` (unchanged)<br>`toolchain go1.27.3` (added) |
+| `default` | `go 1.26.8`<br>`toolchain default` | `go 1.26.9`<br>`toolchain default` (unchanged) | no change |
+| `default` | `go 1.26`<br>`toolchain default` | no change | no change |
+
+In other words:
+- the `go` directive (i.e., the minimum version required by the module and its consumers) is never updated on minor updates, and on patch updates it is only updated if it is a full version and has the same value as the `toolchain` directive, or if there is no `toolchain` directive
+- the `toolchain` directive is always set to the target version, and it is added after the `go` directive if it was missing and the `go` directive is not updated
+- a `toolchain default` directive (i.e., the module explicitly opts out of toolchain switching) is never changed, and no other `toolchain` directive is added
 
 ## Inputs
 
