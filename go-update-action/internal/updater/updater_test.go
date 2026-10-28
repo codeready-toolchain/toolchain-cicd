@@ -175,6 +175,48 @@ func TestGoModToolchain(t *testing.T) {
 		}
 	})
 
+	t.Run("toolchain default", func(t *testing.T) {
+		for name, tc := range map[string]struct {
+			from, to, content, expected string
+		}{
+			"go directive is updated on patch upgrade": {
+				from:     "1.26.8",
+				to:       "1.26.9",
+				content:  "module example.com/foo\n\ngo 1.26.8\n\ntoolchain default\n",
+				expected: "module example.com/foo\n\ngo 1.26.9\n\ntoolchain default\n",
+			},
+			"language version is not touched on patch upgrade": {
+				from:    "1.26.0",
+				to:      "1.26.9",
+				content: "module example.com/foo\n\ngo 1.26\n\ntoolchain default\n",
+			},
+			"go directive is not touched on minor upgrade": {
+				from:    "1.26.8",
+				to:      "1.27.3",
+				content: "module example.com/foo\n\ngo 1.26.8\n\ntoolchain default\n",
+			},
+			"language version is not touched on minor upgrade": {
+				from:    "1.26.0",
+				to:      "1.27.3",
+				content: "module example.com/foo\n\ngo 1.26\n\ntoolchain default\n",
+			},
+		} {
+			t.Run(name, func(t *testing.T) {
+				root := t.TempDir()
+				writeFile(t, root, "go.mod", tc.content)
+
+				result, err := updater.ScanAndUpdate(root, tc.from, tc.to, []string{"."}, nil)
+				require.NoError(t, err)
+				if tc.expected == "" {
+					assert.Empty(t, result.Changes)
+					return
+				}
+				require.Len(t, result.Changes, 1)
+				assert.Equal(t, tc.expected, result.Changes[0].NewContent)
+			})
+		}
+	})
+
 	t.Run("minor upgrade does not touch go directive when toolchain directive has other version", func(t *testing.T) {
 		root := t.TempDir()
 		writeFile(t, root, "go.mod", "module example.com/foo\n\ngo 1.26.4\n\ntoolchain go1.26.5\n")

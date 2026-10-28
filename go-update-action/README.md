@@ -29,10 +29,13 @@ The table below shows how `go.mod` is updated from `1.26.8` to `1.26.9` (patch) 
 | present | `go 1.26`<br>`toolchain go1.26.8` | `go 1.26` (unchanged)<br>`toolchain go1.26.9` | `go 1.26` (unchanged)<br>`toolchain go1.27.3` |
 | missing | `go 1.26.8` | `go 1.26.9` | `go 1.26.8` (unchanged)<br>`toolchain go1.27.3` (added) |
 | missing | `go 1.26` | `go 1.26` (unchanged)<br>`toolchain go1.26.9` (added) | `go 1.26` (unchanged)<br>`toolchain go1.27.3` (added) |
+| `default` | `go 1.26.8`<br>`toolchain default` | `go 1.26.9`<br>`toolchain default` (unchanged) | no change |
+| `default` | `go 1.26`<br>`toolchain default` | no change | no change |
 
 In other words:
 - the `go` directive (i.e., the minimum version required by the module and its consumers) is never updated on minor updates, and on patch updates it is only updated if it is a full version and has the same value as the `toolchain` directive, or if there is no `toolchain` directive
 - the `toolchain` directive is always set to the target version, and it is added after the `go` directive if it was missing and the `go` directive is not updated
+- a `toolchain default` directive (i.e., the module explicitly opts out of toolchain switching) is never changed, and no other `toolchain` directive is added
 
 ## Inputs
 
