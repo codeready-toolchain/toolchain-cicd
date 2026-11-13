@@ -3,7 +3,7 @@ description: 'An action that publishes the current version of Toolchain Operator
 inputs:
   quay-token:
     description: Quay token
-    required: true
+    required: false
   quay-namespace:
     description: Quay namespace
     required: false
@@ -24,10 +24,15 @@ inputs:
     description: Branch name the PR was opened from
     default: ${{ github.event.pull_request.head.ref }}
     required: false
+  build-only:
+    description: Build and save images without logging in or pushing
+    required: false
+    default: "false"
 runs:
   using: "composite"
   steps:
   - name: Login to quay
+    if: ${{ inputs.build-only != 'true' }}
     shell: bash
     run: |
       set -e
@@ -50,4 +55,12 @@ runs:
       if [[ -n ${PROVIDED_REF} ]]; then
         GH_HEAD_REF_PARAM="GITHUB_HEAD_REF=${PROVIDED_REF}"
       fi
-      make publish-current-bundles-for-e2e QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman PULL_PULL_SHA=${{ inputs.sha }} PULL_NUMBER=${{ inputs.pr-number }} AUTHOR=${{ inputs.author }} ${GH_HEAD_REF_PARAM}
+      BUILD_ONLY_PARAM=""
+      if [[ "${{ inputs.build-only }}" == "true" ]]; then
+        export E2E_IMAGE_BUILD_ONLY=true
+        export E2E_IMAGE_LIST_DIR="${GITHUB_WORKSPACE}/e2e-images"
+        rm -rf "${E2E_IMAGE_LIST_DIR}"
+        mkdir -p "${E2E_IMAGE_LIST_DIR}"
+        BUILD_ONLY_PARAM="E2E_IMAGE_BUILD_ONLY=true E2E_IMAGE_LIST_DIR=${E2E_IMAGE_LIST_DIR}"
+      fi
+      make publish-current-bundles-for-e2e QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman PULL_PULL_SHA=${{ inputs.sha }} PULL_NUMBER=${{ inputs.pr-number }} AUTHOR=${{ inputs.author }} ${GH_HEAD_REF_PARAM} ${BUILD_ONLY_PARAM}
