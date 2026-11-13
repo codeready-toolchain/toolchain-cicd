@@ -1,0 +1,45 @@
+name: 'Push e2e image archive'
+description: 'Logs in to quay.io, loads a podman archive, and pushes those images. Does not run make and does not check out a pull request.'
+inputs:
+  quay-token:
+    description: Quay token
+    required: true
+  archive-path:
+    description: Path to the podman archive
+    required: true
+  images-file:
+    description: Path to the image list, one reference per line
+    required: true
+runs:
+  using: "composite"
+  steps:
+  - name: Install Podman
+    shell: bash
+    run: |
+      set -ex
+      sudo apt-get update \
+        && sudo apt-get -y install podman dbus-x11 \
+        && podman version
+
+  - name: Login, load, and push
+    shell: bash
+    run: |
+      set -e
+      export XDG_RUNTIME_DIR=/run/user/${UID}
+      mkdir -p ${XDG_RUNTIME_DIR}/containers || true
+      echo "{
+                    \"auths\": {
+                            \"quay.io\": {
+                                    \"auth\": \"${{ inputs.quay-token }}\"
+                            }
+                    }
+            }"> ${XDG_RUNTIME_DIR}/containers/auth.json
+
+      podman login --get-login quay.io
+      podman load -i "${{ inputs.archive-path }}"
+      while IFS= read -r image; do
+        if [[ -z "${image}" ]]; then
+          continue
+        fi
+        podman push "${image}"
+      done < "${{ inputs.images-file }}"
