@@ -47,13 +47,42 @@ fi
 
 cd ${PRJ_ROOT_DIR}
 
+record_e2e_image() {
+    if [[ "${E2E_IMAGE_BUILD_ONLY:-}" != "true" ]]; then
+        return 0
+    fi
+    local dir="${E2E_IMAGE_LIST_DIR:-${GITHUB_WORKSPACE:-/tmp}/e2e-images}"
+    mkdir -p "${dir}"
+    printf '%s\n' "$1" >> "${dir}/images.txt"
+}
+
 echo "building & pushing operator bundle image ${BUNDLE_IMAGE}..."
 
 ${IMAGE_BUILDER} build --platform ${IMAGE_PLATFORM} -f bundle.Dockerfile -t ${BUNDLE_IMAGE} .
-${IMAGE_BUILDER} push ${BUNDLE_IMAGE}
+if [[ "${E2E_IMAGE_BUILD_ONLY:-}" == "true" ]]; then
+    record_e2e_image "${BUNDLE_IMAGE}"
+else
+    ${IMAGE_BUILDER} push ${BUNDLE_IMAGE}
+fi
 
 if [[ ${IMAGE_BUILDER} == "podman" ]]; then
     PULL_TOOL_PARAM="--pull-tool podman"
+    if [[ "${E2E_IMAGE_BUILD_ONLY:-}" == "true" ]]; then
+        LOCAL_PULL_TOOL=$(mktemp)
+        cat > "${LOCAL_PULL_TOOL}" << 'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == "pull" ]]; then
+    image="${2:-}"
+    if podman image exists "${image}"; then
+        exit 0
+    fi
+fi
+exec podman "$@"
+EOF
+        chmod +x "${LOCAL_PULL_TOOL}"
+        PULL_TOOL_PARAM="--pull-tool ${LOCAL_PULL_TOOL}"
+    fi
 fi
 
 
@@ -70,6 +99,10 @@ else
 fi
 
 ${IMAGE_BUILDER} build -f "${TEMP_INDEX_DOCKERFILE}" --platform "${IMAGE_PLATFORM}" -t "${INDEX_IMAGE}" .
-${IMAGE_BUILDER} push "${INDEX_IMAGE}"
+if [[ "${E2E_IMAGE_BUILD_ONLY:-}" == "true" ]]; then
+    record_e2e_image "${INDEX_IMAGE}"
+else
+    ${IMAGE_BUILDER} push "${INDEX_IMAGE}"
+fi
 
 cd "${CURRENT_DIR}"
