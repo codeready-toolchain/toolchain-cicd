@@ -100,6 +100,7 @@ Lightweight, useful for filtering and dashboard queries. Reviewers are not auto-
 | `paths` | `.` | newline-separated |
 | `labels` | `go-update` | newline-separated |
 | `exclude` | (empty) | newline-separated glob patterns |
+| `branch-prefix` | repository name | `/`-separated prefix (see [Q37](#q37-branch-prefix-input)) |
 
 ### Q15: Go toolchain source
 
@@ -259,3 +260,11 @@ If the repo is already on the latest Go version (or ahead of what the API return
 **Decision:** No `max-version` input for now.
 
 If a repo is constrained to a specific Go version due to a dependency, it should simply not run the action. Adding a `max-version` input later is trivial if the need arises.
+
+## Round 8 — Branch name collisions across repositories
+
+### Q37: `branch-prefix` input
+
+**Decision:** Add a `branch-prefix` input, defaulting to the repository name, separated from the rest of the branch name by `/`.
+
+Some automation (e.g. a shared GitHub App installation, or tooling that mirrors branches across repos) can end up operating on multiple repositories of the same org concurrently. Since branch names were only `go-update-X.Y.Z` (see Q12), two repos updating to the same target version at the same time could clash if branches are ever created or referenced outside their own repo context. Prefixing with the repository name by default (e.g. `my-repo/go-update-1.26.2`) resolves this without requiring any configuration, while still allowing an explicit override via the `branch-prefix` input for cases where the repository name itself is not a suitable or unique prefix.

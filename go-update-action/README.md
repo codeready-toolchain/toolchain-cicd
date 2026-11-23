@@ -48,6 +48,7 @@ In other words:
 | `paths` | No | `.` | Directories to scan for files to update (newline-separated) |
 | `labels` | No | `go-update` | Labels to apply to PRs (newline-separated) |
 | `exclude` | No | — | Glob patterns to exclude files from updates (newline-separated) |
+| `branch-prefix` | No | repository name | Prefix for branch names, separated by `/` |
 
 ## Outputs
 
@@ -166,6 +167,18 @@ No organization-level permissions are needed.
       test/fixtures/*
 ```
 
+### Overriding the branch prefix
+
+Branch names default to `<repository-name>/go-update-X.Y.Z`, which avoids collisions when multiple repositories run the action (e.g. via a shared GitHub App installation). Override it explicitly if needed:
+
+```yaml
+- uses: codeready-toolchain/toolchain-cicd/go-update-action@master
+  with:
+    type: patch
+    token: ${{ steps.app-token.outputs.token }}
+    branch-prefix: my-custom-prefix
+```
+
 ## Architecture
 
 ```
@@ -193,7 +206,7 @@ go-update-action/
 
 ## PR conventions
 
-- **Branch names:** `go-update-1.26.2` (version only, no type prefix)
+- **Branch names:** `<branch-prefix>/go-update-1.26.2` — `branch-prefix` defaults to the repository name, so that branch names don't clash across repositories sharing the same GitHub App installation
 - **PR titles:** `chore: bump Go from 1.26.1 to 1.26.2`
 - **Labels:** `go-update` for version update PRs, `go-version-file` for suggestion PRs
 - **PR body:** includes release notes link, list of changed files, and warnings if `go mod tidy` failed
