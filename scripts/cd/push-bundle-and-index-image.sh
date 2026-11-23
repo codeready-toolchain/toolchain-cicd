@@ -96,7 +96,10 @@ fi
 
 echo "modifying & pushing operator index image ${INDEX_IMAGE}..."
 TEMP_INDEX_DOCKERFILE=`mktemp`
-if [[ -n ${FROM_INDEX_IMAGE} ]] && [[ `${IMAGE_BUILDER} pull "${FROM_INDEX_IMAGE}"` ]]; then
+# Check the pull's exit status. The build-only podman wrapper exits 0 with no
+# output when the index image is already local, and a non-empty-output test
+# would skip --from-index even though the image exists.
+if [[ -n ${FROM_INDEX_IMAGE} ]] && ${IMAGE_BUILDER} pull "${FROM_INDEX_IMAGE}"; then
     opm index add --generate --out-dockerfile "${TEMP_INDEX_DOCKERFILE}" --bundles "${BUNDLE_IMAGE}" --build-tool ${IMAGE_BUILDER} --tag ${INDEX_IMAGE} --from-index ${FROM_INDEX_IMAGE} ${PULL_TOOL_PARAM}
 else
     opm index add --generate --out-dockerfile "${TEMP_INDEX_DOCKERFILE}" --bundles "${BUNDLE_IMAGE}" --build-tool ${IMAGE_BUILDER} --tag ${INDEX_IMAGE} ${PULL_TOOL_PARAM}
