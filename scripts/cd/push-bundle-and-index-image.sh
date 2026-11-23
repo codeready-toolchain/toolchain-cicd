@@ -67,21 +67,25 @@ fi
 
 if [[ ${IMAGE_BUILDER} == "podman" ]]; then
     PULL_TOOL_PARAM="--pull-tool podman"
+    # opm only accepts pull-tool podman, docker, or none. A custom path becomes
+    # none and pulls the bundle from the registry. In build-only mode the bundle
+    # is local, so serve a podman that no-ops when that image is already present.
     if [[ "${E2E_IMAGE_BUILD_ONLY:-}" == "true" ]]; then
-        LOCAL_PULL_TOOL=$(mktemp)
-        cat > "${LOCAL_PULL_TOOL}" << 'EOF'
+        REAL_PODMAN=$(command -v podman)
+        PODMAN_BIN_DIR=$(mktemp -d)
+        cat > "${PODMAN_BIN_DIR}/podman" << EOF
 #!/usr/bin/env bash
 set -euo pipefail
-if [[ "${1:-}" == "pull" ]]; then
-    image="${2:-}"
-    if podman image exists "${image}"; then
+if [[ "\${1:-}" == "pull" ]]; then
+    image="\${@: -1}"
+    if [[ -n "\${image}" ]] && "${REAL_PODMAN}" image exists "\${image}"; then
         exit 0
     fi
 fi
-exec podman "$@"
+exec "${REAL_PODMAN}" "\$@"
 EOF
-        chmod +x "${LOCAL_PULL_TOOL}"
-        PULL_TOOL_PARAM="--pull-tool ${LOCAL_PULL_TOOL}"
+        chmod +x "${PODMAN_BIN_DIR}/podman"
+        export PATH="${PODMAN_BIN_DIR}:${PATH}"
     fi
 fi
 
