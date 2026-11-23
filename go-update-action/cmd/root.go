@@ -29,6 +29,7 @@ func NewGoUpdateCmd() *cobra.Command {
 		pathsRaw      string
 		labelsRaw     string
 		excludeRaw    string
+		branchPrefix  string
 		debug         bool
 	)
 
@@ -41,6 +42,11 @@ func NewGoUpdateCmd() *cobra.Command {
 				return fmt.Errorf("repository owner and name must be set with the '--owner' and '--repo' flags " +
 					"or with the 'GITHUB_REPOSITORY_OWNER' and 'GITHUB_REPOSITORY' env vars")
 			}
+			// an unspecified branch prefix defaults to the repository name, so that branch names don't
+			// clash across repositories sharing the same GitHub App installation or automation
+			if branchPrefix == "" {
+				branchPrefix = repo
+			}
 			cfg := action.Config{
 				UpdateType:    updateType,
 				Paths:         action.ParseNewlineSeparated(pathsRaw),
@@ -48,6 +54,7 @@ func NewGoUpdateCmd() *cobra.Command {
 				Excludes:      action.ParseNewlineSeparated(excludeRaw),
 				Root:          ".",
 				GoVersionFile: goVersionFile,
+				BranchPrefix:  branchPrefix,
 			}
 
 			opts := &slog.HandlerOptions{Level: slog.LevelInfo}
@@ -81,6 +88,7 @@ func NewGoUpdateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&pathsRaw, "paths", ".", "directories to scan (newline-separated)")
 	cmd.Flags().StringVar(&labelsRaw, "labels", "go-update", "labels for PRs (newline-separated)")
 	cmd.Flags().StringVar(&excludeRaw, "exclude", "", "glob patterns to exclude (newline-separated)")
+	cmd.Flags().StringVar(&branchPrefix, "branch-prefix", "", "prefix for branch names, separated by '/' (defaults to the repository name)")
 	cmd.Flags().BoolVar(&debug, "debug", false, "debug mode")
 
 	return cmd

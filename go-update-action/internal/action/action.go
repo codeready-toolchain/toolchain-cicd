@@ -40,6 +40,7 @@ type Config struct {
 	Excludes      []string
 	Root          string
 	GoVersionFile string
+	BranchPrefix  string
 }
 
 type Result struct {
@@ -85,10 +86,10 @@ func Run(ctx context.Context, logger *slog.Logger, cfg Config, ghClient GitHubCl
 	}
 	logger.Info("update available", "type", cfg.UpdateType, "from", current.String(), "to", target.String())
 
-	branchName := fmt.Sprintf("go-update-%s", target.String())
+	branchName := BranchName(cfg.BranchPrefix, fmt.Sprintf("go-update-%s", target.String()))
 	prTitle := fmt.Sprintf("chore: bump Go from %s to %s", current.String(), target.String())
 
-	existing, err := FindExistingPRs(ctx, ghClient, cfg.Labels[0], current, *target, cfg.UpdateType)
+	existing, err := FindExistingPRs(ctx, ghClient, cfg.Labels[0], current, *target, cfg.UpdateType, cfg.BranchPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -145,10 +146,18 @@ func Run(ctx context.Context, logger *slog.Logger, cfg Config, ghClient GitHubCl
 	}
 
 	if len(scanResult.Suggestions) > 0 {
-		HandleSuggestionPR(ctx, logger, ghClient, scanResult.Suggestions)
+		HandleSuggestionPR(ctx, logger, ghClient, scanResult.Suggestions, cfg.BranchPrefix)
 	}
 
 	return &Result{ActionTaken: finalAction, PRURL: prURL}, nil
+}
+
+// BranchName returns the given branch name, prefixed with prefix and a "/" separator if prefix is not empty
+func BranchName(prefix, name string) string {
+	if prefix == "" {
+		return name
+	}
+	return prefix + "/" + name
 }
 
 // HasGoModChange returns true if at least one of the given changes is on a `go.mod` file
@@ -188,13 +197,13 @@ type existingPRCheck struct {
 	Outdated []outdatedPR
 }
 
-func FindExistingPRs(ctx context.Context, ghClient GitHubClient, label string, current, target goversion.Version, updateType string) (*existingPRCheck, error) {
+func FindExistingPRs(ctx context.Context, ghClient GitHubClient, label string, current, target goversion.Version, updateType, branchPrefix string) (*existingPRCheck, error) {
 	existingPRs, err := ghClient.FindOpenPRByLabel(ctx, label)
 	if err != nil {
 		return nil, fmt.Errorf("finding existing PRs: %w", err)
 	}
 
-	branchVersionRe := regexp.MustCompile(`^go-update-(\d+\.\d+\.\d+)$`)
+	branchVersionRe := regexp.MustCompile(`^` + regexp.QuoteMeta(BranchName(branchPrefix, "go-update-")) + `(\d+\.\d+\.\d+)$`)
 	result := &existingPRCheck{Action: "created"}
 
 	for _, pr := range existingPRs {
@@ -222,7 +231,7 @@ func FindExistingPRs(ctx context.Context, ghClient GitHubClient, label string, c
 		if shouldClose {
 			result.Outdated = append(result.Outdated, outdatedPR{
 				Number:  pr.Number,
-				Branch:  fmt.Sprintf("go-update-%s", prVersion.String()),
+				Branch:  BranchName(branchPrefix, fmt.Sprintf("go-update-%s", prVersion.String())),
 				Version: prVersion,
 			})
 		}
@@ -347,7 +356,7 @@ func FormatPRBody(current goversion.Version, target goversion.Version, changes [
 	return sb.String()
 }
 
-func HandleSuggestionPR(ctx context.Context, logger *slog.Logger, ghClient GitHubClient, suggestions []updater.SuggestionChange) {
+func HandleSuggestionPR(ctx context.Context, logger *slog.Logger, ghClient GitHubClient, suggestions []updater.SuggestionChange, branchPrefix string) {
 	existingPRs, err := ghClient.FindOpenPRByLabel(ctx, "go-version-file")
 	if err != nil {
 		logger.Warn("failed to check for existing suggestion PRs", "error", err)
@@ -358,7 +367,7 @@ func HandleSuggestionPR(ctx context.Context, logger *slog.Logger, ghClient GitHu
 		return
 	}
 
-	branchName := "go-update-use-go-version-file"
+	branchName := BranchName(branchPrefix, "go-update-use-go-version-file")
 	baseSHA, err := ghClient.CreateBranchFromDefault(ctx, branchName)
 	if err != nil {
 		logger.Warn("failed to create suggestion branch", "error", err)
