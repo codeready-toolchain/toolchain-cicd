@@ -2,8 +2,12 @@ name: 'Release Toolchain Operator'
 description: 'An action that releases a new version of a Toolchain Operator'
 inputs:
   quay-token:
-    description: Quay token
+    description: Quay robot password
     required: true
+  quay-username:
+    description: Quay robot username
+    required: false
+    default: codeready-toolchain+push
   quay-namespace:
     description: Quay namespace
     required: false
@@ -13,14 +17,20 @@ runs:
   steps:
   - name: Login to quay
     shell: bash
+    env:
+      QUAY_TOKEN: ${{ inputs.quay-token }}
+      QUAY_USERNAME: ${{ inputs.quay-username }}
     run: |
       set -e
       export XDG_RUNTIME_DIR=/run/user/${UID}
       mkdir -p ${XDG_RUNTIME_DIR}/containers || true
+
+      QUAY_AUTH=$(printf '%s:%s' "${QUAY_USERNAME}" "${QUAY_TOKEN}" | base64 -w 0)
+
       echo "{
                     \"auths\": {
                             \"quay.io\": {
-                                    \"auth\": \"${{ inputs.quay-token }}\"
+                                    \"auth\": \"${QUAY_AUTH}\"
                             }
                     }
             }"> ${XDG_RUNTIME_DIR}/containers/auth.json
