@@ -47,46 +47,13 @@ fi
 
 cd ${PRJ_ROOT_DIR}
 
-record_e2e_image() {
-    if [[ "${E2E_IMAGE_BUILD_ONLY:-}" != "true" ]]; then
-        return 0
-    fi
-    local dir="${E2E_IMAGE_LIST_DIR:-${GITHUB_WORKSPACE:-/tmp}/e2e-images}"
-    mkdir -p "${dir}"
-    printf '%s\n' "$1" >> "${dir}/images.txt"
-}
-
 echo "building & pushing operator bundle image ${BUNDLE_IMAGE}..."
 
 ${IMAGE_BUILDER} build --platform ${IMAGE_PLATFORM} -f bundle.Dockerfile -t ${BUNDLE_IMAGE} .
-if [[ "${E2E_IMAGE_BUILD_ONLY:-}" == "true" ]]; then
-    record_e2e_image "${BUNDLE_IMAGE}"
-else
-    ${IMAGE_BUILDER} push ${BUNDLE_IMAGE}
-fi
+${IMAGE_BUILDER} push ${BUNDLE_IMAGE}
 
 if [[ ${IMAGE_BUILDER} == "podman" ]]; then
     PULL_TOOL_PARAM="--pull-tool podman"
-    # opm only accepts pull-tool podman, docker, or none. A custom path becomes
-    # none and pulls the bundle from the registry. In build-only mode the bundle
-    # is local, so serve a podman that no-ops when that image is already present.
-    if [[ "${E2E_IMAGE_BUILD_ONLY:-}" == "true" ]]; then
-        REAL_PODMAN=$(command -v podman)
-        PODMAN_BIN_DIR=$(mktemp -d)
-        cat > "${PODMAN_BIN_DIR}/podman" << EOF
-#!/usr/bin/env bash
-set -euo pipefail
-if [[ "\${1:-}" == "pull" ]]; then
-    image="\${@: -1}"
-    if [[ -n "\${image}" ]] && "${REAL_PODMAN}" image exists "\${image}"; then
-        exit 0
-    fi
-fi
-exec "${REAL_PODMAN}" "\$@"
-EOF
-        chmod +x "${PODMAN_BIN_DIR}/podman"
-        export PATH="${PODMAN_BIN_DIR}:${PATH}"
-    fi
 fi
 
 
@@ -96,20 +63,13 @@ fi
 
 echo "modifying & pushing operator index image ${INDEX_IMAGE}..."
 TEMP_INDEX_DOCKERFILE=`mktemp`
-# Check the pull's exit status. The build-only podman wrapper exits 0 with no
-# output when the index image is already local, and a non-empty-output test
-# would skip --from-index even though the image exists.
-if [[ -n ${FROM_INDEX_IMAGE} ]] && ${IMAGE_BUILDER} pull "${FROM_INDEX_IMAGE}"; then
+if [[ -n ${FROM_INDEX_IMAGE} ]] && [[ `${IMAGE_BUILDER} pull "${FROM_INDEX_IMAGE}"` ]]; then
     opm index add --generate --out-dockerfile "${TEMP_INDEX_DOCKERFILE}" --bundles "${BUNDLE_IMAGE}" --build-tool ${IMAGE_BUILDER} --tag ${INDEX_IMAGE} --from-index ${FROM_INDEX_IMAGE} ${PULL_TOOL_PARAM}
 else
     opm index add --generate --out-dockerfile "${TEMP_INDEX_DOCKERFILE}" --bundles "${BUNDLE_IMAGE}" --build-tool ${IMAGE_BUILDER} --tag ${INDEX_IMAGE} ${PULL_TOOL_PARAM}
 fi
 
 ${IMAGE_BUILDER} build -f "${TEMP_INDEX_DOCKERFILE}" --platform "${IMAGE_PLATFORM}" -t "${INDEX_IMAGE}" .
-if [[ "${E2E_IMAGE_BUILD_ONLY:-}" == "true" ]]; then
-    record_e2e_image "${INDEX_IMAGE}"
-else
-    ${IMAGE_BUILDER} push "${INDEX_IMAGE}"
-fi
+${IMAGE_BUILDER} push "${INDEX_IMAGE}"
 
 cd "${CURRENT_DIR}"

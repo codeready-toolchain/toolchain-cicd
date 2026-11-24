@@ -51,16 +51,50 @@ runs:
   - name: Publish current bundle for e2e tests
     shell: bash
     run: |
+      set -euo pipefail
       PROVIDED_REF=${{ inputs.gh-head-ref }}
       if [[ -n ${PROVIDED_REF} ]]; then
         GH_HEAD_REF_PARAM="GITHUB_HEAD_REF=${PROVIDED_REF}"
       fi
-      BUILD_ONLY_PARAM=""
       if [[ "${{ inputs.build-only }}" == "true" ]]; then
-        export E2E_IMAGE_BUILD_ONLY=true
-        export E2E_IMAGE_LIST_DIR="${GITHUB_WORKSPACE}/e2e-images"
-        rm -rf "${E2E_IMAGE_LIST_DIR}"
-        mkdir -p "${E2E_IMAGE_LIST_DIR}"
-        BUILD_ONLY_PARAM="E2E_IMAGE_BUILD_ONLY=true E2E_IMAGE_LIST_DIR=${E2E_IMAGE_LIST_DIR}"
+        REAL_PODMAN=$(command -v podman)
+        LIST_DIR="${GITHUB_WORKSPACE}/e2e-images"
+        rm -rf "${LIST_DIR}"
+        mkdir -p "${LIST_DIR}"
+        WRAP_DIR=$(mktemp -d)
+        cat > "${WRAP_DIR}/podman" << EOF
+      #!/usr/bin/env bash
+      set -euo pipefail
+      real="${REAL_PODMAN}"
+      list="${LIST_DIR}/images.txt"
+      cmd="\${1:-}"
+      shift || true
+      if [[ "\${cmd}" == "push" ]]; then
+        image="\${@: -1}"
+        if [[ -n "\${image}" ]]; then
+          printf '%s\n' "\${image}" >> "\${list}"
+        fi
+        exit 0
       fi
-      make publish-current-bundles-for-e2e QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman PULL_PULL_SHA=${{ inputs.sha }} PULL_NUMBER=${{ inputs.pr-number }} AUTHOR=${{ inputs.author }} ${GH_HEAD_REF_PARAM} ${BUILD_ONLY_PARAM}
+      if [[ "\${cmd}" == "pull" ]]; then
+        image="\${@: -1}"
+        if [[ -n "\${image}" ]] && "\${real}" image exists "\${image}"; then
+          "\${real}" image inspect --format '{{.Id}}' "\${image}"
+          exit 0
+        fi
+      fi
+      exec "\${real}" "\${cmd}" "\$@"
+      EOF
+        chmod +x "${WRAP_DIR}/podman"
+        export PATH="${WRAP_DIR}:${PATH}"
+      fi
+      make publish-current-bundles-for-e2e QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman PULL_PULL_SHA=${{ inputs.sha }} PULL_NUMBER=${{ inputs.pr-number }} AUTHOR=${{ inputs.author }} ${GH_HEAD_REF_PARAM:-}
+      if [[ "${{ inputs.build-only }}" == "true" ]]; then
+        list="${GITHUB_WORKSPACE}/e2e-images/images.txt"
+        if [[ ! -s "${list}" ]]; then
+          echo "no images were recorded for the e2e archive" >&2
+          exit 1
+        fi
+        mapfile -t images < <(awk 'NF && !seen[$0]++' "${list}")
+        podman save --multi-image-archive -o "${GITHUB_WORKSPACE}/e2e-images/e2e-images.tar" "${images[@]}"
+      fi
