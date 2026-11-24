@@ -24,6 +24,10 @@ inputs:
     description: 'Glob patterns to exclude files from updates (newline-separated)'
     required: false
     default: ''
+  branch-prefix:
+    description: 'Prefix for branch names, separated from the branch name by a "/" (defaults to the repository name, to avoid branch name clashes across repositories sharing the same GitHub App installation)'
+    required: false
+    default: ''
 
 outputs:
   pr-url:
@@ -37,7 +41,7 @@ runs:
   using: 'docker'
   # the image tag is the short SHA of the commit the image was built from.
   # It is updated by a PR opened by the 'Publish go-update-action' workflow after each image push.
-  image: 'docker://quay.io/codeready-toolchain/go-update-action:7800a65'
+  image: 'docker://quay.io/codeready-toolchain/go-update-action:57685b1'
   args:
     - --type=${{ inputs.type }}
     - --token=${{ inputs.token }}
@@ -45,5 +49,6 @@ runs:
     - --paths=${{ inputs.paths }}
     - --labels=${{ inputs.labels }}
     - --exclude=${{ inputs.exclude }}
+    - --branch-prefix=${{ inputs.branch-prefix }}
   # only the `inputs` context is allowed in `args` of a docker action: the repository owner and name
   # are read from the `GITHUB_REPOSITORY_OWNER` and `GITHUB_REPOSITORY` env vars set by the runner

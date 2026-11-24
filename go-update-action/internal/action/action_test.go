@@ -140,7 +140,7 @@ func TestFindExistingPRs(t *testing.T) {
 
 	t.Run("no existing PRs", func(t *testing.T) {
 		mock := &MockGitHubClient{}
-		result, err := FindExistingPRs(ctx, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch")
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch", "")
 		require.NoError(t, err)
 		assert.Equal(t, "created", result.Action)
 		assert.Empty(t, result.Outdated)
@@ -152,7 +152,7 @@ func TestFindExistingPRs(t *testing.T) {
 				{Number: 1, HeadRef: "go-update-1.26.1"},
 			},
 		}
-		result, err := FindExistingPRs(ctx, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch")
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch", "")
 		require.NoError(t, err)
 		assert.Equal(t, "skipped", result.Action)
 	})
@@ -164,7 +164,7 @@ func TestFindExistingPRs(t *testing.T) {
 			},
 		}
 		target := goversion.Version{Major: 1, Minor: 26, Patch: 2}
-		result, err := FindExistingPRs(ctx, mock, "go-update", current, target, "patch")
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, target, "patch", "")
 		require.NoError(t, err)
 		assert.Equal(t, "created", result.Action)
 		require.Len(t, result.Outdated, 1)
@@ -179,7 +179,7 @@ func TestFindExistingPRs(t *testing.T) {
 			},
 		}
 		target := goversion.Version{Major: 1, Minor: 26, Patch: 2}
-		result, err := FindExistingPRs(ctx, mock, "go-update", current, target, "patch")
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, target, "patch", "")
 		require.NoError(t, err)
 		assert.Equal(t, "created", result.Action)
 		assert.Empty(t, result.Outdated)
@@ -192,7 +192,7 @@ func TestFindExistingPRs(t *testing.T) {
 			},
 		}
 		target := goversion.Version{Major: 1, Minor: 28, Patch: 0}
-		result, err := FindExistingPRs(ctx, mock, "go-update", current, target, "minor")
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, target, "minor", "")
 		require.NoError(t, err)
 		assert.Equal(t, "created", result.Action)
 		require.Len(t, result.Outdated, 1)
@@ -205,7 +205,7 @@ func TestFindExistingPRs(t *testing.T) {
 				{Number: 1, HeadRef: "some-other-branch"},
 			},
 		}
-		result, err := FindExistingPRs(ctx, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch")
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch", "")
 		require.NoError(t, err)
 		assert.Equal(t, "created", result.Action)
 		assert.Empty(t, result.Outdated)
@@ -215,8 +215,56 @@ func TestFindExistingPRs(t *testing.T) {
 		mock := &MockGitHubClient{
 			findPRErr: fmt.Errorf("API error"),
 		}
-		_, err := FindExistingPRs(ctx, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch")
+		_, err := FindExistingPRs(ctx, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch", "")
 		assert.ErrorContains(t, err, "finding existing PRs")
+	})
+
+	t.Run("with branch prefix: matches prefixed branch", func(t *testing.T) {
+		mock := &MockGitHubClient{
+			prs: []github.PRInfo{
+				{Number: 1, HeadRef: "my-repo/go-update-1.26.1"},
+			},
+		}
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch", "my-repo")
+		require.NoError(t, err)
+		assert.Equal(t, "skipped", result.Action)
+	})
+
+	t.Run("with branch prefix: ignores unprefixed branch with same suffix", func(t *testing.T) {
+		mock := &MockGitHubClient{
+			prs: []github.PRInfo{
+				{Number: 1, HeadRef: "go-update-1.26.1"},
+			},
+		}
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, goversion.Version{Major: 1, Minor: 26, Patch: 1}, "patch", "my-repo")
+		require.NoError(t, err)
+		assert.Equal(t, "created", result.Action)
+		assert.Empty(t, result.Outdated)
+	})
+
+	t.Run("with branch prefix: outdated PR branch includes prefix", func(t *testing.T) {
+		mock := &MockGitHubClient{
+			prs: []github.PRInfo{
+				{Number: 5, HeadRef: "my-repo/go-update-1.26.1"},
+			},
+		}
+		target := goversion.Version{Major: 1, Minor: 26, Patch: 2}
+		result, err := FindExistingPRs(ctx, mock, "go-update", current, target, "patch", "my-repo")
+		require.NoError(t, err)
+		require.Len(t, result.Outdated, 1)
+		assert.Equal(t, "my-repo/go-update-1.26.1", result.Outdated[0].Branch)
+	})
+}
+
+// BranchName tests
+
+func TestBranchName(t *testing.T) {
+	t.Run("empty prefix", func(t *testing.T) {
+		assert.Equal(t, "go-update-1.26.1", BranchName("", "go-update-1.26.1"))
+	})
+
+	t.Run("with prefix", func(t *testing.T) {
+		assert.Equal(t, "my-repo/go-update-1.26.1", BranchName("my-repo", "go-update-1.26.1"))
 	})
 }
 
@@ -405,11 +453,25 @@ func TestHandleSuggestionPR(t *testing.T) {
 			{Path: ".github/workflows/ci.yml", NewContent: "updated content"},
 		}
 
-		HandleSuggestionPR(ctx, discardLogger, mock, suggestions)
+		HandleSuggestionPR(ctx, discardLogger, mock, suggestions, "")
 		assert.Equal(t, "go-update-use-go-version-file", mock.createdBranch)
 		require.Len(t, mock.committedChanges, 1)
 		assert.Equal(t, ".github/workflows/ci.yml", mock.committedChanges[0].Path)
 		assert.Equal(t, []string{"go-version-file"}, mock.createdPRLabels)
+	})
+
+	t.Run("creates suggestion PR with branch prefix", func(t *testing.T) {
+		mock := &MockGitHubClient{
+			createBranchSHA: "abc123",
+			createCommitSHA: "def456",
+			createdPRURL:    "https://github.com/owner/repo/pull/1",
+		}
+		suggestions := []updater.SuggestionChange{
+			{Path: ".github/workflows/ci.yml", NewContent: "updated content"},
+		}
+
+		HandleSuggestionPR(ctx, discardLogger, mock, suggestions, "my-repo")
+		assert.Equal(t, "my-repo/go-update-use-go-version-file", mock.createdBranch)
 	})
 
 	t.Run("skips if suggestion PR already exists", func(t *testing.T) {
@@ -422,7 +484,7 @@ func TestHandleSuggestionPR(t *testing.T) {
 			{Path: ".github/workflows/ci.yml", NewContent: "updated content"},
 		}
 
-		HandleSuggestionPR(ctx, discardLogger, mock, suggestions)
+		HandleSuggestionPR(ctx, discardLogger, mock, suggestions, "")
 		assert.Empty(t, mock.createdBranch)
 	})
 }
