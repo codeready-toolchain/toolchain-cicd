@@ -3,7 +3,7 @@ description: 'An action that publishes the current version of Toolchain Operator
 inputs:
   quay-token:
     description: Quay token
-    required: true
+    required: false
   quay-namespace:
     description: Quay namespace
     required: false
@@ -24,10 +24,15 @@ inputs:
     description: Branch name the PR was opened from
     default: ${{ github.event.pull_request.head.ref }}
     required: false
+  build-only:
+    description: Build and save images without logging in or pushing
+    required: false
+    default: "false"
 runs:
   using: "composite"
   steps:
   - name: Login to quay
+    if: ${{ inputs.build-only != 'true' }}
     shell: bash
     run: |
       set -e
@@ -46,8 +51,20 @@ runs:
   - name: Publish current bundle for e2e tests
     shell: bash
     run: |
+      set -euo pipefail
       PROVIDED_REF=${{ inputs.gh-head-ref }}
       if [[ -n ${PROVIDED_REF} ]]; then
         GH_HEAD_REF_PARAM="GITHUB_HEAD_REF=${PROVIDED_REF}"
       fi
-      make publish-current-bundles-for-e2e QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman PULL_PULL_SHA=${{ inputs.sha }} PULL_NUMBER=${{ inputs.pr-number }} AUTHOR=${{ inputs.author }} ${GH_HEAD_REF_PARAM}
+      # build-only keeps the publish scripts unchanged. They still call
+      # podman push. The sourced script makes those pushes record the image
+      # instead of sending it to Quay, and lets opm reuse a bundle that was
+      # just built locally.
+      if [[ "${{ inputs.build-only }}" == "true" ]]; then
+        # shellcheck disable=SC1091
+        source "${{ github.action_path }}/../scripts/cd/podman-build-only.sh"
+      fi
+      make publish-current-bundles-for-e2e QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman PULL_PULL_SHA=${{ inputs.sha }} PULL_NUMBER=${{ inputs.pr-number }} AUTHOR=${{ inputs.author }} ${GH_HEAD_REF_PARAM:-}
+      if [[ "${{ inputs.build-only }}" == "true" ]]; then
+        save_e2e_image_archive
+      fi
