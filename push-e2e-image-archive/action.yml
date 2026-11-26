@@ -10,6 +10,18 @@ inputs:
   images-file:
     description: Path to the image list, one reference per line
     required: true
+  expected-repository:
+    description: Repository name required in from.<repo> for a pull_request run. Empty for a comment rebuild.
+    required: false
+    default: ""
+  expected-pr-number:
+    description: Pull request number required in the tag for a pull_request run. Empty for a comment rebuild.
+    required: false
+    default: ""
+  expected-sha:
+    description: Pull request head SHA. The tag must use its first 7 characters. Empty for a comment rebuild.
+    required: false
+    default: ""
 runs:
   using: "composite"
   steps:
@@ -23,8 +35,44 @@ runs:
 
   - name: Login, load, and push
     shell: bash
+    env:
+      EXPECTED_REPOSITORY: ${{ inputs.expected-repository }}
+      EXPECTED_PR_NUMBER: ${{ inputs.expected-pr-number }}
+      EXPECTED_SHA: ${{ inputs.expected-sha }}
     run: |
       set -e
+      # images.txt is written by the pull request build. Do not log in until
+      # every name is an e2e test tag:
+      #   quay.io/codeready-toolchain-test/<name>:from.<repo>.PR<number>.<sha>
+      #
+      # For a pull request, repo, number, and sha must belong to this run, so
+      # one pull request cannot overwrite another's tag. A /test e2e comment
+      # rebuild does not send those three values, so only the shape is checked.
+      images_file="${{ inputs.images-file }}"
+      if [[ ! -s "${images_file}" ]]; then
+        echo "e2e image list is missing or empty" >&2
+        exit 1
+      fi
+      pattern='^quay\.io/codeready-toolchain-test/[a-z0-9]+([._-][a-z0-9]+)*:from\.[a-z0-9]+([._-][a-z0-9]+)*\.PR[0-9]+\.[0-9a-f]{7}$'
+      if [[ -n "${EXPECTED_REPOSITORY}${EXPECTED_PR_NUMBER}${EXPECTED_SHA}" ]]; then
+        if [[ ! "${EXPECTED_REPOSITORY}" =~ ^[a-z0-9]+([._-][a-z0-9]+)*$ ]] \
+          || [[ ! "${EXPECTED_PR_NUMBER}" =~ ^[0-9]+$ ]] \
+          || [[ ! "${EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+          echo "refusing to push: the pull request identity from the workflow event is not usable" >&2
+          exit 1
+        fi
+        pattern="^quay\\.io/codeready-toolchain-test/[a-z0-9]+([._-][a-z0-9]+)*:from\\.${EXPECTED_REPOSITORY}\\.PR${EXPECTED_PR_NUMBER}\\.${EXPECTED_SHA:0:7}$"
+      fi
+      while IFS= read -r image || [[ -n "${image}" ]]; do
+        [[ -z "${image}" ]] && continue
+        if [[ ! "${image}" =~ $pattern ]]; then
+          echo "refusing to push ${image}" >&2
+          echo "e2e images must be quay.io/codeready-toolchain-test/<name>:from.<repo>.PR<number>.<sha>" >&2
+          exit 1
+        fi
+      done < "${images_file}"
+
+      # Every name was accepted. Log in and push only those tags.
       export XDG_RUNTIME_DIR=/run/user/${UID}
       mkdir -p ${XDG_RUNTIME_DIR}/containers || true
       echo "{
