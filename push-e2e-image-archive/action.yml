@@ -45,9 +45,10 @@ runs:
       # every name is an e2e test tag:
       #   quay.io/codeready-toolchain-test/<name>:from.<repo>.PR<number>.<sha>
       #
-      # For a pull request, repo, number, and sha must belong to this run, so
-      # one pull request cannot overwrite another's tag. A /test e2e comment
-      # rebuild does not send those three values, so only the shape is checked.
+      # When the workflow sends a repository, pull request number, and commit,
+      # the tag must be that run's tag. A pull request sends them from GitHub's
+      # event. A /test e2e comment sends the commit the build saved, because
+      # the comment event itself points at master.
       images_file="${{ inputs.images-file }}"
       if [[ ! -s "${images_file}" ]]; then
         echo "e2e image list is missing or empty" >&2
