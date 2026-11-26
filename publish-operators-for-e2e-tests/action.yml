@@ -56,45 +56,15 @@ runs:
       if [[ -n ${PROVIDED_REF} ]]; then
         GH_HEAD_REF_PARAM="GITHUB_HEAD_REF=${PROVIDED_REF}"
       fi
+      # build-only keeps the publish scripts unchanged. They still call
+      # podman push. The sourced script makes those pushes record the image
+      # instead of sending it to Quay, and lets opm reuse a bundle that was
+      # just built locally.
       if [[ "${{ inputs.build-only }}" == "true" ]]; then
-        REAL_PODMAN=$(command -v podman)
-        LIST_DIR="${GITHUB_WORKSPACE}/e2e-images"
-        rm -rf "${LIST_DIR}"
-        mkdir -p "${LIST_DIR}"
-        WRAP_DIR=$(mktemp -d)
-        cat > "${WRAP_DIR}/podman" << EOF
-      #!/usr/bin/env bash
-      set -euo pipefail
-      real="${REAL_PODMAN}"
-      list="${LIST_DIR}/images.txt"
-      cmd="\${1:-}"
-      shift || true
-      if [[ "\${cmd}" == "push" ]]; then
-        image="\${@: -1}"
-        if [[ -n "\${image}" ]]; then
-          printf '%s\n' "\${image}" >> "\${list}"
-        fi
-        exit 0
-      fi
-      if [[ "\${cmd}" == "pull" ]]; then
-        image="\${@: -1}"
-        if [[ -n "\${image}" ]] && "\${real}" image exists "\${image}"; then
-          "\${real}" image inspect --format '{{.Id}}' "\${image}"
-          exit 0
-        fi
-      fi
-      exec "\${real}" "\${cmd}" "\$@"
-      EOF
-        chmod +x "${WRAP_DIR}/podman"
-        export PATH="${WRAP_DIR}:${PATH}"
+        # shellcheck disable=SC1091
+        source "${{ github.action_path }}/../scripts/cd/podman-build-only.sh"
       fi
       make publish-current-bundles-for-e2e QUAY_NAMESPACE=${{ inputs.quay-namespace }} IMAGE_BUILDER=podman PULL_PULL_SHA=${{ inputs.sha }} PULL_NUMBER=${{ inputs.pr-number }} AUTHOR=${{ inputs.author }} ${GH_HEAD_REF_PARAM:-}
       if [[ "${{ inputs.build-only }}" == "true" ]]; then
-        list="${GITHUB_WORKSPACE}/e2e-images/images.txt"
-        if [[ ! -s "${list}" ]]; then
-          echo "no images were recorded for the e2e archive" >&2
-          exit 1
-        fi
-        mapfile -t images < <(awk 'NF && !seen[$0]++' "${list}")
-        podman save --multi-image-archive -o "${GITHUB_WORKSPACE}/e2e-images/e2e-images.tar" "${images[@]}"
+        save_e2e_image_archive
       fi
